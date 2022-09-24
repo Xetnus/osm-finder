@@ -1,7 +1,39 @@
 html,
 body {
-    height: 80%;
+    height: 100%;
     width: 95%;
+}
+
+#canvas-section {
+    background-color: bisque;
+    height: 80%;
+    width: 100%;
+}
+
+#bottom-section {
+    height: 20%;
+    width: 100%;
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 20px;
+}
+
+button {
+    font-size: 16px;
+    height: 46px;
+    padding: 0 15px;
+    text-align: center;
+    border: 1px solid darkgreen;
+    background-color: lightgreen;
+}
+
+button:hover {
+    filter: brightness(80%);
+}
+
+button:active {
+    filter: brightness(40%);
 }
 
 /* Scale canvas with resize attribute to full size */
@@ -10,6 +42,6 @@ canvas[resize] {
     height: 100%;
 }
 
-.visuallyhidden {
+#picture {
     display: none;
 }
