@@ -19,14 +19,14 @@ body {
     gap: 20px;
 }
 
-#input-section > div > label {
+#parameter-input {
     width: auto;
-    display: inline-block;
 }
 
-#input-section > div {
-    display: flex;
-    justify-content: space-evenly;
+#parameter-input label {
+    float: none;
+    text-align: left;
+    width: auto;
 }
 
 select, input {

@@ -35,6 +35,7 @@ function loadRaster(img_width, img_height) {
 
     raster = new Raster('picture');
     raster.position = view.center;
+    raster.selected = false;
 
     // Scales the photo to the fullest extent possible with the paper size
     var widthRatio = paper.view.bounds.width / img_width;
@@ -55,15 +56,14 @@ function handleParameterConfig(lines, intersections, nodes) {
     var elements = nodes.concat(intersections).concat(lines);
 
     var getElementParameters = function(el) {
+        var parameterInput = document.getElementById('parameter-input');
         if (el.name.match(lineRegex)) {
             el.selected = true;
-            console.log(el);
 
-            var parameterInput = document.getElementById('parameter-input');
             parameterInput.innerHTML = '';
 
             parameterInput.append(createElementFromHtml(createTypeElementInput('linestring_generics', true)));
-            parameterInput.append(createElementFromHtml(createTypeElementInput('placeholder_subtypes', false)));
+            parameterInput.append(createElementFromHtml(createTypeElementInput(elementTypes['linestring_generics'][0] + '_subtypes', false)));
 
             document.getElementById('generic-type').onchange = function(){
                 var value = document.getElementById('generic-type').value;
@@ -72,17 +72,39 @@ function handleParameterConfig(lines, intersections, nodes) {
 
         } else if (el.name.match(intersectionRegex)) {
             el.selected = true;
-            console.log(el);
+            parameterInput.innerHTML = '';
+            parameterInput.append(createElementFromHtml('<section id="intersection-type"></section>'));
         } else if (el.name.match(nodeRegex)) {
             el.selected = true;
-            console.log(el);
+
+            parameterInput.innerHTML = '';
+
+            parameterInput.append(createElementFromHtml(createTypeElementInput('node_generics', true)));
+            parameterInput.append(createElementFromHtml(createTypeElementInput(elementTypes['node_generics'][0] + '_subtypes', false)));
+
+            document.getElementById('generic-type').onchange = function(){
+                var value = document.getElementById('generic-type').value;
+                document.getElementById('subtype-div').replaceWith(createElementFromHtml(createTypeElementInput(value + '_subtypes', false)));
+            }
         }
     }
 
     var html = '<section id="input-section"><section id="parameter-input"></section><button id="next-step">Next Step</button></section>';
     bottomSection.appendChild(createElementFromHtml(html));
 
+    // Lets the user input parameters for each element on the page
     document.getElementById('next-step').onclick = function() {
+        if (document.getElementById('generic-type')) {
+            var generic = document.getElementById('generic-type').value;
+            var subtype = document.getElementById('subtype').value;
+            var selected = project.getItem({selected: true, class: Path});
+            initializeParameters(selected.name, {'generic_type': generic, 'subtype': subtype});
+            console.log(parameters);
+        } else if (document.getElementById('intersection-type')) {
+            var selected = project.getItem({selected: true, class: Path});
+            initializeParameters(selected.name, {'generic_type': 'test', 'subtype': 'test'});
+        }
+
         for (var i = 0; i < history.length; i++) {
             history[i].selected = false;
         }
@@ -90,32 +112,15 @@ function handleParameterConfig(lines, intersections, nodes) {
         if (elements.length > 0) {
             getElementParameters(elements.pop());
         } else {
+            var parameterInput = document.getElementById('parameter-input');
+            parameterInput.innerHTML = '';
+
             console.log('all done!')
+            loadBottomSection(3);
         }
     }
 
     getElementParameters(elements.pop());
-
-    if (lines.length == 0) {
-        // no intersections
-        for (var i = 0; i < nodes.length; i++) {
-            console.log('none intersecting')
-        }
-    } else if (lines.length == 1) {
-        // no intersections
-        console.log('none intersecting')
-    } else if (lines.length >= 2) {
-        if (lines.length - 1 == intersections.length) {
-            // all intersecting
-            console.log('all intersecting')
-        } else if (intersections.length > 0) {
-            // some intersecting but some disjoint
-            console.log('some intersecting but some disjoint');
-        } else {
-            // no intersections
-            console.log('none intersecting')
-        }
-    }
 }
 
 function loadBottomSection(stage) {
@@ -194,13 +199,17 @@ function loadBottomSection(stage) {
 
         bottomSection.innerHTML = '';
         handleParameterConfig(lines, intersections, nodes);
-
+    } else if (stage == 3) {
+        bottomSection.innerHTML = '';
+        var query = constructQuery();
+        bottomSection.innerText = query;
     }
 }
 
 raster.on('load', function() {
     raster.visible = true;
     raster.position = view.center;
+    raster.selected = false;
     loadBottomSection(1);
 });
 
@@ -218,11 +227,13 @@ function onMouseDown(event) {
     }
 
     if (drawing_node) {
+        nodeCount++;
+
         point = new Path.Circle(new Point(event.point), 10);
         point.strokeColor = 'yellow';
         point.fillColor = 'firebrick';
         point.strokeWidth = 1;
-        point.fullySelected = true;
+        point.selected = true;
         point.name = nodePrefix + '' + nodeCount;
 
         drawing_node = false;
@@ -237,7 +248,7 @@ function onMouseDown(event) {
 		segments: [event.point, event.point],
 		strokeColor: 'black',
         strokeWidth: 5,
-		fullySelected: true,
+		selected: true,
         name: linePrefix + '' + lineCount
     });
 }
