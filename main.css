@@ -19,13 +19,40 @@ body {
     gap: 20px;
 }
 
+#input-section > div > label {
+    width: auto;
+    display: inline-block;
+}
+
+#input-section > div {
+    display: flex;
+    justify-content: space-evenly;
+}
+
+select, input {
+    width: 10em;
+}
+
+#button-section {
+    height: 10%;
+    width: 100%;
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    gap: 20px;
+}
+
 #label-section {
     height: 10%;
     width: 100%;
 }
 
 label {
-    width: auto;
+    margin-top: 10px;
+    display: block;
+    text-align: right;
+    width: 100%;
     float: right;
 }
 

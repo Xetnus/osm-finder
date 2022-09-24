@@ -3,6 +3,8 @@
 <head>
 	<link rel="stylesheet" href="main.css">
 	<script type="text/javascript" src="node_modules/paper/dist/paper-full.min.js"></script>
+	<script type="text/javascript" src="js/tools.js"></script>
+	<script type="text/javascript" src="js/query_creator.js"></script>
 	<script type="text/paperscript" src="js/main.js" canvas="canvas">
 </script>
 </head>
@@ -11,16 +13,7 @@
 		<img id="picture" src="College in Massachusetts.jpg">
 		<canvas id="canvas" resize></canvas>
 	</section>
-	<section id="input-section">
-		<button id="upload-photo">Upload Photo</button>
-		<button id="add-node">Add Node</button>
-		<button id="add-linestring">Add Linestring</button>
-		<button id="undo">Undo</button>
-		<button id="next-step">Next Step</button>
-	</section>
-	<section id="info-section">
-		<label id="instructions"></label>
-		<label id="stats"></label>
+	<section id="bottom-section">
 	</section>
 </body>
 </html>
