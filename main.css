@@ -10,13 +10,23 @@ body {
     width: 100%;
 }
 
-#bottom-section {
-    height: 20%;
+#input-section {
+    height: 10%;
     width: 100%;
     margin-top: 20px;
     display: flex;
     justify-content: flex-end;
     gap: 20px;
+}
+
+#label-section {
+    height: 10%;
+    width: 100%;
+}
+
+label {
+    width: auto;
+    float: right;
 }
 
 button {

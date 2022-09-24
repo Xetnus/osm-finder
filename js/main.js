@@ -4,6 +4,8 @@ var raster = new Raster('picture');
 var drawing_line = false;
 var drawing_node = false;
 var history = [];
+var linePrefix = 'line';
+var lineCount = 0;
 
 function load_raster(img_width, img_height) {
     if (raster)
@@ -45,11 +47,13 @@ document.getElementById('upload-photo').onclick = function() {
 document.getElementById('add-linestring').onclick = function() {
     drawing_node = false;
     drawing_line = true;
+    document.getElementById('instructions').innerText = 'Click and drag to draw a line.';
 }
 
 document.getElementById('add-node').onclick = function() {
     drawing_line = false;
     drawing_node = true;
+    document.getElementById('instructions').innerText = 'Click anywhere to place a node.';
 }
 
 document.getElementById('undo').onclick = function() {
@@ -65,12 +69,6 @@ document.getElementById('next-step').onclick = function() {
 raster.on('load', function() {
     raster.visible = true;
     raster.position = view.center;
-});
-
-var textItem = new PointText({
-	content: 'Click and drag to draw a line.',
-	point: new Point(0, view.viewSize.height),
-	fillColor: 'black',
 });
 
 function onMouseDown(event) {
@@ -98,13 +96,14 @@ function onMouseDown(event) {
         return;
     }
 
+    lineCount++;
 
-	// Create a new path and set its stroke color to black:
 	line = new Path.Line({
 		segments: [event.point, event.point],
 		strokeColor: 'black',
         strokeWidth: 5,
-		fullySelected: true
+		fullySelected: true,
+        name: linePrefix + '' + lineCount
     });
 }
 
@@ -116,8 +115,6 @@ function onMouseDrag(event) {
     line.insert(1, event.point);
 }
 
-// While the user drags the mouse, points are added to the path
-// at the position of the mouse:
 function onMouseUp(event) {
     if (!drawing_line || !line)
         return;
@@ -125,10 +122,25 @@ function onMouseUp(event) {
     line.removeSegment(1);
     line.insert(1, event.point);
 
-    history.push(line);
-    drawing_line = false;
+    // Used to group the line with any intersections, for removal later if undo is hit
+    var group = new Group([line]);
 
-	// Update the content of the text item to show how many
-	// segments it has:
-	textItem.content = 'Segment count: ' + line.segments.length;
+    items = project.getItems({name: /^line/});
+    for (var i = 0; i < items.length; i++) {
+        if (line.name != items[i].name) {
+            var intersections = line.getIntersections(items[i]);
+            if (intersections.length > 0) {
+                var circle = new Path.Circle({
+                    center: intersections[0].point,
+                    radius: 10,
+                    fillColor: 'orange',
+                    name: 'intersection: ' + line.name + ' ' + items[i].name
+                });
+                group.addChild(circle)
+            }
+        }
+    }
+
+    history.push(group);
+    drawing_line = false;
 }
