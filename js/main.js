@@ -38,22 +38,17 @@ function loadRaster(img_width, img_height) {
     raster.selected = false;
 
     // Scales the photo to the fullest extent possible with the paper size
-    var widthRatio = paper.view.bounds.width / img_width;
-    var heightRatio = paper.view.bounds.height / img_height;
+    var widthRatio = (paper.view.bounds.width - 50) / img_width;
+    var heightRatio = (paper.view.bounds.height - 50) / img_height;
     var scale = Math.min(widthRatio, heightRatio);
     raster.scale(scale, scale);
 }
 
-function handleParameterConfig(lines, intersections, nodes) {
-    for (var i = 0; i < lines.length; i++) {
-        lines[i].selected = false;
+function handleElementParams(combinedElements) {
+    for (var i = 0; i < combinedElements.length; i++) {
+        combinedElements[i].selected = false;
     }
 
-    for (var i = 0; i < nodes.length; i++) {
-        nodes[i].selected = false;
-    }
-
-    var elements = nodes.concat(intersections).concat(lines);
 
     var getElementParameters = function(el) {
         var parameterInput = document.getElementById('parameter-input');
@@ -99,7 +94,6 @@ function handleParameterConfig(lines, intersections, nodes) {
             var subtype = document.getElementById('subtype').value;
             var selected = project.getItem({selected: true, class: Path});
             initializeParameters(selected.name, {'generic_type': generic, 'subtype': subtype});
-            console.log(parameters);
         } else if (document.getElementById('intersection-type')) {
             var selected = project.getItem({selected: true, class: Path});
             initializeParameters(selected.name, {'generic_type': 'test', 'subtype': 'test'});
@@ -109,18 +103,124 @@ function handleParameterConfig(lines, intersections, nodes) {
             history[i].selected = false;
         }
 
-        if (elements.length > 0) {
-            getElementParameters(elements.pop());
+        if (combinedElements.length > 0) {
+            getElementParameters(combinedElements.pop());
         } else {
             var parameterInput = document.getElementById('parameter-input');
             parameterInput.innerHTML = '';
 
-            console.log('all done!')
             loadBottomSection(3);
         }
     }
 
-    getElementParameters(elements.pop());
+    getElementParameters(combinedElements.pop());
+}
+
+function handleRelationshipParams(combinedElements) {
+    var html = '<section id="input-section"><section id="parameter-input"></section><button id="next-step">Next Step</button></section>';
+    bottomSection.appendChild(createElementFromHtml(html));
+
+    var primaryElementsRemaining = combinedElements.slice(0);
+    var primary = primaryElementsRemaining.pop();
+    var secondaryElementsRemaining = primaryElementsRemaining.slice(0);
+    var secondary;
+
+    function getRelationshipParams(primary, secondary) {
+        if (primary.name == secondary.name)
+            return;
+
+        primary.selected = true;
+        secondary.selected = true;
+
+        var primarySegment = primary.firstSegment.point.y > primary.lastSegment.point.y ? primary.firstSegment : primary.lastSegment;
+        var secondarySegment = secondary.firstSegment.point.y > secondary.lastSegment.point.y ? secondary.firstSegment : secondary.lastSegment;
+
+        var primaryX = primarySegment.point.x;
+        var primaryY = primarySegment.point.y;
+        var secondaryX = secondarySegment.point.x;
+        var secondaryY = secondarySegment.point.y;
+
+        var x = Math.abs(primaryX - secondaryX) / 2;
+        var y = Math.abs(primaryY - secondaryY) / 2;
+
+        x += (primaryX > secondaryX ? secondaryX : primaryX);
+        y += (primaryY > secondaryY ? secondaryY : primaryY);
+
+        var text = new PointText(x, y);
+        text.justification = 'center';
+        text.fillColor = 'white';
+        text.fontSize = '20';
+        text.shadowColor = 'black';
+        text.shadowBlur = '4';
+        text.content = 'θ'; 
+        text.name = 'angle-text';
+
+        var curve = new Path({
+            segments: [primarySegment, [x, y - 50], secondarySegment],
+            strokeColor: 'blue',
+            strokeWidth: '3',
+            name: 'curve',
+        });
+
+        var parameterInput = document.getElementById('parameter-input');
+        parameterInput.append(createElementFromHtml('<label>Max Distance (m)</label>'));
+        parameterInput.append(createElementFromHtml('<input type="text" id="distance"></input>'));
+        parameterInput.append(createElementFromHtml('<label>Angle</label>'));
+        parameterInput.append(createElementFromHtml('<input type="text" id="angle"></input>'));
+        parameterInput.append(createElementFromHtml('<label>+/-</label>'));
+        parameterInput.append(createElementFromHtml('<input type="text" id="error"></input>'));
+    }
+
+    // Lets the user input parameters for each element on the page
+    document.getElementById('next-step').onclick = function() {
+        for (var i = 0; i < combinedElements.length; i++) {
+            combinedElements[i].selected = false;
+        }
+
+        var angle = parseInt(document.getElementById('angle').value);
+        var error = parseInt(document.getElementById('error').value);
+        var distance = parseInt(document.getElementById('distance').value);
+
+        if (isNaN(distance)) {
+            alert('For your sake, distance is required.');
+            return;
+        }
+
+        document.getElementById('parameter-input').innerHTML = '';
+
+        angle = (isNaN(angle) || isNaN(error)) ? '' : ' ' + Math.abs(angle);
+        error = (isNaN(angle) || isNaN(error)) ? '' : ' ' + Math.abs(error);
+        var primaryParams = getParametersByName(primary.name);
+        primaryParams[[secondary.name]] = distance + angle + error;
+        initializeParameters(primary.name, primaryParams);
+
+        if (secondaryElementsRemaining.length > 0) {
+            secondary = secondaryElementsRemaining.pop();
+            
+            if (secondary != null) {
+                getRelationshipParams(primary, secondary);
+                return;
+            }
+        } else if (primaryElementsRemaining.length > 0) {
+            primary = primaryElementsRemaining.pop();
+            secondaryElementsRemaining = primaryElementsRemaining.slice(0);
+
+            secondary = secondaryElementsRemaining.pop();
+
+            if (secondary != null) {
+                getRelationshipParams(primary, secondary);
+                return;
+            }
+
+        }
+
+        loadBottomSection(4);
+    }
+
+    secondary = secondaryElementsRemaining.pop();
+    if (secondary != null)
+        getRelationshipParams(primary, secondary);
+
 }
 
 function loadBottomSection(stage) {
@@ -198,11 +298,18 @@ function loadBottomSection(stage) {
         }
 
         bottomSection.innerHTML = '';
-        handleParameterConfig(lines, intersections, nodes);
+        handleElementParams(nodes.concat(intersections).concat(lines));
     } else if (stage == 3) {
+        var lines = project.getItems({name: lineRegex});
+        var intersections = project.getItems({name: intersectionRegex});
+        var nodes = project.getItems({name: nodeRegex});
+
+        bottomSection.innerHTML = '';
+        handleRelationshipParams(nodes.concat(intersections).concat(lines));
+    } else if (stage == 4) {
         bottomSection.innerHTML = '';
         var query = constructQuery();
-        bottomSection.innerText = query;
+        bottomSection.appendChild(createElementFromHtml('<pre>'+query+'</pre>'));
     }
 }
 
@@ -236,8 +343,19 @@ function onMouseDown(event) {
         point.selected = true;
         point.name = nodePrefix + '' + nodeCount;
 
+        var text = new PointText(event.point.x, event.point.y - 15);
+        text.justification = 'center';
+        text.fillColor = 'white';
+        text.fontSize = '15';
+        text.shadowColor = 'black';
+        text.shadowBlur = '4';
+        text.content = point.name; 
+
+        var group = new Group([point]);
+        group.addChild(text);
+
         drawing_node = false;
-        history.push(point);
+        history.push(group);
         updateStats();
         return;
     }
@@ -270,6 +388,15 @@ function onMouseUp(event) {
 
     // Used to group the line with any intersections, for removal later if undo is hit
     var group = new Group([line]);
+
+    var text = new PointText(event.point);
+    text.justification = 'center';
+    text.fillColor = 'white';
+    text.fontSize = '20';
+    text.shadowColor = 'black';
+    text.shadowBlur = '4';
+    text.content = line.name; 
+    group.addChild(text);
 
     // Finds intersections and adds a circle at that point
     items = project.getItems({name: lineRegex});
