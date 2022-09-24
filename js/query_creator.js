@@ -58,6 +58,15 @@ function constructNonIntersectingQuery(nodes, lines) {
 
     query += 'WHERE ';
     for (var i = lines.length - 1; i >= 0; i--) {
+        // Adds any additional tag entered by the user to the WHERE
+        if (parameters['lines'][lines[i]]['tag'] != '') {
+            var results = parameters['lines'][lines[i]]['tag'].split(' ');
+            query += lines[i] + '.tags->>\'' + results[0] + '\' ';
+
+            if (results.length > 1)
+                query += '= \'' + results[1] + '\' '
+        }
+
         var generic_type = parameters['lines'][lines[i]]['generic_type'];
         var subtype = parameters['lines'][lines[i]]['subtype'];
         var subtypeString = (subtype == '' ? '' : lines[i] + '.subtype = \'' + subtype + '\' AND ');
@@ -100,9 +109,13 @@ function constructNonIntersectingQuery(nodes, lines) {
                     upperBounds[0] = 180;
                     lowerBounds[1] = 0;
                     upperBounds[1] = up % 180;
+                } else if (lowerBounds[0] < 0) {
+                    lowerBounds[1] = 180 + lowerBounds[0];
+                    lowerBounds[0] = 0;
+                    upperBounds[1] = 180;
                 }
 
-                if (lowerBounds.length == 1 && (upperBounds[0] < 90) || lowerBounds[0] > 90) {
+                if (lowerBounds.length == 1 && (upperBounds[0] < 90 || lowerBounds[0] > 90)) {
                     lowerBounds[1] = 180 - upperBounds[0];
                     upperBounds[1] = 180 - lowerBounds[0];
                 }

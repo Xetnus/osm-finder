@@ -59,6 +59,10 @@ function handleElementParams(combinedElements) {
 
             parameterInput.append(createElementFromHtml(createTypeElementInput('linestring_generics', true)));
             parameterInput.append(createElementFromHtml(createTypeElementInput(elementTypes['linestring_generics'][0] + '_subtypes', false)));
+            parameterInput.append(createElementFromHtml('<label>Additional Tag</label>'));
+            parameterInput.append(createElementFromHtml('<input id="tag-key" type="text"></input>'));
+            parameterInput.append(createElementFromHtml('<label>Tag Value</label>'));
+            parameterInput.append(createElementFromHtml('<input id="tag-value" type="text"></input>'));
 
             document.getElementById('generic-type').onchange = function(){
                 var value = document.getElementById('generic-type').value;
@@ -76,6 +80,10 @@ function handleElementParams(combinedElements) {
 
             parameterInput.append(createElementFromHtml(createTypeElementInput('node_generics', true)));
             parameterInput.append(createElementFromHtml(createTypeElementInput(elementTypes['node_generics'][0] + '_subtypes', false)));
+            parameterInput.append(createElementFromHtml('<label>Additional Tag</label>'));
+            parameterInput.append(createElementFromHtml('<input id="tag-key" type="text"></input>'));
+            parameterInput.append(createElementFromHtml('<label>Tag Value</label>'));
+            parameterInput.append(createElementFromHtml('<input id="tag-value" type="text"></input>'));
 
             document.getElementById('generic-type').onchange = function(){
                 var value = document.getElementById('generic-type').value;
@@ -92,8 +100,11 @@ function handleElementParams(combinedElements) {
         if (document.getElementById('generic-type')) {
             var generic = document.getElementById('generic-type').value;
             var subtype = document.getElementById('subtype').value;
+            var tagKey = document.getElementById('tag-key').value;
+            var tagValue = document.getElementById('tag-value').value;
+            var tag = tagKey == '' ? '' : tagKey + (tagValue == '' ? '' : ' ' + tagValue);
             var selected = project.getItem({selected: true, class: Path});
-            initializeParameters(selected.name, {'generic_type': generic, 'subtype': subtype});
+            initializeParameters(selected.name, {'generic_type': generic, 'subtype': subtype, 'tag': tag});
         } else if (document.getElementById('intersection-type')) {
             var selected = project.getItem({selected: true, class: Path});
             initializeParameters(selected.name, {'generic_type': 'test', 'subtype': 'test'});
@@ -163,7 +174,7 @@ function handleRelationshipParams(combinedElements) {
         });
 
         var parameterInput = document.getElementById('parameter-input');
-        parameterInput.append(createElementFromHtml('<label>Max Distance (m)</label>'));
+        parameterInput.append(createElementFromHtml('<label>Max Distance (m)*</label>'));
         parameterInput.append(createElementFromHtml('<input type="text" id="distance"></input>'));
         parameterInput.append(createElementFromHtml('<label>Angle</label>'));
         parameterInput.append(createElementFromHtml('<input type="text" id="angle"></input>'));
@@ -181,8 +192,11 @@ function handleRelationshipParams(combinedElements) {
         var error = parseInt(document.getElementById('error').value);
         var distance = parseInt(document.getElementById('distance').value);
 
+        project.getItem({name: 'curve'}).remove();
+        project.getItem({name: 'angle-text'}).remove();
+
         if (isNaN(distance)) {
-            alert('For your sake, distance is required.');
+            alert('For your computer\'s sake, distance is required.');
             return;
         }
 
@@ -408,7 +422,7 @@ function onMouseUp(event) {
                     center: intersections[0].point,
                     radius: 10,
                     fillColor: 'orange',
-                    name: intersectionPrefix + ': ' + line.name + ' ' + items[i].name
+                    name: intersectionPrefix + ' ' + line.name + ' ' + items[i].name
                 });
                 group.addChild(circle)
             }

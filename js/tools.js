@@ -19,7 +19,7 @@ function createElementFromHtml(html) {
 function createTypeElementInput(type, is_generic) {
     var html; 
     if (is_generic) {
-        html = '<div id="generic-div"><label id="generic-type-label">Generic Type</label>';
+        html = '<div id="generic-div"><label id="generic-type-label">Generic Type*</label>';
 
         if (elementTypes[type].length == 0) {
             html += '<input id="subtype" type="text"></input>'
