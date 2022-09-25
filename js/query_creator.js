@@ -24,7 +24,8 @@ function getParametersByName(name) {
 
 }
 
-var nonintersecting_query = `
+// Example Query for NonIntersecting
+/*
 SELECT line1.way_id, line2.way_id
 FROM linestrings AS line1, linestrings as line2
 
@@ -35,7 +36,8 @@ WHERE line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND line2.gen
     -
     degrees(ST_Azimuth(ST_StartPoint(line1.geom), ST_EndPoint(line1.geom)))
   )::decimal % 180.0) BETWEEN 60 AND 120
-);`;
+);
+*/
 
 function constructNonIntersectingQuery(nodes, lines) {
     var query = 'SELECT ';
@@ -56,7 +58,8 @@ function constructNonIntersectingQuery(nodes, lines) {
             query += lines[i] + '.tags->>\'' + results[0] + '\' ';
 
             if (results.length > 1)
-                query += '= \'' + results[1] + '\' '
+                query += '= \'' + results[1] + '\' ';
+            query += 'AND ';
         }
 
         var generic_type = parameters['lines'][lines[i]]['generic_type'];
@@ -135,6 +138,258 @@ function constructNonIntersectingQuery(nodes, lines) {
     return query;
 }
 
+// Example Query for Intersecting
+/*
+WITH intersections AS
+(
+  SELECT
+    ((ST_DumpPoints(	
+      ST_Intersection(line1.geom, line3.geom)
+    )).geom) AS intersection1,
+    ((ST_DumpPoints(	
+      ST_Intersection(line2.geom, line3.geom)
+    )).geom) AS intersection2,
+    line1.geom AS line1_geom,
+    line2.geom AS line2_geom,
+    line3.geom AS line3_geom,
+    line1.way_id AS line1_way_id,
+    line2.way_id AS line2_way_id,
+    line3.way_id AS line3_way_id
+  FROM linestrings AS line1, linestrings AS line2, linestrings as line3
+  WHERE line1.tags->>'bridge' = 'yes' AND line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND line2.tags->>'bridge' = 'yes' AND line2.generic_type = 'highway' AND line2.subtype = 'vehicle' AND line1.way_id != line2.way_id AND line3.generic_type = 'highway' AND line3.subtype = 'vehicle' AND ST_Intersects(line1.geom, line3.geom) AND ST_Intersects(line2.geom, line3.geom) AND ST_DWithin(line1.geom, line2.geom, 1000) AND ST_Distance(line1.geom, line2.geom) > 200
+),
+buffers AS 
+(
+  SELECT
+    intersections.intersection1,
+    intersections.intersection2,
+    ST_ExteriorRing(ST_Buffer(intersections.intersection1, 0.5)) AS ring1,
+    ST_ExteriorRing(ST_Buffer(intersections.intersection2, 0.5)) AS ring2,
+    intersections.line1_geom,
+    intersections.line2_geom,
+    intersections.line3_geom,
+    intersections.line1_way_id,
+    intersections.line2_way_id,
+    intersections.line3_way_id
+  FROM intersections
+),
+points AS
+(
+  SELECT 
+    ST_GeometryN
+    (
+      ST_Intersection(buffers.ring1, buffers.line1_geom)
+      , 1
+    ) AS ring1_p1,
+    ST_GeometryN
+    (
+      ST_Intersection(buffers.ring1, buffers.line3_geom)
+      , 1
+    ) AS ring1_p2,
+    ST_GeometryN
+    (
+      ST_Intersection(buffers.ring2, buffers.line2_geom)
+      , 1
+    ) AS ring2_p1,
+    ST_GeometryN
+    (
+      ST_Intersection(buffers.ring2, buffers.line3_geom)
+      , 1
+    ) AS ring2_p2,
+    buffers.intersection1,
+    buffers.intersection2,
+    buffers.ring1,
+    buffers.ring2,
+    buffers.line1_geom,
+    buffers.line2_geom,
+    buffers.line3_geom,
+    buffers.line1_way_id,
+    buffers.line2_way_id,
+    buffers.line3_way_id
+  FROM buffers
+)
+SELECT 
+  points.line1_way_id,
+  points.line2_way_id,
+  points.line3_way_id
+FROM points
+WHERE
+  (
+    abs(round(degrees(
+      ST_Azimuth(points.ring1_p2, points.intersection1)
+      -
+      ST_Azimuth(points.ring1_p1, points.intersection1)
+    ))::decimal % 180.0) BETWEEN 88 AND 92
+  )
+  AND
+  (
+    abs(round(degrees(
+      ST_Azimuth(points.ring2_p2, points.intersection2)
+      -
+      ST_Azimuth(points.ring2_p1, points.intersection2)
+    ))::decimal % 180.0) BETWEEN 45 AND 85
+    OR
+    abs(round(degrees(
+      ST_Azimuth(points.ring2_p2, points.intersection2)
+      -
+      ST_Azimuth(points.ring2_p1, points.intersection2)
+    ))::decimal % 180.0) BETWEEN 95 AND 135
+  )
+;
+*/
+function constructIntersectingQuery(nodes, lines) {
+    var allIntersectingPairs = [];
+    var allIntersectingLines = new Set();
+    var intersectingPairsWithAngles = [];
+    for (var i = 0; i < lines.length; i++) {
+        intersections = parameters['lines'][lines[i]]['intersections'];
+        if (intersections && intersections.length > 0) {
+            for (var j = 0; j < intersections.length; j++) {
+                allIntersectingLines.add(lines[i]);
+                allIntersectingLines.add(intersections[j]);
+                allIntersectingPairs.push({[lines[i]]: intersections[j]});
+
+                if (parameters['lines'][lines[i]][intersections[j]].split(' ').length == 3)
+                    intersectingPairsWithAngles.push({[lines[i]]: intersections[j]});
+            }
+        }
+    }
+
+    var disjointLines = lines.filter(value => !allIntersectingLines.has(value));
+
+    // return JSON.stringify(intersectingPairsWithAngles) + '\n' + JSON.stringify(allIntersectingPairs);
+
+    var query = 'WITH intersections AS\n';
+    query += '(\n';
+    query += '  SELECT\n';
+
+    for (var i = intersectingPairsWithAngles.length - 1; i >= 0; i--) {
+        var key = Object.keys(intersectingPairsWithAngles[i])[0];
+        var val = intersectingPairsWithAngles[i][key];
+
+        query += '    ((ST_DumpPoints(\n';
+        query += '      ST_Intersection(' + key + '.geom, ' + val + '.geom)\n';
+        query += '    )).geom) AS intersection' + (i + 1) + ',\n';
+    }
+
+    for (var i = lines.length - 1; i >= 0; i--) {
+        var comma = (i == 0) ? '' : ','
+        // TODO: we only need the geometry of lines with angles, but for now we're including everything
+        query += '    ' + lines[i] + '.geom AS ' + lines[i] + '_geom,\n';
+        query += '    ' + lines[i] + '.way_id AS ' + lines[i] + '_way_id' + comma + '\n';
+    }
+
+    query += '  FROM ';
+    for (var i = lines.length - 1; i >= 0; i--) {
+        var comma = (i == 0) ? '\n' : ', '
+        query += 'linestrings AS ' + lines[i] + comma
+    }
+
+    query += '  WHERE ';
+    for (var i = lines.length - 1; i >= 0; i--) {
+        // Adds any additional tag entered by the user to the WHERE
+        if (parameters['lines'][lines[i]]['tag'] != '') {
+            var results = parameters['lines'][lines[i]]['tag'].split(' ');
+            query += lines[i] + '.tags->>\'' + results[0] + '\' ';
+
+            if (results.length > 1)
+                query += '= \'' + results[1] + '\' ';
+            query += ' AND';
+        }
+
+        var generic_type = parameters['lines'][lines[i]]['generic_type'];
+        var subtype = parameters['lines'][lines[i]]['subtype'];
+        var subtypeString = (subtype == '' ? '' : lines[i] + '.subtype = \'' + subtype + '\' AND ');
+        query += lines[i] + '.generic_type = \'' + generic_type + '\' AND ' + subtypeString;
+    }
+
+    for (var i = allIntersectingPairs.length - 1; i >= 0; i--) {
+        var key = Object.keys(allIntersectingPairs[i])[0];
+        var val = allIntersectingPairs[i][key];
+        query += 'ST_Intersects(' + key + '.geom, ' + val + '.geom) AND '
+    }
+
+    for (var i = disjointLines.length - 1; i >= 0; i--) {
+        for (var j = lines.length - 1; j >= 0; j--) {
+            if (i == j) continue;
+
+            if (parameters['lines'][disjointLines[i]][[lines[j]]]) {
+                var distance = parameters['lines'][disjointLines[i]][[lines[j]]].split(' ')[0];
+                query += 'ST_DWithin(' + disjointLines[i] + '.geom, ' + lines[j] + '.geom, ' + distance + ') AND ';
+            }
+        }
+    }
+
+    query = query.slice(0, query.length - 4); // remove last AND
+    query += '\n';
+    query += '),\n';
+    query += 'buffers AS\n';
+    query += '(\n';
+    query += '  SELECT\n';
+
+    for (var i = intersectingPairsWithAngles.length - 1; i >= 0; i--) {
+        query += '    intersections.intersection' + (i + 1)+ ',\n';
+        query += '    ST_ExteriorRing(ST_Buffer(intersections.intersection' + (i + 1) + ', 0.5)) AS ring' + (i + 1) + ',\n';
+    }
+
+    for (var i = lines.length - 1; i >= 0; i--) {
+        var comma = (i == 0) ? '' : ',';
+        // TODO: we only need the geometry of lines with angles, but for now we're including everything
+        query += '    intersections.' + lines[i] + '_geom,\n';
+        query += '    intersections.' + lines[i] + '_way_id' + comma + '\n';
+    }
+    query += '  FROM intersections\n';
+    query += '),\n';
+
+    query += 'points AS\n';
+    query += '(\n';
+    query += '  SELECT\n';
+
+    for (var i = intersectingPairsWithAngles.length - 1; i >= 0; i--) {
+        var key = Object.keys(intersectingPairsWithAngles[i])[0];
+        var val = intersectingPairsWithAngles[i][key];
+
+        query += '    ST_GeometryN\n';
+        query += '    (\n';
+        query += '      ST_Intersection(buffers.ring' + (i + 1) + ', buffers.' + val + '_geom)\n';
+        query += '      , 1';
+        query += '    ) AS ring' + (i + 1) + '_p1,\n';
+        query += '    ST_GeometryN\n';
+        query += '    (\n';
+        query += '      ST_Intersection(buffers.ring' + (i + 1) + ', buffers.' + key + '_geom)\n';
+        query += '      , 1\n';
+        query += '    ) AS ring' + (i + 1) + '_p2,\n';
+    }
+
+    for (var i = intersectingPairsWithAngles.length - 1; i >= 0; i--) {
+        query += '    buffers.intersection' + (i + 1) + ',\n';
+        query += '    buffers.ring' + (i + 1) + ',\n';
+    }
+
+    for (var i = lines.length - 1; i >= 0; i--) {
+        var comma = (i == 0) ? '' : ',';
+        // TODO: we only need the geometry of lines with angles, but for now we're including everything
+        query += '    buffers.' + lines[i] + '_geom,\n';
+        query += '    buffers.' + lines[i] + '_way_id' + comma + '\n';
+    }
+
+    query += '  FROM buffers\n';
+    query += ')';
+
+    query += 'SELECT\n';
+    for (var i = lines.length - 1; i >= 0; i--) {
+        var comma = (i == 0) ? '' : ',';
+        query += 'points.' + lines[i] + '_way_id' + comma + '\n';
+    }
+    query += 'FROM points\n';
+    query += 'WHERE\n';
+    
+
+    
+
+    return query;
+}
+
 function constructQuery() {
     var nodes = Object.keys(parameters['nodes']);
     var lines = Object.keys(parameters['lines']);
@@ -147,9 +402,10 @@ function constructQuery() {
 
     if (intersectionsCount == 0) {
         console.log('no intersections');
-        console.log(lines.length + ' lines and ' + nodes.length + ' nodes')
+        console.log(lines.length + ' lines and ' + nodes.length + ' nodes');
         return constructNonIntersectingQuery(nodes, lines);
     } else {
-        console.log(lines.length + ' lines and ' + nodes.length + ' nodes')
+        console.log(lines.length + ' lines and ' + nodes.length + ' nodes');
+        return constructIntersectingQuery(nodes, lines);
     }
 }

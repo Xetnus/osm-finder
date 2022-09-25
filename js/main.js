@@ -49,7 +49,6 @@ function handleElementParams(combinedElements) {
         combinedElements[i].selected = false;
     }
 
-
     var getElementParameters = function(el) {
         var parameterInput = document.getElementById('parameter-input');
         if (el.name.match(lineRegex)) {
@@ -57,6 +56,7 @@ function handleElementParams(combinedElements) {
 
             parameterInput.innerHTML = '';
 
+            parameterInput.append(createElementFromHtml('<label><b>Details for ' + el.name + '</b/</label>'));
             parameterInput.append(createElementFromHtml(createTypeElementInput('linestring_generics', true)));
             parameterInput.append(createElementFromHtml(createTypeElementInput(elementTypes['linestring_generics'][0] + '_subtypes', false)));
             parameterInput.append(createElementFromHtml('<label>Additional Tag</label>'));
@@ -73,6 +73,7 @@ function handleElementParams(combinedElements) {
 
             parameterInput.innerHTML = '';
 
+            parameterInput.append(createElementFromHtml('<label><b>Details for ' + el.name + '</b></label>'));
             parameterInput.append(createElementFromHtml(createTypeElementInput('node_generics', true)));
             parameterInput.append(createElementFromHtml(createTypeElementInput(elementTypes['node_generics'][0] + '_subtypes', false)));
             parameterInput.append(createElementFromHtml('<label>Additional Tag</label>'));
@@ -342,8 +343,8 @@ function loadBottomSection(stage) {
         var lines = project.getItems({name: lineRegex});
         var nodes = project.getItems({name: nodeRegex});
 
-        if (lines.length == 0 && nodes.length == 0) {
-            alert('At least one line or node is required.');
+        if ((lines.length < 2 && nodes.length == 0) || (nodes.length < 2 && lines.length == 0)) {
+            alert('At least two lines, nodes, or a combination of each are required.');
             return;
         }
 
