@@ -239,26 +239,6 @@ function handleRelationshipParams(combinedElements) {
         } else if (primaryElementsRemaining.length > 0) {
             primary = primaryElementsRemaining.pop();
             secondaryElementsRemaining = primaryElementsRemaining.slice(0);
-
-            // // Removes intersecting secondary elements that have already been checked
-            // var tempSecondaryElements = [];
-            // var lines = project.getItems({name: lineRegex});
-            // for (var i = 0; i < lines.length; i++) {
-            //     if (primary.getIntersections(lines[i]).length > 0) 
-            //         tempSecondaryElements.push(lines[i]);
-            // }
-
-            // if (tempSecondaryElements.length > 0) {
-            //     tempSecondaryElements = [];
-            //     for (var i = 0; i < lines.length; i++) {
-            //         var params = getParametersByName(lines[i].name);
-            //         if (params[[primary.name]] == null && primary.getIntersections(lines[i]).length > 0) {
-            //             tempSecondaryElements.push(lines[i]);
-            //         } 
-            //     }
-            //     secondaryElementsRemaining = tempSecondaryElements.slice(0);
-            // }
-
             secondary = secondaryElementsRemaining.pop();
 
             if (secondary != null) {
@@ -281,7 +261,7 @@ function handleRelationshipParams(combinedElements) {
 function loadBottomSection(stage) {
     if (stage == 1) {
         var html = '<section id="button-section"><button id="upload-photo">Upload Photo</button>';
-        html += '<button id="add-node">Add Node</button><button id="add-linestring">Add Linestring</button>';
+        html += '<button id="add-node" disabled="true" title="Not yet completed">Add Node</button><button id="add-linestring">Add Linestring</button>';
         html += '<button id="undo">Undo</button><button id="next-step">Next Step</button></section>';
         html += '<section id="info-section"><label id="instructions"></label><label id="stats"></label></section>';
         bottomSection.appendChild(createElementFromHtml(html));

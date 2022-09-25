@@ -50,6 +50,21 @@ function constructNonIntersectingQuery(nodes, lines) {
         query += 'linestrings AS ' + lines[i] + (i == 0 ? '\n' : ', ');
     }
 
+    var identicalTypes = {};
+    // TODO: imperfect solution. Doesn't include any additional tags added by user.
+    for (var i = lines.length - 1; i >= 0; i--) {
+        var generic_type = parameters['lines'][lines[i]]['generic_type'];
+        var subtype = parameters['lines'][lines[i]]['subtype'];
+        var key = generic_type + ' ' + subtype;
+
+        if (identicalTypes[key] == undefined) {
+            identicalTypes[key] = [lines[i]];
+        } else {
+            var array = identicalTypes[key];
+            identicalTypes[key] = array.concat([lines[i]]);
+        }
+    }
+
     query += 'WHERE ';
     for (var i = lines.length - 1; i >= 0; i--) {
         // Adds any additional tag entered by the user to the WHERE
@@ -66,6 +81,14 @@ function constructNonIntersectingQuery(nodes, lines) {
         var subtype = parameters['lines'][lines[i]]['subtype'];
         var subtypeString = (subtype == '' ? '' : lines[i] + '.subtype = \'' + subtype + '\' AND ');
         query += lines[i] + '.generic_type = \'' + generic_type + '\' AND ' + subtypeString;
+    }
+
+    // TODO: imperfect solution. Doesn't cover every nested case.
+    var keys = Object.keys(identicalTypes);
+    for (var i = keys.length - 1; i >= 0; i--) {
+        for (var j = identicalTypes[keys[i]].length - 1; j > 0; j--) {
+            query += identicalTypes[keys[i]][j] + '.way_id != ' + identicalTypes[keys[i]][j - 1] + '.way_id AND ';
+        }
     }
 
     for (var i = lines.length - 1; i >= 0; i--) {
@@ -254,6 +277,7 @@ function constructIntersectingQuery(nodes, lines) {
         }
     }
 
+    // not used at this point
     var disjointLines = lines.filter(value => !allIntersectingLines.has(value));
 
     var query = 'WITH intersections AS\n';
@@ -329,13 +353,20 @@ function constructIntersectingQuery(nodes, lines) {
         query += 'ST_Intersects(' + key + '.geom, ' + val + '.geom) AND '
     }
 
-    for (var i = disjointLines.length - 1; i >= 0; i--) {
+    for (var i = lines.length - 1; i >= 0; i--) {
         for (var j = lines.length - 1; j >= 0; j--) {
             if (i == j) continue;
 
-            if (parameters['lines'][disjointLines[i]][[lines[j]]]) {
-                var maxDistance = parameters['lines'][disjointLines[i]][[lines[j]]]['max_distance'];
-                query += 'ST_DWithin(' + disjointLines[i] + '.geom, ' + lines[j] + '.geom, ' + maxDistance + ') AND ';
+            if (parameters['lines'][lines[i]][[lines[j]]]) {
+                var maxDistance = parameters['lines'][lines[i]][[lines[j]]]['max_distance'];
+                if (maxDistance != 0) {
+                    query += 'ST_DWithin(' + lines[i] + '.geom, ' + lines[j] + '.geom, ' + maxDistance + ') AND ';
+                }
+
+                var minDistance = parameters['lines'][lines[i]][[lines[j]]]['min_distance'];
+                if (minDistance != 0) {
+                    query += 'ST_Distance(' + lines[i] + '.geom, ' + lines[j] + '.geom) > ' + minDistance + ' AND ';
+                }
             }
         }
     }
