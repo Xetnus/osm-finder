@@ -50,9 +50,9 @@ You can confirm your database was set up correctly by running `\dt`. You should 
 4. Install python3 if not already installed and run `python3 -m http.server` in project directory. Copy the URL that the command outputs and paste it into a web browser window.
 
 ## Usage
-Upload Photo: upload any photo you want to geolocate 
-Add Linestring: Click and drag to annotate a line in the image (e.g. highway, railway, power line)
-Next Step: Continue through the next steps, entering the properties for the linestrings and entering any distance or angle parameters between the linestrings.
+Upload Photo: upload any photo you want to geolocate  
+Add Linestring: Click and drag to annotate a line in the image (e.g. highway, railway, power line)  
+Next Step: Continue through the next steps, entering the properties for the linestrings and entering any distance or angle parameters between the linestrings.  
 
 ## Additional Information
 - Currently only tested on images with one highway intersecting two other highways/bridges.
