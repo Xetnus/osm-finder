@@ -6,7 +6,7 @@ function initializeParameters(elementName, params) {
     } else if (elementName.startsWith('node')) {
         parameters['nodes'][[elementName]] = params;
     }
-    console.log(parameters);
+    // console.log(parameters);
 }
 
 function getParametersByName(name) {
@@ -502,11 +502,8 @@ function constructQuery() {
     }
 
     if (intersectionsCount == 0) {
-        console.log('no intersections');
-        console.log(lines.length + ' lines and ' + nodes.length + ' nodes');
         return constructNonIntersectingQuery(nodes, lines);
     } else {
-        console.log(lines.length + ' lines and ' + nodes.length + ' nodes');
         return constructIntersectingQuery(nodes, lines);
     }
 }

@@ -1,24 +1,26 @@
-# Project name
+# osm-finder (placeholder)
 
 ## Team Members
-This section is a list of team members, and possibly links to GitHub/GitLab/LinkedIn/personal blog pages for members.
+Grant (Xetnus)
 
 ## Tool Description
 This sections discusses the purpose and motivation for the tool, and how it addresses a tool need you've identified.
 
 ## Installation
-This section includes detailed instructions for installing the tool, including any terminal commands that need to be executed and dependencies that need to be installed. Instructions should be understandable by non-technical users (e.g. someone who knows how to open a terminal and run commands, but isn't necessarily a programmer), for example:
 
-1. Make sure you have Python version 3.8 or greater installed
+1. Install osm2pgsql version 1.7.0 or higher. On Ubuntu and Fedora, this requires building from source.
+To install on Linux through a package manager: https://osm2pgsql.org/doc/install.html#installing-on-linux
+To install on Windows using prebuilt binaries: https://osm2pgsql.org/doc/install.html#installing-on-windows
+To install on Ubuntu, follow Building instructions: https://github.com/openstreetmap/osm2pgsql
 
-2. Download the tool's repository using the command:
+2. Download openstreetmap data for your area of interest. To follow along with the demo, download the data for Massachusetts at https://download.geofabrik.de/north-america/us.html. Click on the .osm.bz2 download.
 
-        git clone https://github.com/bellingcat/hackathon-submission-template.git
+3. Download [flex.lua](https://github.com/Xetnus/osm-finder/blob/main/flex.lua) and run the osm2pgsql command `osm2pgsql -d osm -c massachusetts-latest.osm.bz2 -S flex.lua -O flex`
 
-3. Move to the tool's directory and install the tool
+4. Download this project repository.
+        git clone git@github.com:Xetnus/osm-finder.git
 
-        cd hackathon-submission-template
-        pip install .
+4. Install python3 if not already installed a run `python3 -m http.server` in project directory.
 
 ## Usage
 This sections includes detailed instructions for using the tool. If the tool has a command-line interface, include common commands and arguments, and some examples of commands and a description of the expected output. If the tool has a graphical user interface or a browser interface, include screenshots and describe a common workflow.
