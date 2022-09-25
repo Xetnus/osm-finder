@@ -44,10 +44,12 @@ psql
 ```
 You can confirm your database was set up correctly by running `\dt`. You should see four tables: `closed_shapes`, `linestrings`, `points`, and `spatial_ref_sys`.
 
-4. Download this project repository.  
+5. Download this project repository.  
         `git clone git@github.com:Xetnus/osm-finder.git`
 
-4. Install python3 if not already installed and run `python3 -m http.server` in project directory. Copy the URL that the command outputs and paste it into a web browser window.
+6. Install paper.js: `npm install paper`
+
+7. Install python3 if not already installed and run `python3 -m http.server` in project directory. Copy the URL that the command outputs and paste it into a web browser window.
 
 ## Usage
 Buttons:
