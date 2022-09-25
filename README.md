@@ -44,6 +44,8 @@ psql
 ```
 You can confirm your database was set up correctly by running `\dt`. You should see four tables: `closed_shapes`, `linestrings`, `points`, and `spatial_ref_sys`.
 
+This is the window that you'll use the run the PostgreSQL queries that the front-end generates.
+
 5. Download this project repository.  
         `git clone git@github.com:Xetnus/osm-finder.git`
 
@@ -60,4 +62,4 @@ Buttons:
 ## Additional Information
 - Currently only tested on images with one highway intersecting two other highways/bridges.
 - Works best on images with unique intersections.
-- TODO: So, so much. There are many other directional parameters and hundreds of other map elements that, if I had enough time, could be leveraged to turn this project from a niche geolocation tool to a fully-featured geolocation suite.
+- TODO: So, so much. There are many other directional parameters and hundreds of other map elements that, if I had enough time, could be leveraged to turn this project from a niche geolocation tool to a fully-featured geolocation suite. Integration between the front-end (UI) and back-end (Postgres), as well as hosting a public-facing website, would be crucial in making sure that this tool receives the widest adoption possible in the OSINT community.
