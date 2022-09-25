@@ -240,24 +240,24 @@ function handleRelationshipParams(combinedElements) {
             primary = primaryElementsRemaining.pop();
             secondaryElementsRemaining = primaryElementsRemaining.slice(0);
 
-            // Removes intersecting secondary elements that have already been checked
-            var tempSecondaryElements = [];
-            var lines = project.getItems({name: lineRegex});
-            for (var i = 0; i < lines.length; i++) {
-                if (primary.getIntersections(lines[i]).length > 0) 
-                    tempSecondaryElements.push(lines[i]);
-            }
+            // // Removes intersecting secondary elements that have already been checked
+            // var tempSecondaryElements = [];
+            // var lines = project.getItems({name: lineRegex});
+            // for (var i = 0; i < lines.length; i++) {
+            //     if (primary.getIntersections(lines[i]).length > 0) 
+            //         tempSecondaryElements.push(lines[i]);
+            // }
 
-            if (tempSecondaryElements.length > 0) {
-                tempSecondaryElements = [];
-                for (var i = 0; i < lines.length; i++) {
-                    var params = getParametersByName(lines[i].name);
-                    if (params[[primary.name]] == null && primary.getIntersections(lines[i]).length > 0) {
-                        tempSecondaryElements.push(lines[i]);
-                    } 
-                }
-                secondaryElementsRemaining = tempSecondaryElements.slice(0);
-            }
+            // if (tempSecondaryElements.length > 0) {
+            //     tempSecondaryElements = [];
+            //     for (var i = 0; i < lines.length; i++) {
+            //         var params = getParametersByName(lines[i].name);
+            //         if (params[[primary.name]] == null && primary.getIntersections(lines[i]).length > 0) {
+            //             tempSecondaryElements.push(lines[i]);
+            //         } 
+            //     }
+            //     secondaryElementsRemaining = tempSecondaryElements.slice(0);
+            // }
 
             secondary = secondaryElementsRemaining.pop();
 
