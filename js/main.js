@@ -59,7 +59,7 @@ function handleElementParams(combinedElements) {
             parameterInput.append(createElementFromHtml('<label><b>Details for ' + el.name + '</b/</label>'));
             parameterInput.append(createElementFromHtml(createTypeElementInput('linestring_generics', true)));
             parameterInput.append(createElementFromHtml(createTypeElementInput(elementTypes['linestring_generics'][0] + '_subtypes', false)));
-            parameterInput.append(createElementFromHtml('<label>Additional Tag</label>'));
+            parameterInput.append(createElementFromHtml('<label>Additional OSM Tag</label>'));
             parameterInput.append(createElementFromHtml('<input id="tag-key" type="text"></input>'));
             parameterInput.append(createElementFromHtml('<label>Tag Value</label>'));
             parameterInput.append(createElementFromHtml('<input id="tag-value" type="text"></input>'));
@@ -76,7 +76,7 @@ function handleElementParams(combinedElements) {
             parameterInput.append(createElementFromHtml('<label><b>Details for ' + el.name + '</b></label>'));
             parameterInput.append(createElementFromHtml(createTypeElementInput('node_generics', true)));
             parameterInput.append(createElementFromHtml(createTypeElementInput(elementTypes['node_generics'][0] + '_subtypes', false)));
-            parameterInput.append(createElementFromHtml('<label>Additional Tag</label>'));
+            parameterInput.append(createElementFromHtml('<label>Additional OSM Tag</label>'));
             parameterInput.append(createElementFromHtml('<input id="tag-key" type="text"></input>'));
             parameterInput.append(createElementFromHtml('<label>Tag Value</label>'));
             parameterInput.append(createElementFromHtml('<input id="tag-value" type="text"></input>'));
@@ -176,6 +176,8 @@ function handleRelationshipParams(combinedElements) {
             strokeWidth: '3',
             name: 'curve',
         });
+
+        curve.smooth();
 
         var parameterInput = document.getElementById('parameter-input');
         if (primary.getIntersections(secondary).length == 0) {

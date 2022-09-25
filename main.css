@@ -11,6 +11,11 @@ body {
     width: 100%;
 }
 
+pre {
+    margin-top: 3em;
+    background-color: black;
+}
+
 #input-section {
     height: 10%;
     width: 100%;

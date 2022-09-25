@@ -1,21 +1,39 @@
-# osm-finder (placeholder - any better suggestions out there?)
+# osm-finder
+(placeholder - any better suggestions out there?)
 
 ## Team Members
 Grant (Xetnus)
 
 ## Tool Description
 This sections discusses the purpose and motivation for the tool, and how it addresses a tool need you've identified.
+One of the most prominent tools that assists in geolocating images using openstreetmap data is [Overpass Turbo](https://overpass-turbo.eu/). This requires learning and using the [Overpass Query Language](https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_QL) and restricts your geolocation abilities to only what's permitted by the query language.  
+
+This tool attempts to make it easier for researchers to find locations with a simple click-and-drag interface. No need to learn a new query language. It also adds capabilities not present in existing tools, like the ability to search by the angle between roads, power lines, and railways.
+
+This tool currently supports all [highway](https://wiki.openstreetmap.org/wiki/Key:highway), [railway](https://wiki.openstreetmap.org/wiki/Key:railway), and a couple [power lines](https://wiki.openstreetmap.org/wiki/Key:power)(namely, 'line' and 'minor_line') types.
+
+Tested on Ubuntu 22.04.1 LTS.
 
 ## Installation
 
-1. Install osm2pgsql version 1.7.0 or higher. On Ubuntu and Fedora, this requires building from source.  
+1. Install osm2pgsql version 1.7.0 or higher. On Ubuntu and Fedora, this requires building from source (as of Sep 25).  
 To install on Linux through a package manager: https://osm2pgsql.org/doc/install.html#installing-on-linux  
 To install on Windows using prebuilt binaries: https://osm2pgsql.org/doc/install.html#installing-on-windows  
 To install on Ubuntu, follow Building instructions: https://github.com/openstreetmap/osm2pgsql  
 
+Also, ensure you have [PostGIS](https://postgis.net/) installed.
+
 2. Download openstreetmap data for your area of interest. To follow along with the demo, download the data for Massachusetts at https://download.geofabrik.de/north-america/us.html. Click on the .osm.bz2 download.
 
-3. Download [flex.lua](https://github.com/Xetnus/osm-finder/blob/main/flex.lua) and run the osm2pgsql command `osm2pgsql -d osm -c massachusetts-latest.osm.bz2 -S flex.lua -O flex`
+3. Download [flex.lua](https://github.com/Xetnus/osm-finder/blob/main/flex.lua) and run the following commands:
+```
+        sudo -u postgres createuser osmuser
+        sudo -u postgres createdb --encoding=UTF8 --owner=osmuser osm
+        sudo -u postgres psql osm --command='CREATE EXTENSION postgis;'
+        sudo -u postgres psql osm --command='CREATE EXTENSION hstore;'
+        sudo -u postgres osm2pgsql -d osm -c massachusetts-latest.osm.bz2 -S flex.lua -O flex
+```
+You may need to move files around and change directory/file permissions appropriately to ensure that the postgres user can access `massachusetts-latest.osm.bz2` and `flex.lua`.
 
 4. Download this project repository.  
         `git clone git@github.com:Xetnus/osm-finder.git`
@@ -28,4 +46,4 @@ This sections includes detailed instructions for using the tool. If the tool has
 ## Additional Information
 This section includes any additional information that you want to mention about the tool, including:
 - Any limitations of the current implementation of the tool
-- TODO: So, so much. There are many other directional parameters and hundreds of other map elements that, if I had enough time, could turn this project into a niche geolocation tool to a fully-featured geolocation suite.
+- TODO: So, so much. There are many other directional parameters and hundreds of other map elements that, if I had enough time, could be leveraged to turn this project from a niche geolocation tool to a fully-featured geolocation suite.
