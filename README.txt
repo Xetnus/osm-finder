@@ -28,6 +28,3 @@ This section includes any additional information that you want to mention about 
 - Potential next steps for the tool (i.e. what you would implement if you had more time)
 - Any limitations of the current implementation of the tool
 - Motivation for design/architecture decisions
-
-Sample image courtesy of flickr user "sk": https://www.flickr.com/photos/irisphotos/31605926393/
-No modifications made. https://creativecommons.org/licenses/by-nd/2.0/

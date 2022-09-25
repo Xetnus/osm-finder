@@ -68,11 +68,6 @@ function handleElementParams(combinedElements) {
                 var value = document.getElementById('generic-type').value;
                 document.getElementById('subtype-div').replaceWith(createElementFromHtml(createTypeElementInput(value + '_subtypes', false)));
             }
-
-        } else if (el.name.match(intersectionRegex)) {
-            el.selected = true;
-            parameterInput.innerHTML = '';
-            parameterInput.append(createElementFromHtml('<section id="intersection-type"></section>'));
         } else if (el.name.match(nodeRegex)) {
             el.selected = true;
 
@@ -105,9 +100,6 @@ function handleElementParams(combinedElements) {
             var tag = tagKey == '' ? '' : tagKey + (tagValue == '' ? '' : ' ' + tagValue);
             var selected = project.getItem({selected: true, class: Path});
             initializeParameters(selected.name, {'generic_type': generic, 'subtype': subtype, 'tag': tag});
-        } else if (document.getElementById('intersection-type')) {
-            var selected = project.getItem({selected: true, class: Path});
-            initializeParameters(selected.name, {'generic_type': 'test', 'subtype': 'test'});
         }
 
         for (var i = 0; i < history.length; i++) {
@@ -134,6 +126,17 @@ function handleRelationshipParams(combinedElements) {
     var primaryElementsRemaining = combinedElements.slice(0);
     var primary = primaryElementsRemaining.pop();
     var secondaryElementsRemaining = primaryElementsRemaining.slice(0);
+
+    var tempSecondaryElements = [];
+    var lines = project.getItems({name: lineRegex});
+    for (var i = 0; i < lines.length; i++) {
+        if (primary.getIntersections(lines[i]).length > 0) {
+            tempSecondaryElements.push(lines[i]);
+        }
+    }
+    if (tempSecondaryElements.length > 0)
+        secondaryElementsRemaining = tempSecondaryElements.slice(0);
+
     var secondary;
 
     function getRelationshipParams(primary, secondary) {
@@ -174,8 +177,10 @@ function handleRelationshipParams(combinedElements) {
         });
 
         var parameterInput = document.getElementById('parameter-input');
-        parameterInput.append(createElementFromHtml('<label>Max Distance (m)*</label>'));
-        parameterInput.append(createElementFromHtml('<input type="text" id="distance"></input>'));
+        if (primary.getIntersections(secondary).length == 0) {
+            parameterInput.append(createElementFromHtml('<label>Max Distance (m)*</label>'));
+            parameterInput.append(createElementFromHtml('<input type="text" id="distance"></input>'));
+        }
         parameterInput.append(createElementFromHtml('<label>Angle</label>'));
         parameterInput.append(createElementFromHtml('<input type="text" id="angle"></input>'));
         parameterInput.append(createElementFromHtml('<label>+/-</label>'));
@@ -184,28 +189,40 @@ function handleRelationshipParams(combinedElements) {
 
     // Lets the user input parameters for each element on the page
     document.getElementById('next-step').onclick = function() {
-        for (var i = 0; i < combinedElements.length; i++) {
-            combinedElements[i].selected = false;
-        }
-
         var angle = parseInt(document.getElementById('angle').value);
         var error = parseInt(document.getElementById('error').value);
-        var distance = parseInt(document.getElementById('distance').value);
-
-        project.getItem({name: 'curve'}).remove();
-        project.getItem({name: 'angle-text'}).remove();
+        var distance = document.getElementById('distance') ? parseInt(document.getElementById('distance').value) : 0;
 
         if (isNaN(distance)) {
             alert('For your computer\'s sake, distance is required.');
             return;
         }
 
+        for (var i = 0; i < combinedElements.length; i++) {
+            combinedElements[i].selected = false;
+        }
+
+        project.getItem({name: 'curve'}).remove();
+        project.getItem({name: 'angle-text'}).remove();
+
         document.getElementById('parameter-input').innerHTML = '';
 
         angle = (isNaN(angle) || isNaN(error)) ? '' : ' ' + Math.abs(angle);
         error = (isNaN(angle) || isNaN(error)) ? '' : ' ' + Math.abs(error);
+
         var primaryParams = getParametersByName(primary.name);
         primaryParams[[secondary.name]] = distance + angle + error;
+
+        if (primary.getIntersections(secondary).length > 0) {
+            if (primaryParams['intersections'] == undefined) {
+                primaryParams['intersections'] = [secondary.name];
+            } else {
+                intersections = primaryParams['intersections'];
+                intersections.push(secondary.name)
+                primaryParams['intersections'] = intersections;
+            }
+        }
+
         initializeParameters(primary.name, primaryParams);
 
         if (secondaryElementsRemaining.length > 0) {
@@ -219,13 +236,31 @@ function handleRelationshipParams(combinedElements) {
             primary = primaryElementsRemaining.pop();
             secondaryElementsRemaining = primaryElementsRemaining.slice(0);
 
+            // Removes intersecting secondary elements that have already been checked
+            var tempSecondaryElements = [];
+            var lines = project.getItems({name: lineRegex});
+            for (var i = 0; i < lines.length; i++) {
+                if (primary.getIntersections(lines[i]).length > 0) 
+                    tempSecondaryElements.push(lines[i]);
+            }
+
+            if (tempSecondaryElements.length > 0) {
+                tempSecondaryElements = [];
+                for (var i = 0; i < lines.length; i++) {
+                    var params = getParametersByName(lines[i].name);
+                    if (params[[primary.name]] == null && primary.getIntersections(lines[i]).length > 0) {
+                        tempSecondaryElements.push(lines[i]);
+                    } 
+                }
+                secondaryElementsRemaining = tempSecondaryElements.slice(0);
+            }
+
             secondary = secondaryElementsRemaining.pop();
 
             if (secondary != null) {
                 getRelationshipParams(primary, secondary);
                 return;
             }
-
         }
 
         loadBottomSection(4);
@@ -234,6 +269,8 @@ function handleRelationshipParams(combinedElements) {
     secondary = secondaryElementsRemaining.pop();
     if (secondary != null)
         getRelationshipParams(primary, secondary);
+    else
+        loadBottomSection(4);
 
 }
 
@@ -303,7 +340,6 @@ function loadBottomSection(stage) {
         }
     } else if (stage == 2) {
         var lines = project.getItems({name: lineRegex});
-        var intersections = project.getItems({name: intersectionRegex});
         var nodes = project.getItems({name: nodeRegex});
 
         if (lines.length == 0 && nodes.length == 0) {
@@ -312,14 +348,13 @@ function loadBottomSection(stage) {
         }
 
         bottomSection.innerHTML = '';
-        handleElementParams(nodes.concat(intersections).concat(lines));
+        handleElementParams(nodes.concat(lines));
     } else if (stage == 3) {
         var lines = project.getItems({name: lineRegex});
-        var intersections = project.getItems({name: intersectionRegex});
         var nodes = project.getItems({name: nodeRegex});
 
         bottomSection.innerHTML = '';
-        handleRelationshipParams(nodes.concat(intersections).concat(lines));
+        handleRelationshipParams(nodes.concat(lines));
     } else if (stage == 4) {
         bottomSection.innerHTML = '';
         var query = constructQuery();

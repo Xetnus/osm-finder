@@ -1,10 +1,8 @@
-var parameters = {'lines': {}, 'intersections': {}, 'nodes': {}};
+var parameters = {'lines': {}, 'nodes': {}};
 
 function initializeParameters(elementName, params) {
     if (elementName.startsWith('line')) {
         parameters['lines'][[elementName]] = params;
-    } else if (elementName.startsWith('intersection')) {
-        parameters['intersections'][[elementName]] = params;
     } else if (elementName.startsWith('node')) {
         parameters['nodes'][[elementName]] = params;
     }
@@ -12,12 +10,6 @@ function initializeParameters(elementName, params) {
 }
 
 function getParametersByName(name) {
-    var intersections = Object.keys(parameters['intersections']);
-
-    if (intersections.includes(name)) {
-        return parameters['intersections'][[name]];
-    }
-
     var nodes = Object.keys(parameters['nodes']);
 
     if (nodes.includes(name)) {
@@ -144,15 +136,20 @@ function constructNonIntersectingQuery(nodes, lines) {
 }
 
 function constructQuery() {
-    var intersections = Object.keys(parameters['intersections']);
     var nodes = Object.keys(parameters['nodes']);
     var lines = Object.keys(parameters['lines']);
-    if (intersections.length == 0) {
+
+    var intersectionsCount = 0;
+
+    for (var i = 0; i < lines.length; i++) {
+        intersectionsCount += parameters['lines'][lines[i]]['intersections'] ? parameters['lines'][lines[i]]['intersections'].length : 0;
+    }
+
+    if (intersectionsCount == 0) {
         console.log('no intersections');
         console.log(lines.length + ' lines and ' + nodes.length + ' nodes')
         return constructNonIntersectingQuery(nodes, lines);
     } else {
-        console.log(Object.keys(parameters['intersections']).length + ' intersections')
         console.log(lines.length + ' lines and ' + nodes.length + ' nodes')
     }
 }
