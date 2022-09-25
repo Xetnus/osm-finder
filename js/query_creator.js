@@ -73,8 +73,8 @@ function constructNonIntersectingQuery(nodes, lines) {
             if (i == j) continue;
 
             if (parameters['lines'][lines[i]][[lines[j]]]) {
-                var distance = parameters['lines'][lines[i]][[lines[j]]].split(' ')[0];
-                query += 'ST_DWithin(' + lines[i] + '.geom, ' + lines[j] + '.geom, ' + distance + ') AND  ';
+                var maxDistance = parameters['lines'][lines[i]][[lines[j]]]['max_distance'];
+                query += 'ST_DWithin(' + lines[i] + '.geom, ' + lines[j] + '.geom, ' + maxDistance + ') AND  ';
             }
         }
     }
@@ -87,9 +87,9 @@ function constructNonIntersectingQuery(nodes, lines) {
 
             var relationParams = parameters['lines'][lines[i]][[lines[j]]];
 
-            if (relationParams && relationParams.split(' ').length > 2) {
-                var angle = parseInt(relationParams.split(' ')[1]);
-                var error = parseInt(relationParams.split(' ')[2]);
+            if (relationParams && relationParams['angle'] != null) {
+                var angle = parseInt(relationParams['angle']);
+                var error = parseInt(relationParams['error']);
 
                 var lowerBounds = [angle - error]; 
                 var upperBounds = [angle + error];
@@ -115,7 +115,6 @@ function constructNonIntersectingQuery(nodes, lines) {
                     upperBounds[1] = 180 - lowerBounds[0];
                 }
 
-                var conditionals = lowerBounds.length > 1 ? ['OR', 'AND'] : ['AND']
                 query += '(\n';
                 for (var b = 0; b < lowerBounds.length; b++) {
                     query += '  (\n';
@@ -249,15 +248,13 @@ function constructIntersectingQuery(nodes, lines) {
                 allIntersectingLines.add(intersections[j]);
                 allIntersectingPairs.push({[lines[i]]: intersections[j]});
 
-                if (parameters['lines'][lines[i]][intersections[j]].split(' ').length == 3)
+                if (parameters['lines'][lines[i]][intersections[j]]['angle'] != null)
                     intersectingPairsWithAngles.push({[lines[i]]: intersections[j]});
             }
         }
     }
 
     var disjointLines = lines.filter(value => !allIntersectingLines.has(value));
-
-    // return JSON.stringify(intersectingPairsWithAngles) + '\n' + JSON.stringify(allIntersectingPairs);
 
     var query = 'WITH intersections AS\n';
     query += '(\n';
@@ -285,6 +282,21 @@ function constructIntersectingQuery(nodes, lines) {
         query += 'linestrings AS ' + lines[i] + comma
     }
 
+    var identicalTypes = {};
+    // TODO: imperfect solution. Doesn't include any additional tags added by user.
+    for (var i = lines.length - 1; i >= 0; i--) {
+        var generic_type = parameters['lines'][lines[i]]['generic_type'];
+        var subtype = parameters['lines'][lines[i]]['subtype'];
+        var key = generic_type + ' ' + subtype;
+
+        if (identicalTypes[key] == undefined) {
+            identicalTypes[key] = [lines[i]];
+        } else {
+            var array = identicalTypes[key];
+            identicalTypes[key] = array.concat([lines[i]]);
+        }
+    }
+
     query += '  WHERE ';
     for (var i = lines.length - 1; i >= 0; i--) {
         // Adds any additional tag entered by the user to the WHERE
@@ -294,13 +306,21 @@ function constructIntersectingQuery(nodes, lines) {
 
             if (results.length > 1)
                 query += '= \'' + results[1] + '\' ';
-            query += ' AND';
+            query += 'AND ';
         }
 
         var generic_type = parameters['lines'][lines[i]]['generic_type'];
         var subtype = parameters['lines'][lines[i]]['subtype'];
         var subtypeString = (subtype == '' ? '' : lines[i] + '.subtype = \'' + subtype + '\' AND ');
         query += lines[i] + '.generic_type = \'' + generic_type + '\' AND ' + subtypeString;
+    }
+
+    // TODO: imperfect solution. Doesn't cover every nested case.
+    var keys = Object.keys(identicalTypes);
+    for (var i = keys.length - 1; i >= 0; i--) {
+        for (var j = identicalTypes[keys[i]].length - 1; j > 0; j--) {
+            query += identicalTypes[keys[i]][j] + '.way_id != ' + identicalTypes[keys[i]][j - 1] + '.way_id AND ';
+        }
     }
 
     for (var i = allIntersectingPairs.length - 1; i >= 0; i--) {
@@ -314,8 +334,8 @@ function constructIntersectingQuery(nodes, lines) {
             if (i == j) continue;
 
             if (parameters['lines'][disjointLines[i]][[lines[j]]]) {
-                var distance = parameters['lines'][disjointLines[i]][[lines[j]]].split(' ')[0];
-                query += 'ST_DWithin(' + disjointLines[i] + '.geom, ' + lines[j] + '.geom, ' + distance + ') AND ';
+                var maxDistance = parameters['lines'][disjointLines[i]][[lines[j]]]['max_distance'];
+                query += 'ST_DWithin(' + disjointLines[i] + '.geom, ' + lines[j] + '.geom, ' + maxDistance + ') AND ';
             }
         }
     }
@@ -352,7 +372,7 @@ function constructIntersectingQuery(nodes, lines) {
         query += '    ST_GeometryN\n';
         query += '    (\n';
         query += '      ST_Intersection(buffers.ring' + (i + 1) + ', buffers.' + val + '_geom)\n';
-        query += '      , 1';
+        query += '      , 1\n';
         query += '    ) AS ring' + (i + 1) + '_p1,\n';
         query += '    ST_GeometryN\n';
         query += '    (\n';
@@ -374,18 +394,68 @@ function constructIntersectingQuery(nodes, lines) {
     }
 
     query += '  FROM buffers\n';
-    query += ')';
+    query += ')\n';
 
     query += 'SELECT\n';
     for (var i = lines.length - 1; i >= 0; i--) {
         var comma = (i == 0) ? '' : ',';
-        query += 'points.' + lines[i] + '_way_id' + comma + '\n';
+        query += '  points.' + lines[i] + '_way_id' + comma + '\n';
     }
     query += 'FROM points\n';
     query += 'WHERE\n';
     
+    for (var i = intersectingPairsWithAngles.length - 1; i >= 0; i--) {
+        var key = Object.keys(intersectingPairsWithAngles[i])[0];
+        var val = intersectingPairsWithAngles[i][key];
 
-    
+        var relationParams = parameters['lines'][key][val];
+
+        if (relationParams && relationParams['angle'] != null) {
+            var angle = parseInt(relationParams['angle']);
+            var error = parseInt(relationParams['error']);
+
+            var lowerBounds = [angle - error]; 
+            var upperBounds = [angle + error];
+
+            if (lowerBounds[0] / 180 > 1 && upperBounds[0] / 180 > 1) {
+                lowerBounds[0] %= 180;
+                upperBounds[0] %= 180;
+            } else if (upperBounds[0] / 180 > 1) {
+                up = upperBounds[0];
+                low = lowerBounds[0];
+                lowerBounds[0] = low;
+                upperBounds[0] = 180;
+                lowerBounds[1] = 0;
+                upperBounds[1] = up % 180;
+            } else if (lowerBounds[0] < 0) {
+                lowerBounds[1] = 180 + lowerBounds[0];
+                lowerBounds[0] = 0;
+                upperBounds[1] = 180;
+            }
+
+            if (lowerBounds.length == 1 && (upperBounds[0] < 90 || lowerBounds[0] > 90)) {
+                lowerBounds[1] = 180 - upperBounds[0];
+                upperBounds[1] = 180 - lowerBounds[0];
+            }
+
+            query += '(\n';
+            for (var b = 0; b < lowerBounds.length; b++) {
+                query += '  (\n';
+                query += '    abs(round(degrees(\n';
+                query += '      ST_Azimuth(points.ring' + (i + 1) + '_p2, points.intersection' + (i + 1) + ')\n';
+                query += '      -\n';
+                query += '      ST_Azimuth(points.ring' + (i + 1) + '_p1, points.intersection' + (i + 1) + ')\n';
+                query += '    ))::decimal % 180.0) BETWEEN ' + lowerBounds[b] + ' AND ' + upperBounds[b] + '\n';
+                query += '  ) ' + ((lowerBounds.length > 1 && b == 0) ? '\n  OR' : '') + '\n';
+            }
+            query += ')\n';
+            query += 'AND \n';
+        }
+    }
+
+    query = query.slice(0, query.length - 6); // remove last AND
+    query += ';\n'
+
 
     return query;
 }

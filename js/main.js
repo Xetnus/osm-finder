@@ -180,7 +180,9 @@ function handleRelationshipParams(combinedElements) {
         var parameterInput = document.getElementById('parameter-input');
         if (primary.getIntersections(secondary).length == 0) {
             parameterInput.append(createElementFromHtml('<label>Max Distance (m)*</label>'));
-            parameterInput.append(createElementFromHtml('<input type="text" id="distance"></input>'));
+            parameterInput.append(createElementFromHtml('<input type="text" id="max-distance"></input>'));
+            parameterInput.append(createElementFromHtml('<label>Min Distance (m)</label>'));
+            parameterInput.append(createElementFromHtml('<input type="text" id="min-distance"></input>'));
         }
         parameterInput.append(createElementFromHtml('<label>Angle</label>'));
         parameterInput.append(createElementFromHtml('<input type="text" id="angle"></input>'));
@@ -192,9 +194,10 @@ function handleRelationshipParams(combinedElements) {
     document.getElementById('next-step').onclick = function() {
         var angle = parseInt(document.getElementById('angle').value);
         var error = parseInt(document.getElementById('error').value);
-        var distance = document.getElementById('distance') ? parseInt(document.getElementById('distance').value) : 0;
+        var maxDistance = document.getElementById('max-distance') ? parseInt(document.getElementById('max-distance').value) : 0;
+        var minDistance = document.getElementById('min-distance') ? parseInt(document.getElementById('min-distance').value) : 0;
 
-        if (isNaN(distance)) {
+        if (isNaN(maxDistance)) {
             alert('For your computer\'s sake, distance is required.');
             return;
         }
@@ -208,11 +211,11 @@ function handleRelationshipParams(combinedElements) {
 
         document.getElementById('parameter-input').innerHTML = '';
 
-        angle = (isNaN(angle) || isNaN(error)) ? '' : ' ' + Math.abs(angle);
-        error = (isNaN(angle) || isNaN(error)) ? '' : ' ' + Math.abs(error);
+        angle = (isNaN(angle) || isNaN(error)) ? null : Math.abs(angle);
+        error = (isNaN(angle) || isNaN(error)) ? null : Math.abs(error);
 
         var primaryParams = getParametersByName(primary.name);
-        primaryParams[[secondary.name]] = distance + angle + error;
+        primaryParams[[secondary.name]] = {'max_distance': maxDistance, 'min_distance': minDistance, 'angle': angle, 'error': error};
 
         if (primary.getIntersections(secondary).length > 0) {
             if (primaryParams['intersections'] == undefined) {
