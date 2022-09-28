@@ -44,6 +44,7 @@ function loadRaster(img_width, img_height) {
     raster.scale(scale, scale);
 }
 
+
 function handleElementParams(combinedElements) {
     for (var i = 0; i < combinedElements.length; i++) {
         combinedElements[i].selected = false;
@@ -51,18 +52,18 @@ function handleElementParams(combinedElements) {
 
     var getElementParameters = function(el) {
         var parameterInput = document.getElementById('parameter-input');
+        var detailsLabel = document.getElementById('details');
+        detailsLabel.innerText = 'Details for ' + el.name; 
+
         if (el.name.match(lineRegex)) {
             el.selected = true;
 
             parameterInput.innerHTML = '';
 
-            parameterInput.append(createElementFromHtml('<label><b>Details for ' + el.name + '</b/</label>'));
             parameterInput.append(createElementFromHtml(createTypeElementInput('linestring_generics', true)));
             parameterInput.append(createElementFromHtml(createTypeElementInput(elementTypes['linestring_generics'][0] + '_subtypes', false)));
-            parameterInput.append(createElementFromHtml('<label>Additional OSM Tag</label>'));
-            parameterInput.append(createElementFromHtml('<input id="tag-key" type="text"></input>'));
-            parameterInput.append(createElementFromHtml('<label>Tag Value</label>'));
-            parameterInput.append(createElementFromHtml('<input id="tag-value" type="text"></input>'));
+            parameterInput.append(createElementFromHtml('<div><label>Additional OSM Tag</label><input id="tag-key" type="text"></input></div>'));
+            parameterInput.append(createElementFromHtml('<div><label>Tag Value</label><input id="tag-value" type="text"></input></div>'));
 
             document.getElementById('generic-type').onchange = function(){
                 var value = document.getElementById('generic-type').value;
@@ -73,7 +74,6 @@ function handleElementParams(combinedElements) {
 
             parameterInput.innerHTML = '';
 
-            parameterInput.append(createElementFromHtml('<label><b>Details for ' + el.name + '</b></label>'));
             parameterInput.append(createElementFromHtml(createTypeElementInput('node_generics', true)));
             parameterInput.append(createElementFromHtml(createTypeElementInput(elementTypes['node_generics'][0] + '_subtypes', false)));
             parameterInput.append(createElementFromHtml('<label>Additional OSM Tag</label>'));
@@ -88,7 +88,7 @@ function handleElementParams(combinedElements) {
         }
     }
 
-    var html = '<section id="input-section"><section id="parameter-input"></section><button id="next-step">Next Step</button></section>';
+    var html = '<section id="input-section"><h2 id="details"></h2><form id="parameter-input"></form><button id="next-step">Next Step</button></section>';
     bottomSection.appendChild(createElementFromHtml(html));
 
     // Lets the user input parameters for each element on the page
@@ -121,7 +121,7 @@ function handleElementParams(combinedElements) {
 }
 
 function handleRelationshipParams(combinedElements) {
-    var html = '<section id="input-section"><section id="parameter-input"></section><button id="next-step">Next Step</button></section>';
+    var html = '<section id="input-section"><h2 id="details"></h2><form id="parameter-input"></form><button id="next-step">Next Step</button></section>';
     bottomSection.appendChild(createElementFromHtml(html));
 
     var primaryElementsRemaining = combinedElements.slice(0);
@@ -178,6 +178,9 @@ function handleRelationshipParams(combinedElements) {
         });
 
         curve.smooth();
+
+        var detailsLabel = document.getElementById('details');
+        detailsLabel.innerText = 'Define the relationship between ' + primary.name + ' and ' + secondary.name; 
 
         var parameterInput = document.getElementById('parameter-input');
         if (primary.getIntersections(secondary).length == 0) {
@@ -263,9 +266,8 @@ function handleRelationshipParams(combinedElements) {
 function loadBottomSection(stage) {
     if (stage == 1) {
         var html = '<section id="button-section"><button id="upload-photo">Upload Photo</button>';
-        html += '<button id="add-node" disabled="true" title="Not yet completed">Add Node</button><button id="add-linestring">Add Linestring</button>';
+        html += '<button id="add-node" disabled="true" title="Not yet implemented">Add Node</button><button id="add-linestring">Add Linestring</button>';
         html += '<button id="undo">Undo</button><button id="next-step">Next Step</button></section>';
-        html += '<section id="info-section"><label id="instructions"></label><label id="stats"></label></section>';
         bottomSection.appendChild(createElementFromHtml(html));
 
         html = '<section id="info-section"><label id="instructions"></label><label id="stats"></label></section>';
@@ -285,6 +287,9 @@ function loadBottomSection(stage) {
 
                     var img = new Image;
                     img.onload = function() {
+                        document.getElementById('button-section').remove();
+                        document.getElementById('info-section').remove();
+
                         document.getElementById('picture').src =  content;
                         loadRaster(img.width, img.height);
                         
@@ -349,10 +354,18 @@ function loadBottomSection(stage) {
 }
 
 raster.on('load', function() {
-    raster.visible = true;
-    raster.position = view.center;
-    raster.selected = false;
-    loadBottomSection(1);
+    var img = document.getElementById('picture');
+    img.src = 'sample_pictures/Massachusetts turnpike.jpg';
+    img.style.display = 'none';
+
+    img.onload = function() {
+        loadRaster(img.naturalWidth, img.naturalHeight);
+
+        raster.visible = true;
+        raster.position = view.center;
+        raster.selected = false;
+        loadBottomSection(1);
+    }
 });
 
 function onMouseDown(event) {
