@@ -37,6 +37,7 @@ function loadRaster(img_width, img_height) {
     raster.position = view.center;
     raster.selected = false;
 
+
     // Scales the photo to the fullest extent possible with the paper size
     var widthRatio = (paper.view.bounds.width - 50) / img_width;
     var heightRatio = (paper.view.bounds.height - 50) / img_height;
@@ -44,6 +45,14 @@ function loadRaster(img_width, img_height) {
     raster.scale(scale, scale);
 }
 
+function onResize(event) {
+    var width = window.innerWidth;
+    var height = window.innerHeight * 0.8;
+    paper.view.setViewSize(width, height);
+
+    var img = document.getElementById('picture');
+    loadRaster(img.naturalWidth, img.naturalHeight);
+}
 
 function handleElementParams(combinedElements) {
     for (var i = 0; i < combinedElements.length; i++) {
