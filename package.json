@@ -1,0 +1,29 @@
+{
+  "name": "osm-finder",
+  "version": "1.0.0",
+  "description": "OpenStreetMap Finder",
+  "main": "index.js",
+  "dependencies": {
+    "flask": "^0.2.10",
+    "paper": "^0.12.15"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "postinstall": "cd static && npm install",
+    "start": "gunicorn app:app",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Xetnus/osm-finder.git"
+  },
+  "author": "Xetnus",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Xetnus/osm-finder/issues"
+  },
+  "homepage": "https://github.com/Xetnus/osm-finder#readme"
+}

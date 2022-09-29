@@ -364,7 +364,7 @@ function loadBottomSection(stage) {
 
 raster.on('load', function() {
     var img = document.getElementById('picture');
-    img.src = 'sample_pictures/Massachusetts turnpike.jpg';
+    img.src = '/static/sample_pictures/Massachusetts turnpike.jpg';
     img.style.display = 'none';
 
     img.onload = function() {
