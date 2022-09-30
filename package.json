@@ -12,8 +12,6 @@
   },
   "devDependencies": {},
   "scripts": {
-    "postinstall": "cd static && npm install",
-    "start": "gunicorn app:app",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

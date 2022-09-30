@@ -15,6 +15,13 @@ h2 {
     text-align: center;
 }
 
+#license {
+    margin-top: 1em;
+    font-size: 12px;
+    width: 100%;
+    text-align: center;
+}
+
 #canvas-section {
     background-color: lightsteelblue;
     height: 100%;

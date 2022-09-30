@@ -47,7 +47,7 @@ function loadRaster(img_width, img_height) {
 
 function onResize(event) {
     var width = window.innerWidth;
-    var height = window.innerHeight * 0.8;
+    var height = window.innerHeight * 0.75;
     paper.view.setViewSize(width, height);
 
     var img = document.getElementById('picture');
@@ -307,6 +307,7 @@ function loadBottomSection(stage) {
                             history[i].remove();
                         }
                         updateStats();
+                        displayLicenseInfo('');
                     }
                     img.src = content;
                 }
@@ -364,7 +365,9 @@ function loadBottomSection(stage) {
 
 raster.on('load', function() {
     var img = document.getElementById('picture');
-    img.src = '/static/sample_pictures/Massachusetts turnpike.jpg';
+    img_name = 'Massachusetts turnpike.jpg'
+    img.src = '/static/sample_pictures/' + img_name;
+    displayLicenseInfo(img_name);
     img.style.display = 'none';
 
     img.onload = function() {

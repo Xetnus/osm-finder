@@ -1,8 +1,6 @@
 # osm-finder
-(name is a placeholder - any better suggestions out there?)
 
-## Team Members
-Grant (Xetnus)
+## The UI is now accessible from anywhere on Heroku: https://osm-finder.herokuapp.com/
 
 ## Tool Description
 One of the most prominent tools that assists in geolocating images using openstreetmap data is [Overpass Turbo](https://overpass-turbo.eu/). This requires learning and using the [Overpass Query Language](https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_QL) and restricts your geolocation abilities to only what's permitted by the query language.  
@@ -11,7 +9,11 @@ This tool attempts to make it easier for researchers to find locations with a si
 
 This tool currently supports all [highway](https://wiki.openstreetmap.org/wiki/Key:highway), [railway](https://wiki.openstreetmap.org/wiki/Key:railway), and a couple [power line](https://wiki.openstreetmap.org/wiki/Key:power) (namely, 'line' and 'minor_line') types.
 
-Tested on Ubuntu 22.04.1 LTS.
+When in doubt, it's always safer to enter larger/wider parameters than you think is needed (e.g., enter an angle of 25 +/- 20 instead of 25 +/- 5).
+
+Works best on images with unique intersections. If there are any tags you can enter (e.g. bridge=yes, tunnel=yes), you'll decrease the size of the results significantly.
+
+Tested on Ubuntu 22.04.1 LTS. 
 
 ## Installation
 Instructions below are for Linux.
@@ -48,9 +50,11 @@ Instructions below are for Linux.
 1. Download this project repository.  
         `git clone git@github.com:Xetnus/osm-finder.git`
 
-2. Install paper.js: `npm install paper`
+2. Install requirements.txt (you might want to create a [venv](https://docs.python.org/3/library/venv.html) first): `pip install -r requirements.txt`
 
-3. Install python3 if not already installed and run `python3 -m http.server` in project directory. Copy the URL that the command outputs and paste it into a web browser window.
+3. Install paper.js: `npm install paper`
+
+4. Run `gunicorn app:app` in project directory to start the app. Copy the URL that the command outputs and paste it into a web browser window.
 
 ## Usage
 Buttons:
@@ -58,7 +62,8 @@ Buttons:
 - Add Linestring: Click and drag to annotate a line in the image (e.g. highway, railway, power line)  
 - Next Step: Continue through the next steps, entering the properties for the linestrings and entering any distance or angle parameters between the linestrings.  
 
-## Additional Information
-- Currently only tested on images with one highway intersecting two other highways/bridges.
-- Works best on images with unique intersections. If there are any tags you can enter (e.g. bridge=yes, tunnel=yes), you'll decrease the size of the results significantly.
-- TODO: So, so much. There are many other directional parameters and hundreds of other map elements that, if I had enough time, could be leveraged to turn this project from a niche geolocation tool to a fully-featured geolocation suite. Integration between the front-end (UI) and back-end (Postgres), as well as hosting a public-facing website, would be crucial in making sure that this tool receives the widest adoption possible in the OSINT community.
+## Next Steps
+- [ ] **Start from scratch.** Because this was created during a hackathon, little emphasis was put on code quality and future maintenance. No standard JavaScript libraries were used and most of the code is inefficient in one way or another. Now that I have a better idea for how this tool can be architected, reconstructing it should be easier.
+- [ ] **Add support for nodes.** Towers, buildings, and nodes of all types should be supported.
+- [ ] **Add support for shapes.** Many roads, buildings, structures, etc. have unique shapes that should be queryable using carefully crafted PostgreSQL queries.
+- [ ] **Host a public website.** Depending on cost, I aim to integrate and host both the frontend (UI) and backend (PostgreSQL) on a public-facing website.
