@@ -1,0 +1,18 @@
+{
+  "name": "osm-finder",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173"
+  },
+  "dependencies": {
+    "konva": "^8.3.13",
+    "vue": "^3.2.38",
+    "vue-konva": "^3.0.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^3.0.3",
+    "vite": "^3.0.9"
+  }
+}
