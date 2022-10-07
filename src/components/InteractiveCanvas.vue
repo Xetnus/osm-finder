@@ -5,7 +5,7 @@
   const height = window.innerHeight;
 
   export default {
-    props: ['image'],
+    props: ['image', 'stage'],
     data() {
       return {
         stageConfig: {
@@ -13,7 +13,7 @@
           height: height
         },
         linestrings: [],                  // Array of arrays containing X and Y pairs for all lines already drawn
-        activeLinestring: [],             // Starting and ending point for line being drawn
+        activeLinestring: [],             // Starting and ending point for line currently being drawn
         drawingLinestring: false,         // False if no line is being drawn, true otherwise
       };
     },
@@ -38,6 +38,8 @@
       },
 
       mousedown() {
+        if (this.stage != 2) return;
+
         this.drawingLinestring = true;
         const pos = this.$refs.stage.getStage().getPointerPosition();
         if (pos) {
@@ -46,22 +48,20 @@
       },
 
       mousemove() {
-        if (!this.drawingLinestring)
-          return
+        if (!this.drawingLinestring || this.stage != 2) return;
 
         const pos = this.$refs.stage.getStage().getPointerPosition();
         if (pos) {
-          this.activeLinestring.splice(2, 2, pos.x, pos.y)
+          this.activeLinestring.splice(2, 2, pos.x, pos.y);
         }
       },
 
       mouseup_mouseleave() {
-        if (!this.drawingLinestring)
-          return
+        if (!this.drawingLinestring || this.stage != 2) return;
 
-        this.linestrings.push(this.activeLinestring)
+        this.linestrings.push(this.activeLinestring);
         this.drawingLinestring = false;
-        this.activeLinestring = []
+        this.activeLinestring = [];
       },
     }
   };

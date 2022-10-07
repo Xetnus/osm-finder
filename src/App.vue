@@ -4,14 +4,16 @@
 </script>
 
 <script>
-  import defaultImage from './components/Massachusetts turnpike.jpg';
+  import defaultImage from './assets/Massachusetts turnpike.jpg';
   export default {
     data() {
       return {
-        image: null
+        image: null,        // Currently rendered image in the canvas
+        stage: 1,           // Current stage of the program
       }
     },
     created() {
+      // Load default image at start
       const img = new Image();
       img.src = defaultImage;
       img.onload = () => {
@@ -41,6 +43,9 @@
           }
         }
         input.click();
+      },
+      stageChange(stage) {
+        this.stage = stage;
       }
     },
   }
@@ -52,11 +57,11 @@
   </header>
 
   <section id="canvas-section">
-    <InteractiveCanvas :image="image"/>
+    <InteractiveCanvas :stage="stage" :image="image"/>
   </section>
 
   <section id="input-section">
-    <InputBar @upload="upload"/>
+    <InputBar @upload="upload" :stage="stage" @stageChange="stageChange"/>
   </section>
 </template>
 

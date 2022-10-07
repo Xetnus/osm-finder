@@ -5,23 +5,19 @@
 
 <script>
   export default {
-    emits: ['upload'],
+    props: ['stage'],
+    emits: ['upload', 'stageChange'],
     methods: {
       next() {
-        this.stage++
-        console.log(this.stage)
+        this.$emit('stageChange', this.stage + 1)
       },
       back() {
-        this.stage--
-        console.log(this.stage)
+        this.$emit('stageChange', this.stage - 1)
       },
       upload() {
         this.$emit('upload')
       }
     },
-    data() {
-      return { stage: 1 }
-    }
   }
 </script>
 
