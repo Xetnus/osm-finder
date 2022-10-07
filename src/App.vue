@@ -3,17 +3,60 @@
   import InputBar from './components/InputBar.vue'
 </script>
 
+<script>
+  import defaultImage from './components/Massachusetts turnpike.jpg';
+  export default {
+    data() {
+      return {
+        image: null
+      }
+    },
+    created() {
+      const img = new Image();
+      img.src = defaultImage;
+      img.onload = () => {
+        this.image = img;
+      };
+    },
+    methods: {
+      upload() {
+        // Lets the user upload a photo
+        var input = document.createElement('input');
+        input.type = 'file';
+
+        input.onchange = (e) => {
+          var file = e.target.files[0]; 
+          var reader = new FileReader();
+          reader.readAsDataURL(file);
+
+          reader.onload = (readerEvent) => {
+              var content = readerEvent.target.result;
+
+              var img = new Image;
+              img.src = content;
+
+              img.onload = () => {
+                this.image = img;
+              }
+          }
+        }
+        input.click();
+      }
+    },
+  }
+</script>
+
 <template>
   <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
+    <p>OSM Finder</p>
   </header>
 
   <section id="canvas-section">
-    <InteractiveCanvas msg="Hello World"/>
+    <InteractiveCanvas :image="image"/>
   </section>
 
   <section id="input-section">
-    <InputBar />
+    <InputBar @upload="upload"/>
   </section>
 </template>
 

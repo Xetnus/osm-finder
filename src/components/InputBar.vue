@@ -5,6 +5,7 @@
 
 <script>
   export default {
+    emits: ['upload'],
     methods: {
       next() {
         this.stage++
@@ -13,6 +14,9 @@
       back() {
         this.stage--
         console.log(this.stage)
+      },
+      upload() {
+        this.$emit('upload')
       }
     },
     data() {
@@ -23,7 +27,7 @@
 
 <template>
   <div>
-    <UploadBar v-if="this.stage == 1" @next="next"/>
+    <UploadBar v-if="this.stage == 1" @next="next" @upload="upload"/>
     <DrawBar v-if="this.stage == 2" @next="next" @back="back"/>
   </div>
 </template>

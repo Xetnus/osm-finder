@@ -47,14 +47,7 @@ Instructions below are for Linux.
 ```
 
 ### II. Install Frontend
-1. Download this project repository.  
-        `git clone git@github.com:Xetnus/osm-finder.git`
-
-2. Install requirements.txt (you might want to create a [venv](https://docs.python.org/3/library/venv.html) first): `pip install -r requirements.txt`
-
-3. Install paper.js: `npm install paper`
-
-4. Run `gunicorn app:app` in project directory to start the app. Copy the URL that the command outputs and paste it into a web browser window.
+1. Front-end instructions coming soon
 
 ## Usage
 Buttons:
@@ -66,4 +59,4 @@ Buttons:
 - [ ] **Start from scratch.** Because this was created during a hackathon, little emphasis was put on code quality and future maintenance. No standard JavaScript libraries were used and most of the code is inefficient in one way or another. Now that I have a better idea for how this tool can be architected, reconstructing it should be easier.
 - [ ] **Add support for nodes.** Towers, buildings, and nodes of all types should be supported.
 - [ ] **Add support for shapes.** Many roads, buildings, structures, etc. have unique shapes that should be queryable using carefully crafted PostgreSQL queries.
-- [ ] **Host a public website.** Depending on cost, I aim to integrate and host both the frontend (UI) and backend (PostgreSQL) on a public-facing website.
+- [ ] **Host a public website.** Depending on cost, I'd like to integrate and host both the frontend (UI) and backend (PostgreSQL) on a public-facing website.

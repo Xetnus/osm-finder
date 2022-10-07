@@ -1,5 +1,6 @@
 <script>
   export default {
+    emits: ['next', 'back'],
     methods: {
       handleNext(event) {
         this.$emit('next')
