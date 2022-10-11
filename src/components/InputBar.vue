@@ -5,17 +5,20 @@
 
 <script>
   export default {
-    props: ['stage'],
-    emits: ['upload', 'stageChange'],
+    props: ['programStage', 'linestrings', 'nodes', 'drawingState'],
+    emits: ['upload', 'programStageChange', 'drawingStateChange'],
     methods: {
       next() {
-        this.$emit('stageChange', this.stage + 1)
+        this.$emit('programStageChange', this.programStage + 1);
       },
       back() {
-        this.$emit('stageChange', this.stage - 1)
+        this.$emit('programStageChange', this.programStage - 1);
       },
       upload() {
-        this.$emit('upload')
+        this.$emit('upload');
+      },
+      drawingStateChange(state) {
+        this.$emit('drawingStateChange', state)
       }
     },
   }
@@ -23,17 +26,13 @@
 
 <template>
   <div>
-    <UploadBar v-if="this.stage == 1" @next="next" @upload="upload"/>
-    <DrawBar v-if="this.stage == 2" @next="next" @back="back"/>
+    <UploadBar v-if="this.programStage == 1" @next="next" @upload="upload"/>
+    <DrawBar v-if="this.programStage == 2" @next="next" @back="back" @drawingStateChange="drawingStateChange" :drawingState="drawingState"/>
   </div>
 </template>
 
 <style scoped>
   div {
-    display: flex;
-    gap: 20px;
-    flex-direction: row;
-    justify-content: center;
     padding-top: 2em;
   }
 </style>

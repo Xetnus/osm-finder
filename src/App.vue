@@ -4,12 +4,57 @@
 </script>
 
 <script>
+/**
+programStage: 
+
+linestrings: [
+  0:
+    points
+    genericType
+    subtype
+    tags: []
+    [other id]:
+      max_distance
+      min_distance
+      angle
+      error
+]
+
+nodes: [
+  0:
+    point
+    genericType
+    subtype
+    tags: []
+    [other id]:
+      max_distance
+      min_distance
+]
+    
+drawingState: {
+  drawingLinestring: boolean
+  drawingNode: boolean
+  undo: boolean
+  redo: boolean
+  cancel: boolean
+}
+ */
+
   import defaultImage from './assets/Massachusetts turnpike.jpg';
   export default {
     data() {
       return {
         image: null,        // Currently rendered image in the canvas
-        stage: 1,           // Current stage of the program
+        programStage: 1,    // Stage of the program (upload, drawing, descriptions, etc.)
+        linestrings: [],    // Data of the drawn linestrings
+        nodes: [],          // Data of the drawn nodes
+        drawingState: {     // Keeps the active state of the user's drawing input
+          drawingLinestring: false,
+          drawingNode: false,
+          undo: false,
+          redo: false,
+          cancel: false
+        },
       }
     },
     created() {
@@ -22,7 +67,7 @@
     },
     methods: {
       upload() {
-        // Lets the user upload a photo
+        // Lets the user upload their own photo
         var input = document.createElement('input');
         input.type = 'file';
 
@@ -44,8 +89,17 @@
         }
         input.click();
       },
-      stageChange(stage) {
-        this.stage = stage;
+      programStageChange(programStage) {
+        this.programStage = programStage;
+      },
+      drawingStateChange(drawingState) {
+        this.drawingState = drawingState;
+      },
+      linestringsChange(linestring) {
+        this.linestrings = linestring;
+      },
+      nodesChange(node) {
+        // TODO
       }
     },
   }
@@ -57,11 +111,13 @@
   </header>
 
   <section id="canvas-section">
-    <InteractiveCanvas :stage="stage" :image="image"/>
+    <InteractiveCanvas @linestringsChange="linestringsChange" @nodesChange="nodesChange" @drawingStateChange="drawingStateChange"
+      :programStage="programStage" :linestrings="linestrings" :nodes="nodes" :drawingState="drawingState" :image="image"/>
   </section>
 
   <section id="input-section">
-    <InputBar @upload="upload" :stage="stage" @stageChange="stageChange"/>
+    <InputBar @upload="upload" @programStageChange="programStageChange" @drawingStateChange="drawingStateChange" 
+      :programStage="programStage" :linestrings="linestrings" :nodes="nodes" :drawingState="drawingState"/>
   </section>
 </template>
 

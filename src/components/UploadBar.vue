@@ -13,11 +13,21 @@
 </script>
 
 <template>
-  <button @click="handleUpload" id="upload">Upload Photo</button>
-  <button @click="handleNext" id="next">Next</button>
+  <div>
+    <button @click="handleUpload" id="upload">Upload Photo</button>
+    <button @click="handleNext" id="next">Next</button>
+  </div>
 </template>
 
 <style scoped>
+  div {
+    display: flex;
+    gap: 20px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
   button {
     font-size: 16px;
     height: 46px;
