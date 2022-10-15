@@ -1,5 +1,5 @@
 <script>
-  import {calculateImageConfig} from '../assets/tools.js'
+  import {calculateImageConfig, calculateIntersection} from '../assets/tools.js'
 
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -13,9 +13,10 @@
           width: width,
           height: height
         },
-        drawnLinestrings: [],             // Array of arrays containing X and Y pairs for all lines already drawn
+        drawnLinestrings: [],             // Array of arrays [[x1 y1 x2 y2]] for any permanent lines already drawn
         activeLinestring: [],             // Starting and ending point for line currently being drawn
-        activeIntersection: [],
+        drawnIntersections: [],           // Array of arrays [[x y]] for any permanent intersections already drawn
+        activeIntersections: [],          // Array of arrays [[x y]] for any intersections on the line being drawn
         activelyDrawing: false,           // False if no line is being drawn, true otherwise
       };
     },
@@ -39,6 +40,10 @@
         return {stroke: 'black', strokeWidth: 5, points: Object.assign([], points)}
       },
 
+      getIntersectionConfig(point) {
+        return {radius: 6, fill: 'orange', stroke: 'yellow', strokeWidth: 2, x: point[0], y: point[1]}
+      },
+
       mousedown() {
         if (!this.drawingState.drawingLinestring || this.programStage != 2) return;
 
@@ -55,6 +60,17 @@
         const pos = this.$refs.stage.getStage().getPointerPosition();
         if (pos) {
           this.activeLinestring.splice(2, 2, pos.x, pos.y);
+        
+          // Dynamically calculate any intersections with the current line
+          const line1 = this.activeLinestring;
+          this.activeIntersections = [];
+          for (var i = 0; i < this.drawnLinestrings.length; i++) {
+              let line2 = this.drawnLinestrings[i];
+              let intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
+              if (intersection && intersection.seg1 && intersection.seg2) {
+                this.activeIntersections.push([intersection.x, intersection.y]);
+              }
+          }
         }
       },
 
@@ -62,13 +78,8 @@
         if (!this.activelyDrawing || this.programStage != 2) return;
 
         this.drawnLinestrings.push(this.activeLinestring);
+        this.drawnIntersections = this.drawnIntersections.concat(this.activeIntersections);
 
-        const line = {
-          'points': this.activeLinestring,
-          'genericType': null,
-          'subtype': null,
-          'tags': []
-        }
         // Lets the component know we aren't drawing anymore
         this.activelyDrawing = false;
         this.activeLinestring = [];
@@ -89,6 +100,8 @@
       <v-image :config="imageConfig"/>
       <v-line v-for="line in drawnLinestrings" :config="getLineConfig(line)"/>
       <v-line v-if="activelyDrawing" :config="getLineConfig(activeLinestring)"/>
+      <v-circle v-for="circle in drawnIntersections" :config="getIntersectionConfig(circle)"/>
+      <v-circle v-for="circle in activeIntersections" :config="getIntersectionConfig(circle)"/>
     </v-layer>
   </v-stage>
 </template>
