@@ -36,7 +36,6 @@ drawingState: {
   drawingNode: boolean
   undo: boolean
   redo: boolean
-  cancel: boolean
 }
  */
 
@@ -53,7 +52,6 @@ drawingState: {
           drawingNode: false,
           undo: false,
           redo: false,
-          cancel: false
         },
       }
     },
@@ -95,11 +93,11 @@ drawingState: {
       drawingStateChange(drawingState) {
         this.drawingState = drawingState;
       },
-      linestringsChange(linestring) {
-        this.linestrings = linestring;
+      linestringsChange(linestrings) {
+        this.linestrings = linestrings;
       },
-      nodesChange(node) {
-        // TODO
+      nodesChange(nodes) {
+        this.nodes = nodes;
       }
     },
   }

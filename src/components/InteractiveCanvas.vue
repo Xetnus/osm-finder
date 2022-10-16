@@ -28,6 +28,9 @@
         if (!canvas || !this.image) 
           return {};
 
+        this.drawnLinestrings = [];
+        this.drawnIntersections = [];
+
         // width and height variables don't line up with the true canvas dimensions,
         // so we recalculate them 
         this.stageConfig.width = canvas.offsetWidth;
@@ -36,12 +39,24 @@
       },
     },
     methods: {
-      getLineConfig(points) {
+      getLineConfig(points, active) {
+        // If the user cancels the linestring drawing operation, reset active variables
+        if (active && !this.drawingState.drawingLinestring) {
+          this.activeLinestring = [];
+          this.activeIntersections = [];
+          this.activelyDrawing = false;
+
+          return {};
+        }
+
         return {stroke: 'black', strokeWidth: 5, points: Object.assign([], points)}
       },
 
-      getIntersectionConfig(point) {
-        return {radius: 6, fill: 'orange', stroke: 'yellow', strokeWidth: 2, x: point[0], y: point[1]}
+      getIntersectionConfig(point, active) {
+        const fill = active ? 'red' : 'orange';
+        const stroke = active ? 'orange' : 'yellow';
+
+        return {radius: 6, fill: fill, stroke: stroke, strokeWidth: 2, x: point[0], y: point[1]}
       },
 
       mousedown() {
@@ -65,11 +80,11 @@
           const line1 = this.activeLinestring;
           this.activeIntersections = [];
           for (var i = 0; i < this.drawnLinestrings.length; i++) {
-              let line2 = this.drawnLinestrings[i];
-              let intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
-              if (intersection && intersection.seg1 && intersection.seg2) {
-                this.activeIntersections.push([intersection.x, intersection.y]);
-              }
+            let line2 = this.drawnLinestrings[i];
+            let intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
+            if (intersection && intersection.seg1 && intersection.seg2) {
+              this.activeIntersections.push([intersection.x, intersection.y]);
+            }
           }
         }
       },
@@ -79,6 +94,7 @@
 
         this.drawnLinestrings.push(this.activeLinestring);
         this.drawnIntersections = this.drawnIntersections.concat(this.activeIntersections);
+        this.activeIntersections = [];
 
         // Lets the component know we aren't drawing anymore
         this.activelyDrawing = false;
@@ -88,20 +104,29 @@
         let state = this.drawingState;
         state.drawingLinestring = false;
         this.$emit('drawingStateChange', state);
-        this.$emit('linestringsChange');
+
+        let linestrings = this.linestrings;
+        linestrings.push({
+          points: this.activeLinestring,
+          genericType: null,
+          subtype: null,
+          tags: [],
+        });
+        this.$emit('linestringsChange', linestrings);
       },
     }
   };
 </script>
 
 <template>
-  <v-stage ref="stage" :config="stageConfig" @touchstart="mousedown" @touchend="mouseup_mouseleave" @touchmove="mousemove" @mousemove="mousemove" @mousedown="mousedown" @mouseup="mouseup_mouseleave" @mouseleave="mouseup_mouseleave">
+  <v-stage ref="stage" :config="stageConfig" @touchstart="mousedown" @touchend="mouseup_mouseleave" @touchmove="mousemove" 
+      @mousemove="mousemove" @mousedown="mousedown" @mouseup="mouseup_mouseleave" @mouseleave="mouseup_mouseleave">
     <v-layer ref="layer">
       <v-image :config="imageConfig"/>
-      <v-line v-for="line in drawnLinestrings" :config="getLineConfig(line)"/>
-      <v-line v-if="activelyDrawing" :config="getLineConfig(activeLinestring)"/>
-      <v-circle v-for="circle in drawnIntersections" :config="getIntersectionConfig(circle)"/>
-      <v-circle v-for="circle in activeIntersections" :config="getIntersectionConfig(circle)"/>
+      <v-line v-for="line in drawnLinestrings" :config="getLineConfig(line, false)"/>
+      <v-line v-if="activelyDrawing" :config="getLineConfig(activeLinestring, true)"/>
+      <v-circle v-for="circle in drawnIntersections" :config="getIntersectionConfig(circle, false)"/>
+      <v-circle v-for="circle in activeIntersections" :config="getIntersectionConfig(circle, true)"/>
     </v-layer>
   </v-stage>
 </template>

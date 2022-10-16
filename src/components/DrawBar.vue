@@ -12,7 +12,7 @@
       handleClick(event) {
         let state = this.drawingState;
         const toChange = event.srcElement.id;
-        state[[toChange]] = true;
+        state[[toChange]] = !state[[toChange]];
         this.$emit('drawingStateChange', state)
       },
     }
@@ -21,9 +21,8 @@
 
 <template>
   <div>
-    <button id="drawingLinestring" @click="handleClick">Linestring</button>
-    <button id="cancel" :disabled="!this.drawingState.drawingLinestring && !this.drawingState.drawingNode" 
-      @click="handleClick">Cancel</button>
+    <button id="drawingLinestring" :class="{active: this.drawingState.drawingLinestring}" @click="handleClick">Linestring</button>
+    <button id="drawingNode" title="Not implemented" :class="{active: this.drawingState.drawingNode}" @click="handleClick" disabled>Node</button>
   </div>
   <div>
     <button id="back" @click="handleBack">Back</button>
@@ -51,6 +50,11 @@
     text-align: center;
     border: 1px solid darkgreen;
     background-color: lightgreen;
+  }
+
+  button.active {
+    background-color: green;
+    box-shadow: 0 0 5px 1px black;
   }
 
   button:hover:enabled {
