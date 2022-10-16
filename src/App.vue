@@ -5,37 +5,49 @@
 
 <script>
 /**
-programStage: 
+programStage: int
 
-linestrings: [
+annotations: [
   0:
+    name: 'line0'
+    geometryType: 'linestring'
     points
     genericType
     subtype
     tags: []
-    [other id]:
-      max_distance
-      min_distance
-      angle
-      error
-]
-
-nodes: [
-  0:
+    relations: [
+      [other_name]: {
+        intersection
+        max_distance
+        min_distance
+        angle
+        error
+      }
+    ]
+  
+  1:
+    name: 'node0'
+    geometryType: 'circle'
     point
     genericType
     subtype
     tags: []
-    [other id]:
-      max_distance
-      min_distance
+    relations: [
+      [other_name]: {
+        max_distance
+        min_distance
+      }
+    }
+  
+  ...
 ]
-    
+
+// Contains index values of annotations that have been undone. Only modified by DrawBar.
+undoHistory: []  
+
 drawingState: {
   drawingLinestring: boolean
   drawingNode: boolean
-  undo: boolean
-  redo: boolean
 }
  */
 
@@ -45,13 +57,11 @@ drawingState: {
       return {
         image: null,        // Currently rendered image in the canvas
         programStage: 1,    // Stage of the program (upload, drawing, descriptions, etc.)
-        linestrings: [],    // Data of the drawn linestrings
-        nodes: [],          // Data of the drawn nodes
+        annotations: [],    // Data of the drawn annotations (e.g., lines, nodes)
+        undoHistory: [],
         drawingState: {     // Keeps the active state of the user's drawing input
           drawingLinestring: false,
           drawingNode: false,
-          undo: false,
-          redo: false,
         },
       }
     },
@@ -82,6 +92,7 @@ drawingState: {
 
               img.onload = () => {
                 this.image = img;
+                this.annotations = [];
               }
           }
         }
@@ -93,11 +104,11 @@ drawingState: {
       drawingStateChange(drawingState) {
         this.drawingState = drawingState;
       },
-      linestringsChange(linestrings) {
-        this.linestrings = linestrings;
+      annotationsChange(annotations) {
+        this.annotations = annotations;
       },
-      nodesChange(nodes) {
-        this.nodes = nodes;
+      undoHistoryChange(undoHistory) {
+        this.undoHistory = undoHistory;
       }
     },
   }
@@ -109,13 +120,13 @@ drawingState: {
   </header>
 
   <section id="canvas-section">
-    <InteractiveCanvas @linestringsChange="linestringsChange" @nodesChange="nodesChange" @drawingStateChange="drawingStateChange"
-      :programStage="programStage" :linestrings="linestrings" :nodes="nodes" :drawingState="drawingState" :image="image"/>
+    <InteractiveCanvas @annotationsChange="annotationsChange" @drawingStateChange="drawingStateChange"
+      :programStage="programStage" :annotations="annotations" :undoHistory="undoHistory" :drawingState="drawingState" :image="image"/>
   </section>
 
   <section id="input-section">
-    <InputBar @upload="upload" @programStageChange="programStageChange" @drawingStateChange="drawingStateChange" 
-      :programStage="programStage" :linestrings="linestrings" :nodes="nodes" :drawingState="drawingState"/>
+    <InputBar @upload="upload" @programStageChange="programStageChange" @drawingStateChange="drawingStateChange" @undoHistoryChange="undoHistoryChange"
+      :programStage="programStage" :annotations="annotations" :undoHistory="undoHistory" :drawingState="drawingState"/>
   </section>
 </template>
 

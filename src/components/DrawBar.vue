@@ -1,7 +1,7 @@
 <script>
   export default {
-    props: ['drawingState'],
-    emits: ['next', 'back', 'drawingStateChange'],
+    props: ['drawingState', 'annotations', 'undoHistory'],
+    emits: ['next', 'back', 'drawingStateChange', 'undoHistoryChange'],
     methods: {
       handleNext(event) {
         this.$emit('next')
@@ -9,11 +9,26 @@
       handleBack(event) {
         this.$emit('back')
       },
-      handleClick(event) {
+      handleToggle(event) {
         let state = this.drawingState;
         const toChange = event.srcElement.id;
         state[[toChange]] = !state[[toChange]];
-        this.$emit('drawingStateChange', state)
+        this.$emit('drawingStateChange', state);
+      },
+      handleUndo(event) {
+        // Add the index of the most recently created annotation to
+        // undoHistory, as long as it wasn't already added
+        for (var i = this.annotations.length - 1; i >= 0; i--) {
+          if (!this.undoHistory.includes(i)) {
+            let history = this.undoHistory;
+            this.$emit('undoHistoryChange', history.push(i));
+            return;
+          }
+        }
+      },
+      handleRedo(event) {
+        let history = this.undoHistory;
+        this.$emit('undoHistoryChange', history.pop());
       },
     }
   }
@@ -21,13 +36,13 @@
 
 <template>
   <div>
-    <button id="drawingLinestring" :class="{active: this.drawingState.drawingLinestring}" @click="handleClick">Linestring</button>
-    <button id="drawingNode" title="Not implemented" :class="{active: this.drawingState.drawingNode}" @click="handleClick" disabled>Node</button>
+    <button id="drawingLinestring" :class="{active: this.drawingState.drawingLinestring}" @click="handleToggle">Linestring</button>
+    <button id="drawingNode" title="Not implemented" :class="{active: this.drawingState.drawingNode}" @click="handleToggle" disabled>Node</button>
   </div>
   <div>
     <button id="back" @click="handleBack">Back</button>
-    <button id="undo" @click="handleClick">Undo</button>
-    <button id="redo" @click="handleClick">Redo</button>
+    <button id="undo" :disabled="!(annotations.length - undoHistory.length)" @click="handleUndo">Undo</button>
+    <button id="redo" :disabled="!undoHistory.length" @click="handleRedo">Redo</button>
     <button id="next" @click="handleNext">Next</button>
   </div>
 </template>

@@ -5,8 +5,8 @@
 
 <script>
   export default {
-    props: ['programStage', 'linestrings', 'nodes', 'drawingState'],
-    emits: ['upload', 'programStageChange', 'drawingStateChange'],
+    props: ['programStage', 'annotations', 'undoHistory', 'drawingState'],
+    emits: ['upload', 'programStageChange', 'drawingStateChange', 'undoHistoryChange'],
     methods: {
       next() {
         this.$emit('programStageChange', this.programStage + 1);
@@ -18,7 +18,10 @@
         this.$emit('upload');
       },
       drawingStateChange(state) {
-        this.$emit('drawingStateChange', state)
+        this.$emit('drawingStateChange', state);
+      },
+      undoHistoryChange(undoHistory) {
+        this.$emit('undoHistoryChange', undoHistory);
       }
     },
   }
@@ -27,7 +30,8 @@
 <template>
   <div>
     <UploadBar v-if="this.programStage == 1" @next="next" @upload="upload"/>
-    <DrawBar v-if="this.programStage == 2" @next="next" @back="back" @drawingStateChange="drawingStateChange" :drawingState="drawingState"/>
+    <DrawBar v-if="this.programStage == 2" @next="next" @back="back" @drawingStateChange="drawingStateChange" 
+      :drawingState="drawingState" :annotations="annotations" :undoHistory="undoHistory"/>
   </div>
 </template>
 
