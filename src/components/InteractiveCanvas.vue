@@ -1,12 +1,11 @@
 <script>
-  import { parseStringStyle } from '@vue/shared';
 import {calculateImageConfig, calculateIntersection} from '../assets/tools.js'
 
   const width = window.innerWidth;
   const height = window.innerHeight;
 
   export default {
-    props: ['image', 'programStage', 'annotations', 'undoHistory', 'drawingState'],
+    props: ['image', 'programStage', 'annotations', 'hiddenAnnotations', 'drawingState'],
     emits: ['annotationsChange', 'drawingStateChange'],
     data() {
       return {
@@ -37,7 +36,7 @@ import {calculateImageConfig, calculateIntersection} from '../assets/tools.js'
       linestrings() {
         var points = [];
         for (var i = 0; i < this.annotations.length; i++) {
-          if (this.annotations[i].geometryType != 'linestring' || this.undoHistory.includes(i)) { 
+          if (this.annotations[i].geometryType != 'linestring' || this.hiddenAnnotations.includes(i)) { 
             continue;
           }
 
@@ -49,7 +48,7 @@ import {calculateImageConfig, calculateIntersection} from '../assets/tools.js'
       intersections() {
         var points = [];
         for (var i = 0; i < this.annotations.length; i++) {
-          if (this.annotations[i].geometryType != 'linestring' || this.undoHistory.includes(i)) { 
+          if (this.annotations[i].geometryType != 'linestring' || this.hiddenAnnotations.includes(i)) { 
             continue;
           }
           for (var j = 0; j < this.annotations[i].relations.length; j++) {
@@ -105,7 +104,7 @@ import {calculateImageConfig, calculateIntersection} from '../assets/tools.js'
           const line1 = this.activeLinestring;
           this.activeRelations = [];
           for (var i = 0; i < this.annotations.length; i++) {
-            if (this.undoHistory.includes(i) || this.annotations[i].geometryType != 'linestring') continue;
+            if (this.hiddenAnnotations.includes(i) || this.annotations[i].geometryType != 'linestring') continue;
 
             let line2 = this.annotations[i].points;
             let intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);

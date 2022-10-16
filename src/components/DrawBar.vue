@@ -1,34 +1,46 @@
 <script>
   export default {
-    props: ['drawingState', 'annotations', 'undoHistory'],
-    emits: ['next', 'back', 'drawingStateChange', 'undoHistoryChange'],
+    props: ['drawingState', 'annotations', 'hiddenAnnotations'],
+    emits: ['next', 'back', 'drawingStateChange', 'hiddenAnnotationsChange'],
+    data() {
+      return {
+        infoLabel: '',
+      }
+    },
     methods: {
       handleNext(event) {
-        this.$emit('next')
+        // if (this.annotations.length - this.hiddenAnnotations.length > 1) {
+          this.$emit('next')
+        // } else {
+          // this.infoLabel = 'Draw at least two lines.';
+        // }
       },
       handleBack(event) {
         this.$emit('back')
       },
-      handleToggle(event) {
+      toggleLinestring(event) {
         let state = this.drawingState;
-        const toChange = event.srcElement.id;
-        state[[toChange]] = !state[[toChange]];
+        state['drawingLinestring'] = !state['drawingLinestring'];
         this.$emit('drawingStateChange', state);
+
+        this.infoLabel = state['drawingLinestring'] ? 'Click and drag to draw a line.': '';
       },
       handleUndo(event) {
         // Add the index of the most recently created annotation to
-        // undoHistory, as long as it wasn't already added
+        // hiddenAnnotations, as long as it wasn't already added
         for (var i = this.annotations.length - 1; i >= 0; i--) {
-          if (!this.undoHistory.includes(i)) {
-            let history = this.undoHistory;
-            this.$emit('undoHistoryChange', history.push(i));
+          if (!this.hiddenAnnotations.includes(i)) {
+            let history = this.hiddenAnnotations;
+            history.push(i);
+            this.$emit('hiddenAnnotationsChange', history);
             return;
           }
         }
       },
       handleRedo(event) {
-        let history = this.undoHistory;
-        this.$emit('undoHistoryChange', history.pop());
+        let history = this.hiddenAnnotations;
+        history.pop();
+        this.$emit('hiddenAnnotationsChange', history);
       },
     }
   }
@@ -36,18 +48,23 @@
 
 <template>
   <div>
-    <button id="drawingLinestring" :class="{active: this.drawingState.drawingLinestring}" @click="handleToggle">Linestring</button>
-    <button id="drawingNode" title="Not implemented" :class="{active: this.drawingState.drawingNode}" @click="handleToggle" disabled>Node</button>
+    <button :class="{active: this.drawingState.drawingLinestring}" @click="toggleLinestring">Linestring</button>
+    <button title="Not implemented" :class="{active: this.drawingState.drawingNode}" disabled>Node</button>
   </div>
   <div>
     <button id="back" @click="handleBack">Back</button>
-    <button id="undo" :disabled="!(annotations.length - undoHistory.length)" @click="handleUndo">Undo</button>
-    <button id="redo" :disabled="!undoHistory.length" @click="handleRedo">Redo</button>
+    <button id="undo" :disabled="!(annotations.length - hiddenAnnotations.length)" @click="handleUndo">Undo</button>
+    <button id="redo" :disabled="!hiddenAnnotations.length" @click="handleRedo">Redo</button>
     <button id="next" @click="handleNext">Next</button>
   </div>
+  <p>{{infoLabel}}</p>
 </template>
 
 <style scoped>
+  p {
+    text-align: center;
+  }
+
   div {
     display: flex;
     gap: 20px;
@@ -58,25 +75,8 @@
     padding-bottom: 0.5em;
   }
 
-  button {
-    font-size: 16px;
-    height: 46px;
-    padding: 0 15px;
-    text-align: center;
-    border: 1px solid darkgreen;
-    background-color: lightgreen;
-  }
-
   button.active {
     background-color: green;
     box-shadow: 0 0 5px 1px black;
-  }
-
-  button:hover:enabled {
-    filter: brightness(80%)
-  }
-
-  button:active:enabled {
-    filter: brightness(40%)
   }
 </style>

@@ -42,8 +42,10 @@ annotations: [
   ...
 ]
 
-// Contains index values of annotations that have been undone. Only modified by DrawBar.
-undoHistory: []  
+// Contains index values of annotations that have been hidden for various reasons.
+// Used by DrawBar to undo elements. Used by PropertiesBar and RelationBar to
+// selectively hide certain elements during data entry.
+hiddenAnnotations: []  
 
 drawingState: {
   drawingLinestring: boolean
@@ -56,9 +58,9 @@ drawingState: {
     data() {
       return {
         image: null,        // Currently rendered image in the canvas
-        programStage: 1,    // Stage of the program (upload, drawing, descriptions, etc.)
+        programStage: 1,    // Stage of the program (upload, drawing, details, etc.)
         annotations: [],    // Data of the drawn annotations (e.g., lines, nodes)
-        undoHistory: [],
+        hiddenAnnotations: [],
         drawingState: {     // Keeps the active state of the user's drawing input
           drawingLinestring: false,
           drawingNode: false,
@@ -107,8 +109,8 @@ drawingState: {
       annotationsChange(annotations) {
         this.annotations = annotations;
       },
-      undoHistoryChange(undoHistory) {
-        this.undoHistory = undoHistory;
+      hiddenAnnotationsChange(hiddenAnnotations) {
+        this.hiddenAnnotations = hiddenAnnotations;
       }
     },
   }
@@ -121,12 +123,12 @@ drawingState: {
 
   <section id="canvas-section">
     <InteractiveCanvas @annotationsChange="annotationsChange" @drawingStateChange="drawingStateChange"
-      :programStage="programStage" :annotations="annotations" :undoHistory="undoHistory" :drawingState="drawingState" :image="image"/>
+      :programStage="programStage" :annotations="annotations" :hiddenAnnotations="hiddenAnnotations" :drawingState="drawingState" :image="image"/>
   </section>
 
   <section id="input-section">
-    <InputBar @upload="upload" @programStageChange="programStageChange" @drawingStateChange="drawingStateChange" @undoHistoryChange="undoHistoryChange"
-      :programStage="programStage" :annotations="annotations" :undoHistory="undoHistory" :drawingState="drawingState"/>
+    <InputBar @upload="upload" @programStageChange="programStageChange" @drawingStateChange="drawingStateChange" @hiddenAnnotationsChange="hiddenAnnotationsChange"
+      :programStage="programStage" :annotations="annotations" :hiddenAnnotations="hiddenAnnotations" :drawingState="drawingState"/>
   </section>
 </template>
 

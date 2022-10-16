@@ -1,12 +1,14 @@
 <script setup>
   import UploadBar from './UploadBar.vue'
   import DrawBar from './DrawBar.vue'
+  import PropertiesBar from './PropertiesBar.vue'
+  import RelationBar from './RelationBar.vue'
 </script>
 
 <script>
   export default {
-    props: ['programStage', 'annotations', 'undoHistory', 'drawingState'],
-    emits: ['upload', 'programStageChange', 'drawingStateChange', 'undoHistoryChange'],
+    props: ['programStage', 'annotations', 'hiddenAnnotations', 'drawingState'],
+    emits: ['upload', 'programStageChange', 'drawingStateChange', 'hiddenAnnotationsChange'],
     methods: {
       next() {
         this.$emit('programStageChange', this.programStage + 1);
@@ -20,23 +22,34 @@
       drawingStateChange(state) {
         this.$emit('drawingStateChange', state);
       },
-      undoHistoryChange(undoHistory) {
-        this.$emit('undoHistoryChange', undoHistory);
+      hiddenAnnotationsChange(hiddenAnnotations) {
+        this.$emit('hiddenAnnotationsChange', hiddenAnnotations);
       }
     },
   }
 </script>
 
 <template>
-  <div>
-    <UploadBar v-if="this.programStage == 1" @next="next" @upload="upload"/>
-    <DrawBar v-if="this.programStage == 2" @next="next" @back="back" @drawingStateChange="drawingStateChange" 
-      :drawingState="drawingState" :annotations="annotations" :undoHistory="undoHistory"/>
-  </div>
+  <section>
+    <UploadBar v-if="this.programStage == 1" 
+      @next="next" @upload="upload"/>
+
+    <DrawBar v-if="this.programStage == 2" 
+      @next="next" @back="back" @drawingStateChange="drawingStateChange" @hiddenAnnotationsChange="hiddenAnnotationsChange"
+      :drawingState="drawingState" :annotations="annotations" :hiddenAnnotations="hiddenAnnotations"/>
+
+    <PropertiesBar v-if="this.programStage == 3" 
+      @next="next" @back="back" @hiddenAnnotationsChange="hiddenAnnotationsChange"
+      :annotations="annotations" :hiddenAnnotations="hiddenAnnotations"/>
+
+    <RelationBar v-if="this.programStage == 4" 
+      @next="next" @back="back" @hiddenAnnotationsChange="hiddenAnnotationsChange"
+      :annotations="annotations" :hiddenAnnotations="hiddenAnnotations"/>
+  </section>
 </template>
 
 <style scoped>
-  div {
+  section {
     padding-top: 2em;
   }
 </style>
