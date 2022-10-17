@@ -7,8 +7,8 @@
 
 <script>
   export default {
-    props: ['programStage', 'annotations', 'hiddenAnnotations', 'drawingState'],
-    emits: ['upload', 'programStageChange', 'drawingStateChange', 'annotationsChange', 'hiddenAnnotationsChange'],
+    props: ['programStage', 'annotations', 'drawingState'],
+    emits: ['upload', 'programStageChange', 'drawingStateChange', 'annotationsChange'],
     methods: {
       next() {
         this.$emit('programStageChange', this.programStage + 1);
@@ -21,9 +21,6 @@
       },
       drawingStateChange(state) {
         this.$emit('drawingStateChange', state);
-      },
-      hiddenAnnotationsChange(hiddenAnnotations) {
-        this.$emit('hiddenAnnotationsChange', hiddenAnnotations);
       },
       annotationsChange(annotations) {
         this.$emit('annotationsChange', annotations);
@@ -38,16 +35,16 @@
       @next="next" @upload="upload"/>
 
     <DrawBar v-if="this.programStage == 2" 
-      @next="next" @back="back" @drawingStateChange="drawingStateChange" @hiddenAnnotationsChange="hiddenAnnotationsChange"
-      :drawingState="drawingState" :annotations="annotations" :hiddenAnnotations="hiddenAnnotations"/>
+      @next="next" @back="back" @drawingStateChange="drawingStateChange" @annotationsChange="annotationsChange"
+      :drawingState="drawingState" :annotations="annotations"/>
 
     <PropertiesBar v-if="this.programStage == 3" 
-      @next="next" @back="back" @hiddenAnnotationsChange="hiddenAnnotationsChange" @annotationsChange="annotationsChange"
-      :annotations="annotations" :hiddenAnnotations="hiddenAnnotations"/>
+      @next="next" @back="back" @annotationsChange="annotationsChange"
+      :annotations="annotations"/>
 
     <RelationBar v-if="this.programStage == 4" 
-      @next="next" @back="back" @hiddenAnnotationsChange="hiddenAnnotationsChange" @annotationsChange="annotationsChange"
-      :annotations="annotations" :hiddenAnnotations="hiddenAnnotations"/>
+      @next="next" @back="back" @annotationsChange="annotationsChange"
+      :annotations="annotations"/>
   </section>
 </template>
 

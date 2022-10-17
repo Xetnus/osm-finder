@@ -12,6 +12,7 @@ annotations: [
     name: 'line0'
     geometryType: 'linestring'
     points
+    transparent
     genericType
     subtype
     tags: []
@@ -28,6 +29,7 @@ annotations: [
     name: 'node0'
     geometryType: 'circle'
     point
+    transparent
     genericType
     subtype
     tags: []
@@ -40,11 +42,6 @@ annotations: [
   
   ...
 ]
-
-// Contains index values of annotations that have been hidden for various reasons.
-// Used by DrawBar to undo elements. Used by PropertiesBar and RelationBar to
-// selectively hide certain elements during data entry.
-hiddenAnnotations: []  
 
 drawingState: {
   drawingLinestring: boolean
@@ -59,7 +56,6 @@ drawingState: {
         image: null,        // Currently rendered image in the canvas
         programStage: 1,    // Stage of the program (upload, drawing, details, etc.)
         annotations: [],    // Data of the drawn annotations (e.g., lines, nodes)
-        hiddenAnnotations: [],
         drawingState: {     // Keeps the active state of the user's drawing input
           drawingLinestring: false,
           drawingNode: false,
@@ -108,9 +104,6 @@ drawingState: {
       annotationsChange(annotations) {
         this.annotations = annotations;
       },
-      hiddenAnnotationsChange(hiddenAnnotations) {
-        this.hiddenAnnotations = hiddenAnnotations;
-      }
     },
   }
 </script>
@@ -122,12 +115,12 @@ drawingState: {
 
   <section id="canvas-section">
     <InteractiveCanvas @annotationsChange="annotationsChange" @drawingStateChange="drawingStateChange"
-      :programStage="programStage" :annotations="annotations" :hiddenAnnotations="hiddenAnnotations" :drawingState="drawingState" :image="image"/>
+      :programStage="programStage" :annotations="annotations" :drawingState="drawingState" :image="image"/>
   </section>
 
   <section id="input-section">
-    <InputBar @upload="upload" @programStageChange="programStageChange" @drawingStateChange="drawingStateChange" @annotationsChange="annotationsChange" @hiddenAnnotationsChange="hiddenAnnotationsChange"
-      :programStage="programStage" :annotations="annotations" :hiddenAnnotations="hiddenAnnotations" :drawingState="drawingState"/>
+    <InputBar @upload="upload" @programStageChange="programStageChange" @drawingStateChange="drawingStateChange" @annotationsChange="annotationsChange" 
+      :programStage="programStage" :annotations="annotations" :drawingState="drawingState"/>
   </section>
 </template>
 

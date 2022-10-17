@@ -1,79 +1,65 @@
 <script>
   export default {
-    props: ['annotations', 'hiddenAnnotations'],
-    emits: ['next', 'back', 'annotationsChange', 'hiddenAnnotationsChange'],
+    props: ['annotations'],
+    emits: ['next', 'back', 'annotationsChange'],
     created() {
-      this.current1 = this.primaryRemaining.pop();
-      this.secondaryRemaining = this.primaryRemaining.slice(0);
-      this.current2 = this.secondaryRemaining.pop();
-      this.hideAllButTwo(this.current1.name, this.current2.name);
+      this.handleNext();
     },
-
-    /**
-     * TODO:
-     * - improve hiding capability (possibly using this.annotations)
-     * - actually use the user input
-     */
-
     data() {
       return {
         maxDistance: '',
         minDistance: '',
         angle: '',
         error: '',
-        blacklisted: this.hiddenAnnotations.slice(0), // Keeps the initial list of annotations that were undone
         current1: '',
         current2: '',
-        primaryRemaining: this.annotations.filter((ann, i) => !this.hiddenAnnotations.includes(i)),
+        primaryRemaining: this.annotations.slice(0),
         secondaryRemaining: [],
       }
     },
     methods: {
       handleNext(event) {
-        // Commit these properties to the global state
-        let maxD = this.maxDistance;
-        let minD = this.minDistance;
-        let angle = this.angle;
-        let error = this.error;
+        if (this.current1 && this.current2) {
+          // Commit these properties to the global state
+          let maxD = this.maxDistance;
+          let minD = this.minDistance;
+          let angle = this.angle;
+          let error = this.error;
 
-        console.log(maxD, minD, angle, error)
+          console.log(maxD, minD, angle, error)
+        }
 
         if (this.secondaryRemaining.length > 0) {
           this.current2 = this.secondaryRemaining.pop();
-          this.hideAllButTwo(this.current1.name, this.current2.name);
-        } else if (this.primaryRemaining.length > 0) {
+          this.hideAllButTwo(this.current1, this.current2);
+        } else if (this.primaryRemaining.length > 1) {
           this.current1 = this.primaryRemaining.pop();
           this.secondaryRemaining = this.primaryRemaining.slice(0);
           this.current2 = this.secondaryRemaining.pop();
-
-          if (this.current2 == null) {
-            this.setHiddenAnnotations(this.blacklisted); // Reset hidden annotations
-            this.$emit('next');
-            return
-          }
-
-          this.hideAllButTwo(this.current1.name, this.current2.name);
+          this.hideAllButTwo(this.current1, this.current2);
         } else {
-          this.setHiddenAnnotations(this.blacklisted); // Reset hidden annotations
+          this.showAll();
           this.$emit('next');
         }
       },
       handleBack(event) {
-        this.setHiddenAnnotations(this.blacklisted); // Reset hidden annotations
+        this.showAll();
         this.$emit('back');
       },
-      hideAllButTwo(name1, name2) {
-        // Hides every annotation except for the current 2
-        let index1 = this.annotations.findIndex(ann => ann.name == name1);
-        let index2 = this.annotations.findIndex(ann => ann.name == name2);
-        let hidden = [...Array(this.annotations.length).keys()];
-        hidden = hidden.filter(i => i != index1 && i != index2)
-        this.setHiddenAnnotations(hidden);
+      hideAllButTwo(hide1, hide2) {
+        let anns = this.annotations;
+        for (var i = 0; i < this.annotations.length; i++) {
+          let match = anns[i].name == hide1.name || anns[i].name == hide2.name;
+          anns[i].transparent = match ? false : true;
+        }
+        this.$emit('annotationsChange', anns);
       },
-      setHiddenAnnotations(hide) {
-        let hidden = this.hiddenAnnotations;
-        hidden = hide;
-        this.$emit('hiddenAnnotationsChange', hidden);
+      showAll() {
+        let anns = this.annotations;
+        for (var i = 0; i < this.annotations.length; i++) {
+          anns[i].transparent = false;
+        }
+        this.$emit('annotationsChange', anns);
       }
     }
   }

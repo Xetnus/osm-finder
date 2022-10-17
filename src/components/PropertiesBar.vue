@@ -1,7 +1,7 @@
 <script>
   export default {
-    props: ['annotations', 'hiddenAnnotations'],
-    emits: ['next', 'back', 'annotationsChange', 'hiddenAnnotationsChange'],
+    props: ['annotations'],
+    emits: ['next', 'back', 'annotationsChange'],
     created() {
       this.handleNext();
     },
@@ -12,7 +12,6 @@
         subtypeSelected: 'vehicle',
         subtypeTyped: '',
         tagsTyped: '',
-        blacklisted: this.hiddenAnnotations.slice(0), // Keeps the initial list of annotations that were undone
         currentIndex: -1,
       }
     },
@@ -34,32 +33,35 @@
           this.$emit('annotationsChange', ann);
         }
 
-        // Finds the next currentIndex that's not blacklisted
-        do {
-          this.currentIndex++;
-        } while (this.blacklisted.includes(this.currentIndex));
+        this.currentIndex++;
 
         if (this.currentIndex >= this.annotations.length) {
-          this.setHiddenAnnotations(this.blacklisted); // Reset hidden annotations
+          this.showAll();
           this.$emit('next');
         } else {
-          // Hides every annotation except for this.currentIndex
-          let hidden = [...Array(this.annotations.length).keys()];
-          hidden.splice(this.currentIndex, 1);
-          this.setHiddenAnnotations(hidden);
+          this.hideAllButOne(this.currentElement);
         }
       },
       handleBack(event) {
-        this.setHiddenAnnotations(this.blacklisted); // Reset hidden annotations
+        this.showAll();
         this.$emit('back');
       },
       genericTypeChange(event) {
         this.subtypeSelected = this.types[this.genericTypeSelected][0];
       },
-      setHiddenAnnotations(hide) {
-        let hidden = this.hiddenAnnotations;
-        hidden = hide;
-        this.$emit('hiddenAnnotationsChange', hidden);
+      hideAllButOne(hide) {
+        let anns = this.annotations;
+        for (var i = 0; i < this.annotations.length; i++) {
+          anns[i].transparent = (anns[i].name == hide.name) ? false : true;
+        }
+        this.$emit('annotationsChange', anns);
+      },
+      showAll() {
+        let anns = this.annotations;
+        for (var i = 0; i < this.annotations.length; i++) {
+          anns[i].transparent = false;
+        }
+        this.$emit('annotationsChange', anns);
       }
     }
   }

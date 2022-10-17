@@ -5,7 +5,7 @@ import {calculateImageConfig, calculateIntersection} from '../assets/interfaceTo
   const height = window.innerHeight;
 
   export default {
-    props: ['image', 'programStage', 'annotations', 'hiddenAnnotations', 'drawingState'],
+    props: ['image', 'programStage', 'annotations', 'drawingState'],
     emits: ['annotationsChange', 'drawingStateChange'],
     data() {
       return {
@@ -34,26 +34,26 @@ import {calculateImageConfig, calculateIntersection} from '../assets/interfaceTo
       },
 
       linestrings() {
-        var points = [];
+        var lines = [];
         for (var i = 0; i < this.annotations.length; i++) {
-          if (this.annotations[i].geometryType != 'linestring' || this.hiddenAnnotations.includes(i)) { 
+          if (this.annotations[i].geometryType != 'linestring') { 
             continue;
           }
 
-          points.push(this.annotations[i].points);
+          lines.push(this.annotations[i]);
         }
-        return points;
+        return lines;
       },
 
       intersections() {
         var points = [];
         // Good old, trusty O(n^2)
         for (var i = 0; i < this.annotations.length; i++) {
-          if (this.annotations[i].geometryType != 'linestring' || this.hiddenAnnotations.includes(i)) { 
+          if (this.annotations[i].geometryType != 'linestring') { 
             continue;
           }
           for (var j = 0; j < this.annotations.length; j++) {
-            if (i == j || this.annotations[j].geometryType != 'linestring' || this.hiddenAnnotations.includes(j)) { 
+            if (i == j || this.annotations[j].geometryType != 'linestring') { 
               continue;
             }
 
@@ -70,7 +70,8 @@ import {calculateImageConfig, calculateIntersection} from '../assets/interfaceTo
     },
     methods: {
       getLineConfig(line) {
-        return {stroke: 'black', strokeWidth: 5, points: Object.assign([], line)}
+        let opacity = line.transparent ? 0.3 : 1;
+        return {stroke: 'black', strokeWidth: 5, points: Object.assign([], line.points), opacity: opacity}
       },
 
       getActiveLineConfig(points) {
@@ -114,7 +115,7 @@ import {calculateImageConfig, calculateIntersection} from '../assets/interfaceTo
           const line1 = this.activeLinestring;
           this.activeIntersections = [];
           for (var i = 0; i < this.annotations.length; i++) {
-            if (this.hiddenAnnotations.includes(i) || this.annotations[i].geometryType != 'linestring') continue;
+            if (this.annotations[i].geometryType != 'linestring') continue;
 
             let line2 = this.annotations[i].points;
             let intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
@@ -135,6 +136,7 @@ import {calculateImageConfig, calculateIntersection} from '../assets/interfaceTo
           name: 'line' + count,
           geometryType: 'linestring',
           points: this.activeLinestring,
+          transparent: false,
           genericType: null,
           subtype: null,
           tags: [],
