@@ -17,7 +17,6 @@ annotations: [
     tags: []
     relations: [
       [other_name]: {
-        intersection
         max_distance
         min_distance
         angle
@@ -127,7 +126,7 @@ drawingState: {
   </section>
 
   <section id="input-section">
-    <InputBar @upload="upload" @programStageChange="programStageChange" @drawingStateChange="drawingStateChange" @hiddenAnnotationsChange="hiddenAnnotationsChange"
+    <InputBar @upload="upload" @programStageChange="programStageChange" @drawingStateChange="drawingStateChange" @annotationsChange="annotationsChange" @hiddenAnnotationsChange="hiddenAnnotationsChange"
       :programStage="programStage" :annotations="annotations" :hiddenAnnotations="hiddenAnnotations" :drawingState="drawingState"/>
   </section>
 </template>

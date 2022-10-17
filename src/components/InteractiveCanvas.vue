@@ -1,5 +1,5 @@
 <script>
-import {calculateImageConfig, calculateIntersection} from '../assets/tools.js'
+import {calculateImageConfig, calculateIntersection} from '../assets/interfaceTools.js'
 
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -14,7 +14,7 @@ import {calculateImageConfig, calculateIntersection} from '../assets/tools.js'
           height: height
         },
         activeLinestring: [],            // [x1 y1 x2 y2] for line currently being drawn
-        activeRelations: [],             // Array of objects for any intersections on the line being drawn
+        activeIntersections: [],         // Array of arrays for any intersections on the line being drawn
         isMouseDown: false,              // False if no line is being drawn, true otherwise
       };
     },
@@ -47,12 +47,22 @@ import {calculateImageConfig, calculateIntersection} from '../assets/tools.js'
 
       intersections() {
         var points = [];
+        // Good old, trusty O(n^2)
         for (var i = 0; i < this.annotations.length; i++) {
           if (this.annotations[i].geometryType != 'linestring' || this.hiddenAnnotations.includes(i)) { 
             continue;
           }
-          for (var j = 0; j < this.annotations[i].relations.length; j++) {
-            points.push(this.annotations[i].relations[j].intersection);
+          for (var j = 0; j < this.annotations.length; j++) {
+            if (i == j || this.annotations[j].geometryType != 'linestring' || this.hiddenAnnotations.includes(j)) { 
+              continue;
+            }
+
+            let line1 = this.annotations[i].points;
+            let line2 = this.annotations[j].points;
+            let intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
+            if (intersection && intersection.seg1 && intersection.seg2) {
+              points.push([intersection.x, intersection.y]);
+            }
           }
         }
         return points;
@@ -67,7 +77,7 @@ import {calculateImageConfig, calculateIntersection} from '../assets/tools.js'
         // If the user cancels the linestring drawing operation, reset active variables
         if (!this.drawingState.drawingLinestring) {
           this.activeLinestring = [];
-          this.activeRelations = [];
+          this.activeIntersections = [];
           this.isMouseDown = false;
 
           return {};
@@ -102,17 +112,14 @@ import {calculateImageConfig, calculateIntersection} from '../assets/tools.js'
         
           // Dynamically calculate any intersections with the current line
           const line1 = this.activeLinestring;
-          this.activeRelations = [];
+          this.activeIntersections = [];
           for (var i = 0; i < this.annotations.length; i++) {
             if (this.hiddenAnnotations.includes(i) || this.annotations[i].geometryType != 'linestring') continue;
 
             let line2 = this.annotations[i].points;
             let intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
             if (intersection && intersection.seg1 && intersection.seg2) {
-              this.activeRelations.push({
-                name: this.annotations[i].name,
-                intersection: [intersection.x, intersection.y]
-              });
+              this.activeIntersections.push([intersection.x, intersection.y]);
             }
           }
         }
@@ -131,15 +138,14 @@ import {calculateImageConfig, calculateIntersection} from '../assets/tools.js'
           genericType: null,
           subtype: null,
           tags: [],
-          relations: this.activeRelations
+          relations: [],
         });
         this.$emit('annotationsChange', annotations);
-
-        this.activeRelations = [];
 
         // Lets the component know we aren't drawing anymore
         this.isMouseDown = false;
         this.activeLinestring = [];
+        this.activeIntersections = [];
 
         // Lets the program know we aren't drawing anymore
         let state = this.drawingState;
@@ -158,7 +164,7 @@ import {calculateImageConfig, calculateIntersection} from '../assets/tools.js'
       <v-line v-for="line in linestrings" :config="getLineConfig(line)"/>
       <v-line v-if="isMouseDown" :config="getActiveLineConfig(activeLinestring)"/>
       <v-circle v-for="circle in intersections" :config="getIntersectionConfig(circle, false)"/>
-      <v-circle v-for="relation in activeRelations" :config="getIntersectionConfig(relation.intersection, true)"/>
+      <v-circle v-for="intersection in activeIntersections" :config="getIntersectionConfig(intersection, true)"/>
     </v-layer>
   </v-stage>
 </template>

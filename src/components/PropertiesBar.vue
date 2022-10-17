@@ -1,7 +1,7 @@
 <script>
   export default {
     props: ['annotations', 'hiddenAnnotations'],
-    emits: ['next', 'back', 'hiddenAnnotationsChange'],
+    emits: ['next', 'back', 'annotationsChange', 'hiddenAnnotationsChange'],
     created() {
       this.handleNext();
     },
@@ -12,7 +12,7 @@
         subtypeSelected: 'vehicle',
         subtypeTyped: '',
         tagsTyped: '',
-        blacklisted: this.hiddenAnnotations, // Keeps the initial list of annotations that were undone
+        blacklisted: this.hiddenAnnotations.slice(0), // Keeps the initial list of annotations that were undone
         currentIndex: -1,
       }
     },
@@ -23,6 +23,17 @@
     },
     methods: {
       handleNext(event) {
+        if (this.currentIndex >= 0) {
+          // Commit these properties to the global state
+          let ann = this.annotations;
+          ann[this.currentIndex].genericType = this.genericTypeSelected;
+          ann[this.currentIndex].subtype = this.subtypeTyped || this.subtypeSelected;
+          if (this.tagsTyped)
+            ann[this.currentIndex].tags = [...this.tagsTyped.split(',')];
+
+          this.$emit('annotationsChange', ann);
+        }
+
         // Finds the next currentIndex that's not blacklisted
         do {
           this.currentIndex++;

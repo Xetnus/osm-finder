@@ -8,7 +8,7 @@
 <script>
   export default {
     props: ['programStage', 'annotations', 'hiddenAnnotations', 'drawingState'],
-    emits: ['upload', 'programStageChange', 'drawingStateChange', 'hiddenAnnotationsChange'],
+    emits: ['upload', 'programStageChange', 'drawingStateChange', 'annotationsChange', 'hiddenAnnotationsChange'],
     methods: {
       next() {
         this.$emit('programStageChange', this.programStage + 1);
@@ -24,6 +24,9 @@
       },
       hiddenAnnotationsChange(hiddenAnnotations) {
         this.$emit('hiddenAnnotationsChange', hiddenAnnotations);
+      },
+      annotationsChange(annotations) {
+        this.$emit('annotationsChange', annotations);
       }
     },
   }
@@ -39,11 +42,11 @@
       :drawingState="drawingState" :annotations="annotations" :hiddenAnnotations="hiddenAnnotations"/>
 
     <PropertiesBar v-if="this.programStage == 3" 
-      @next="next" @back="back" @hiddenAnnotationsChange="hiddenAnnotationsChange"
+      @next="next" @back="back" @hiddenAnnotationsChange="hiddenAnnotationsChange" @annotationsChange="annotationsChange"
       :annotations="annotations" :hiddenAnnotations="hiddenAnnotations"/>
 
     <RelationBar v-if="this.programStage == 4" 
-      @next="next" @back="back" @hiddenAnnotationsChange="hiddenAnnotationsChange"
+      @next="next" @back="back" @hiddenAnnotationsChange="hiddenAnnotationsChange" @annotationsChange="annotationsChange"
       :annotations="annotations" :hiddenAnnotations="hiddenAnnotations"/>
   </section>
 </template>
