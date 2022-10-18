@@ -33,4 +33,17 @@ function calculateIntersection(x1, y1, x2, y2, x3, y3, x4, y4)
     };
 }
 
-export {calculateImageConfig, calculateIntersection}
+/*
+Thanks MBo!
+https://stackoverflow.com/a/42159152/1941353
+*/
+function calculateAngle(A1x, A1y, A2x, A2y, B1x, B1y, B2x, B2y) {
+  var dAx = A2x - A1x;
+  var dAy = A2y - A1y;
+  var dBx = B2x - B1x;
+  var dBy = B2y - B1y;
+  var angle = Math.atan2(dAx * dBy - dAy * dBx, dAx * dBx + dAy * dBy);
+  return Math.abs(angle) * (180 / Math.PI);
+}
+
+export {calculateImageConfig, calculateIntersection, calculateAngle}

@@ -1,5 +1,6 @@
 <script>
-import {calculateImageConfig, calculateIntersection} from '../assets/interfaceTools.js'
+import konvaPlugin from 'vue-konva';
+import {calculateImageConfig, calculateIntersection, calculateAngle} from '../assets/interfaceTools.js'
 
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -70,7 +71,7 @@ import {calculateImageConfig, calculateIntersection} from '../assets/interfaceTo
     },
     methods: {
       getLineConfig(line) {
-        let opacity = line.transparent ? 0.3 : 1;
+        let opacity = line.transparent ? 0.2 : 1;
         return {stroke: 'black', strokeWidth: 5, points: Object.assign([], line.points), opacity: opacity}
       },
 
@@ -92,6 +93,30 @@ import {calculateImageConfig, calculateIntersection} from '../assets/interfaceTo
         const stroke = active ? 'orange' : 'yellow';
 
         return {radius: 6, fill: fill, stroke: stroke, strokeWidth: 2, x: point[0], y: point[1]}
+      },
+
+      getArcConfig() {
+        const lines = this.annotations.filter(ann => !ann.transparent && ann.geometryType == 'linestring')
+        if (lines.length != 2) return;
+
+        const line1 = lines[0].points;
+        const line2 = lines[1].points;
+        let intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
+        if (intersection && intersection.seg1 && intersection.seg2) {
+          const angle = calculateAngle(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
+
+          const dx1 = line1[0] - line1[2];
+          const dy1 = line1[1] - line1[3];
+          const dx2 = line2[0] - line2[2];
+          const dy2 = line2[1] - line2[3];
+          const a1 = Math.atan2(dy1, dx1) * 180 / Math.PI;
+          const a2 = Math.atan2(dy2, dx2) * 180 / Math.PI;
+          console.log(a1, a2)
+
+          return {x: intersection.x, y: intersection.y, fill: 'crimson', innerRadius: 49, outerRadius: 50, angle: angle, rotation: a2, stroke: 'crimson', strokeWidth: 2}
+        }
+
+        return {}
       },
 
       mousedown() {
@@ -167,6 +192,9 @@ import {calculateImageConfig, calculateIntersection} from '../assets/interfaceTo
       <v-line v-if="isMouseDown" :config="getActiveLineConfig(activeLinestring)"/>
       <v-circle v-for="circle in intersections" :config="getIntersectionConfig(circle, false)"/>
       <v-circle v-for="intersection in activeIntersections" :config="getIntersectionConfig(intersection, true)"/>
+      <div v-if="programStage == 4">
+        <v-arc :config="getArcConfig()"/>
+      </div>
     </v-layer>
   </v-stage>
 </template>
