@@ -1,4 +1,6 @@
 <script>
+import {calculateIntersection} from '../assets/interfaceTools.js'
+
   export default {
     props: ['annotations'],
     emits: ['next', 'back', 'annotationsChange'],
@@ -20,7 +22,6 @@
     methods: {
       handleNext(event) {
         if (this.current1 && this.current2) {
-          // Commit these properties to the global state
           let maxD = this.maxDistance;
           let minD = this.minDistance;
           let angle = this.angle;
@@ -60,6 +61,12 @@
           anns[i].transparent = false;
         }
         this.$emit('annotationsChange', anns);
+      },
+      intersects() {
+        const line1 = this.current1.points;
+        const line2 = this.current2.points;
+        const intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
+        return intersection && intersection.seg1 && intersection.seg2;
       }
     }
   }
@@ -69,8 +76,8 @@
   <p>Relationship between {{current1.name}} and {{current2.name}}</p>
   <div>
     <button @click="handleBack" id="back">Back</button>
-    <input v-model="maxDistance" placeholder="Max distance (m)"/>
-    <input v-model="minDistance" placeholder="Min distance (m)"/>
+    <input :disabled="intersects()" v-model="maxDistance" placeholder="Max distance (m)"/>
+    <input :disabled="intersects()" v-model="minDistance" placeholder="Min distance (m)"/>
     <input v-model="angle" placeholder="Angle"/>
     <input v-model="error" placeholder="Error"/>
     <button @click="handleNext" id="next">Next</button>

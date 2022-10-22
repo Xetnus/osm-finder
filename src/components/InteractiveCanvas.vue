@@ -1,6 +1,5 @@
 <script>
-import konvaPlugin from 'vue-konva';
-import {calculateImageConfig, calculateIntersection, calculateAngle} from '../assets/interfaceTools.js'
+import {calculateImageConfig, calculateIntersection, getLineLength, getPointAtDistance} from '../assets/interfaceTools.js'
 
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -95,7 +94,7 @@ import {calculateImageConfig, calculateIntersection, calculateAngle} from '../as
         return {radius: 6, fill: fill, stroke: stroke, strokeWidth: 2, x: point[0], y: point[1]}
       },
 
-      getArcConfig() {
+      getAngleConfig() {
         const lines = this.annotations.filter(ann => !ann.transparent && ann.geometryType == 'linestring')
         if (lines.length != 2) return;
 
@@ -103,17 +102,58 @@ import {calculateImageConfig, calculateIntersection, calculateAngle} from '../as
         const line2 = lines[1].points;
         let intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
         if (intersection && intersection.seg1 && intersection.seg2) {
-          const angle = calculateAngle(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
+          // Finds the longest segment of line1, assuming the line is split at the intersection
+          const temp1_len1 = getLineLength(intersection.x, intersection.y, line1[0], line1[1]);
+          const temp2_len1 = getLineLength(intersection.x, intersection.y, line1[2], line1[3]);
+          var line1_x = 2; 
+          var line1_y = 3;
+          var len1 = temp2_len1;
 
-          const dx1 = line1[0] - line1[2];
-          const dy1 = line1[1] - line1[3];
-          const dx2 = line2[0] - line2[2];
-          const dy2 = line2[1] - line2[3];
-          const a1 = Math.atan2(dy1, dx1) * 180 / Math.PI;
-          const a2 = Math.atan2(dy2, dx2) * 180 / Math.PI;
-          console.log(a1, a2)
+          if (temp1_len1 > temp2_len1) {
+            line1_x = 0;
+            line1_y = 1;
+            len1 = temp1_len1;
+          }
 
-          return {x: intersection.x, y: intersection.y, fill: 'crimson', innerRadius: 49, outerRadius: 50, angle: angle, rotation: a2, stroke: 'crimson', strokeWidth: 2}
+          // Finds the longest segment of line2, assuming the line is split at the intersection
+          const temp1_len2 = getLineLength(intersection.x, intersection.y, line2[0], line2[1]);
+          const temp2_len2 = getLineLength(intersection.x, intersection.y, line2[2], line2[3]);
+          var line2_x = 2; 
+          var line2_y = 3;
+          var len2 = temp2_len2;
+
+          if (temp1_len2 > temp2_len2) {
+            line2_x = 0;
+            line2_y = 1;
+            len2 = temp1_len2;
+          }
+
+          // Determines the shortest segment between each line's longest segment
+          const minLen = len1 > len2 ? len2 : len1;
+
+          // Determines where the angle path intersects the lines
+          const line1d = getPointAtDistance(intersection.x, intersection.y, line1[line1_x], line1[line1_y], minLen / 3);
+          const line2d = getPointAtDistance(intersection.x, intersection.y, line2[line2_x], line2[line2_y], minLen / 3);
+
+          // Determines the 'height' of the angle path
+          const line1_control = getPointAtDistance(intersection.x, intersection.y, line1[line1_x], line1[line1_y], minLen / 2);
+          const line2_control = getPointAtDistance(intersection.x, intersection.y, line2[line2_x], line2[line2_y], minLen / 2);
+          const controlX = line2_control.x + (line1_control.x - line2_control.x) / 2;
+          const controlY = line2_control.y + (line1_control.y - line2_control.y) / 2;
+
+          // Uses code from: https://konvajs.org/docs/sandbox/Modify_Curves_with_Anchor_Points.html
+          return {
+            stroke: 'crimson',
+            strokeWidth: 2,
+            sceneFunc: (ctx, shape) => {
+              ctx.beginPath();
+              ctx.moveTo(line1d.x, line1d.y);
+              ctx.quadraticCurveTo(controlX, controlY, line2d.x, line2d.y);
+              ctx.fillStrokeShape(shape);
+            }
+          }
+
+          // TODO: make this method work with multiple intersections
         }
 
         return {}
@@ -193,7 +233,7 @@ import {calculateImageConfig, calculateIntersection, calculateAngle} from '../as
       <v-circle v-for="circle in intersections" :config="getIntersectionConfig(circle, false)"/>
       <v-circle v-for="intersection in activeIntersections" :config="getIntersectionConfig(intersection, true)"/>
       <div v-if="programStage == 4">
-        <v-arc :config="getArcConfig()"/>
+        <v-shape :config="getAngleConfig()"/>
       </div>
     </v-layer>
   </v-stage>
