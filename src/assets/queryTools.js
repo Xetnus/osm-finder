@@ -3,11 +3,12 @@
 function createMaxDistanceQuery(lines) {
   let query = '';
   for (let i = 0; i < lines.length; i++) {
-    for (let j = 0; j < lines[i].relations.length; j++) {
-      const relation = lines[i].relations[j];
+    const keys = Object.keys(lines[i].relations);
+    for (let k = 0; k < keys.length; k++) {
+      const relation = lines[i].relations[keys[k]];
       const dist = parseInt(relation.maxDistance);
       if (dist)
-        query += 'ST_DWithin(' + lines[i].name + '.geom, ' + relation.name + '.geom, ' + dist + ') AND ';
+        query += 'ST_DWithin(' + lines[i].name + '.geom, ' + keys[k] + '.geom, ' + dist + ') AND ';
     }
   }
   return query;
@@ -17,11 +18,12 @@ function createMaxDistanceQuery(lines) {
 function createMinDistanceQuery(lines) {
   let query = '';
   for (let i = 0; i < lines.length; i++) {
-    for (let j = 0; j < lines[i].relations.length; j++) {
-      const relation = lines[i].relations[j];
+    const keys = Object.keys(lines[i].relations);
+    for (let k = 0; k < keys.length; k++) {
+      const relation = lines[i].relations[keys[k]];
       const dist = parseInt(relation.minDistance);
       if (dist)
-        query += 'ST_Distance(' + lines[i].name + '.geom, ' + relation.name + '.geom' + ') > ' + dist + ' AND ';
+        query += 'ST_Distance(' + lines[i].name + '.geom, ' + keys[k] + '.geom' + ') > ' + dist + ' AND ';
     }
   }
   return query;
@@ -51,17 +53,15 @@ function createNoOverlappingQuery(lines) {
     let current1 = null;
     let current2 = null;
 
-    while (true) {
+    while (primaryRemaining.length > 1) {
       if (secondaryRemaining.length > 0) {
         current2 = secondaryRemaining.pop();
         query += current1 + '.way_id != ' + current2 + '.way_id AND ';
-      } else if (primaryRemaining.length > 1) {
+      } else {
         current1 = primaryRemaining.pop();
         secondaryRemaining = primaryRemaining.slice(0);
         current2 = secondaryRemaining.pop();
         query += current1 + '.way_id != ' + current2 + '.way_id AND ';
-      } else {
-        break;
       }
     }
   }

@@ -48,8 +48,9 @@ function constructNonIntersectingQuery(nodes, lines) {
 
   // Calculates the angle and error parameters and adds them to the query
   for (let i = 0; i < lines.length; i++) {
-    for (let j = 0; j < lines[i].relations.length; j++) {
-      let relation = lines[i].relations[j];
+    const keys = Object.keys(lines[i].relations)
+    for (let k = 0; k < keys.length; k++) {
+      const relation = lines[i].relations[keys[k]];
 
       if (Number.isInteger(parseInt(relation.angle))) {
         let angle = parseInt(relation.angle);
@@ -61,7 +62,7 @@ function constructNonIntersectingQuery(nodes, lines) {
         for (let b = 0; b < bounds.lower.length; b++) {
           query += '  (\n';
           query += '    abs((\n';
-          query += '      degrees(ST_Azimuth(ST_StartPoint(' + relation.name + '.geom), ST_EndPoint(' + relation.name + '.geom)))\n';
+          query += '      degrees(ST_Azimuth(ST_StartPoint(' + keys[k] + '.geom), ST_EndPoint(' + keys[k] + '.geom)))\n';
           query += '      -\n';
           query += '      degrees(ST_Azimuth(ST_StartPoint(' + lines[i].name + '.geom), ST_EndPoint(' + lines[i].name + '.geom)))\n';
           query += '    )::decimal % 180.0) BETWEEN ' + bounds.lower[b] + ' AND ' + bounds.upper[b] + '\n';
@@ -350,27 +351,28 @@ function constructQuery(annotations) {
   // Generates an array that consists of pairs of intersecting lines
   let intersectingPairs = [];
   for (let i = 0; i < lines.length; i++) { 
-    for (let j = 0; j < lines.length; j++) {
-      if (i == j) continue;
+    for (let k = 0; k < lines.length; k++) {
+      if (i == k) continue;
 
       const line1 = lines[i].points;
-      const line2 = lines[j].points;
+      const line2 = lines[k].points;
       const intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
       if (intersection && intersection.seg1 && intersection.seg2) {
         // The order of the lines doesn't matter
-        const pair = [lines[i].name, lines[j].name];
+        const pair = [lines[i].name, lines[k].name];
         const match = intersectingPairs.filter((el) => pair.includes(el.line1) && pair.includes(el.line2));
         if (match.length != 0) continue;
 
-        // By design, only one of the lines has the relation information. Find which line it is.
-        const find1 = lines[i].relations.find(el => el.name == lines[j].name);
-        const find2 = lines[j].relations.find(el => el.name == lines[i].name);
-        if (find1 || find2) {
-          const find = find1 ? find1 : find2;
-          intersectingPairs.push({line1: lines[i].name, line2: lines[j].name, 
+        // The line whose name comes first when sorted holds the relation information. Find it.
+        const index1 = lines[i].name > lines[k].name ? k : i;
+        const index2 = lines[i].name > lines[k].name ? i : k;
+        const find = lines[index1].relations[lines[index2].name];
+
+        if (find) {
+          intersectingPairs.push({line1: lines[i].name, line2: lines[k].name, 
             angle: parseInt(find.angle), error: parseInt(find.error)});
         } else {
-          intersectingPairs.push({line1: lines[i].name, line2: lines[j].name});
+          intersectingPairs.push({line1: lines[i].name, line2: lines[k].name});
         }
       }
     }

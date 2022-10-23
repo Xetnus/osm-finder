@@ -8,10 +8,11 @@
     data() {
       return {
         types: {'highway': ['vehicle', 'path'], 'railway': [], 'power': ['line', 'minor_line']},
-        genericTypeSelected: 'highway',
-        subtypeSelected: 'vehicle',
-        subtypeTyped: '',
-        tagsTyped: '',
+        defaults: {genericTypeSelected: 'highway', subtypeSelected: 'vehicle', subtypeTyped: '', tagsTyped: ''},
+        genericTypeSelected: null,
+        subtypeSelected: null,
+        subtypeTyped: null,
+        tagsTyped: null,
         currentIndex: -1,
       }
     },
@@ -33,12 +34,23 @@
           this.$emit('annotationsChange', ann);
         }
 
-        this.currentIndex++;
-
-        if (this.currentIndex >= this.annotations.length) {
+        if (this.currentIndex >= this.annotations.length - 1) {
           this.showAll();
           this.$emit('next');
         } else {
+          this.currentIndex++;
+
+          // Initializes the inputs to the defaults or, if data has already been stored
+          // for this annotation, fills that data in.
+          const a = this.annotations[this.currentIndex];
+          this.genericTypeSelected = a.genericType || this.defaults.genericTypeSelected;
+          if (this.types[this.genericTypeSelected].length == 0) {
+            this.subtypeTyped = a.subtype || this.defaults.subtypeTyped;
+          } else {
+            this.subtypeSelected = a.subtype || this.defaults.subtypeSelected;
+          }
+          this.tagsTyped = a.tags.join(',') || this.defaults.tagsTyped;
+
           this.hideAllButOne(this.currentElement);
         }
       },

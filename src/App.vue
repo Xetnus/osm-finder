@@ -5,6 +5,7 @@
 </script>
 
 <script>
+// Overview of global variables:
 /**
 programStage: int
 
@@ -17,15 +18,14 @@ annotations: [
     genericType
     subtype
     tags: []
-    relations: [
-      {
-        name
+    relations: {
+      name: {
         maxDistance
         minDistance
         angle
         error
       }
-    ]
+    }
   
   1:
     name: 'node0'
@@ -35,8 +35,8 @@ annotations: [
     genericType
     subtype
     tags: []
-    relations: [
-      {
+    relations: {
+      name: {
         name
         maxDistance
         minDistance

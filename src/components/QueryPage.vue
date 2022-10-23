@@ -14,7 +14,7 @@ import {constructQuery} from '../assets/queryCreator.js'
       },
       copy() {
         var textArea = document.createElement('textarea');
-        textArea.value = document.getElementById('content').innerHTML;
+        textArea.value = document.getElementById('content').textContent;
         document.body.appendChild(textArea);
         textArea.style.top = '5%';
         textArea.style.left = '5%';
@@ -72,6 +72,7 @@ import {constructQuery} from '../assets/queryCreator.js'
     font-weight: bold;
     text-decoration: none;
     color: #333;
+    user-select: none;
   }
 
   #popup #close:hover {
@@ -88,6 +89,7 @@ import {constructQuery} from '../assets/queryCreator.js'
     font-weight: bold;
     text-decoration: none;
     color: #333;
+    user-select: none;
   }
 
   #popup #copy:hover {

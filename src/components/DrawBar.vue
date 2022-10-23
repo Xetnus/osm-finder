@@ -10,11 +10,11 @@
     },
     methods: {
       handleNext(event) {
-        // if (this.annotations.length > 1) {
+        if (this.annotations.length > 1) {
           this.$emit('next')
-        // } else {
-          // this.infoLabel = 'Draw at least two lines.';
-        // }
+        } else {
+          this.infoLabel = 'Draw at least two lines.';
+        }
       },
       handleBack(event) {
         this.$emit('back')
