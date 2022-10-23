@@ -51,14 +51,14 @@
       },
       hideAllButOne(hide) {
         let anns = this.annotations;
-        for (var i = 0; i < this.annotations.length; i++) {
+        for (let i = 0; i < this.annotations.length; i++) {
           anns[i].transparent = (anns[i].name == hide.name) ? false : true;
         }
         this.$emit('annotationsChange', anns);
       },
       showAll() {
         let anns = this.annotations;
-        for (var i = 0; i < this.annotations.length; i++) {
+        for (let i = 0; i < this.annotations.length; i++) {
           anns[i].transparent = false;
         }
         this.$emit('annotationsChange', anns);
@@ -79,9 +79,9 @@
     <select v-model="subtypeSelected" v-if="genericTypeSelected && types[genericTypeSelected].length">
       <option v-for="sub in types[genericTypeSelected]" :value="sub">{{sub}}</option>
     </select>
-    <input v-model="subtypeTyped" placeholder="Enter Subtype" v-else/>
+    <input v-model="subtypeTyped" placeholder="Subtype" v-else/>
 
-    <input v-model="tagsTyped" placeholder="Enter Tags"/>
+    <input v-model="tagsTyped" placeholder="Tags: bridge=yes"/>
     <button @click="handleNext" id="next">Next</button>
   </div>
 </template>

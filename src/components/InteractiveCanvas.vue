@@ -1,5 +1,5 @@
 <script>
-import {calculateImageConfig, calculateIntersection, getLineLength, getPointAtDistance} from '../assets/interfaceTools.js'
+import {calculateImageConfig, calculateIntersection, getLineLength, getPointAtDistance} from '../assets/generalTools.js'
 
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -34,8 +34,8 @@ import {calculateImageConfig, calculateIntersection, getLineLength, getPointAtDi
       },
 
       linestrings() {
-        var lines = [];
-        for (var i = 0; i < this.annotations.length; i++) {
+        let lines = [];
+        for (let i = 0; i < this.annotations.length; i++) {
           if (this.annotations[i].geometryType != 'linestring') { 
             continue;
           }
@@ -46,13 +46,13 @@ import {calculateImageConfig, calculateIntersection, getLineLength, getPointAtDi
       },
 
       intersections() {
-        var points = [];
+        let points = [];
         // Good old, trusty O(n^2)
-        for (var i = 0; i < this.annotations.length; i++) {
+        for (let i = 0; i < this.annotations.length; i++) {
           if (this.annotations[i].geometryType != 'linestring') { 
             continue;
           }
-          for (var j = 0; j < this.annotations.length; j++) {
+          for (let j = 0; j < this.annotations.length; j++) {
             if (i == j || this.annotations[j].geometryType != 'linestring') { 
               continue;
             }
@@ -105,9 +105,9 @@ import {calculateImageConfig, calculateIntersection, getLineLength, getPointAtDi
           // Finds the longest segment of line1, assuming the line is split at the intersection
           const temp1_len1 = getLineLength(intersection.x, intersection.y, line1[0], line1[1]);
           const temp2_len1 = getLineLength(intersection.x, intersection.y, line1[2], line1[3]);
-          var line1_x = 2; 
-          var line1_y = 3;
-          var len1 = temp2_len1;
+          let line1_x = 2; 
+          let line1_y = 3;
+          let len1 = temp2_len1;
 
           if (temp1_len1 > temp2_len1) {
             line1_x = 0;
@@ -118,9 +118,9 @@ import {calculateImageConfig, calculateIntersection, getLineLength, getPointAtDi
           // Finds the longest segment of line2, assuming the line is split at the intersection
           const temp1_len2 = getLineLength(intersection.x, intersection.y, line2[0], line2[1]);
           const temp2_len2 = getLineLength(intersection.x, intersection.y, line2[2], line2[3]);
-          var line2_x = 2; 
-          var line2_y = 3;
-          var len2 = temp2_len2;
+          let line2_x = 2; 
+          let line2_y = 3;
+          let len2 = temp2_len2;
 
           if (temp1_len2 > temp2_len2) {
             line2_x = 0;
@@ -179,7 +179,7 @@ import {calculateImageConfig, calculateIntersection, getLineLength, getPointAtDi
           // Dynamically calculate any intersections with the current line
           const line1 = this.activeLinestring;
           this.activeIntersections = [];
-          for (var i = 0; i < this.annotations.length; i++) {
+          for (let i = 0; i < this.annotations.length; i++) {
             if (this.annotations[i].geometryType != 'linestring') continue;
 
             let line2 = this.annotations[i].points;
@@ -194,7 +194,7 @@ import {calculateImageConfig, calculateIntersection, getLineLength, getPointAtDi
       mouseup_mouseleave() {
         if (!this.isMouseDown || this.programStage != 2) return;
 
-        const count = this.annotations.filter(a => a.geometryType == 'linestring').length;
+        const count = this.annotations.filter(a => a.geometryType == 'linestring').length + 1;
 
         let annotations = this.annotations;
         annotations.push({

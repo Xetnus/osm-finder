@@ -1,5 +1,5 @@
 <script>
-import {calculateIntersection} from '../assets/interfaceTools.js'
+import {calculateIntersection} from '../assets/generalTools.js'
 
   export default {
     props: ['annotations'],
@@ -22,12 +22,20 @@ import {calculateIntersection} from '../assets/interfaceTools.js'
     methods: {
       handleNext(event) {
         if (this.current1 && this.current2) {
-          let maxD = this.maxDistance;
-          let minD = this.minDistance;
-          let angle = this.angle;
-          let error = this.error;
+          const maxD = this.maxDistance;
+          const minD = this.minDistance;
+          const angle = this.angle;
+          const error = this.error;
 
-          console.log(maxD, minD, angle, error)
+          const index1 = this.annotations.findIndex((el) => el.name == this.current1.name);
+          const index2 = this.annotations.findIndex((el) => el.name == this.current2.name);
+
+          // Commit these properties to the global state
+          let ann = this.annotations;
+          const rel = {name: this.current2.name, maxDistance: maxD, minDistance: minD, angle: angle, error: error};
+          ann[index1].relations.push(rel);
+
+          this.$emit('annotationsChange', ann);
         }
 
         if (this.secondaryRemaining.length > 0) {
@@ -49,7 +57,7 @@ import {calculateIntersection} from '../assets/interfaceTools.js'
       },
       hideAllButTwo(hide1, hide2) {
         let anns = this.annotations;
-        for (var i = 0; i < this.annotations.length; i++) {
+        for (let i = 0; i < this.annotations.length; i++) {
           let match = anns[i].name == hide1.name || anns[i].name == hide2.name;
           anns[i].transparent = match ? false : true;
         }
@@ -57,7 +65,7 @@ import {calculateIntersection} from '../assets/interfaceTools.js'
       },
       showAll() {
         let anns = this.annotations;
-        for (var i = 0; i < this.annotations.length; i++) {
+        for (let i = 0; i < this.annotations.length; i++) {
           anns[i].transparent = false;
         }
         this.$emit('annotationsChange', anns);

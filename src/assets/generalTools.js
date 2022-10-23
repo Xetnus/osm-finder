@@ -12,14 +12,13 @@ function calculateImageConfig(image, stageWidth, stageHeight) {
   return {image: image, height: height, width: width, x: x, y: y};
 }
 
-
 /*
 Thanks vbarbarosh!
 https://stackoverflow.com/a/38977789/1941353
 */
 function calculateIntersection(x1, y1, x2, y2, x3, y3, x4, y4)
 {
-    var ua, ub, denom = (y4 - y3)*(x2 - x1) - (x4 - x3)*(y2 - y1);
+    let ua, ub, denom = (y4 - y3)*(x2 - x1) - (x4 - x3)*(y2 - y1);
     if (denom == 0) {
         return null;
     }

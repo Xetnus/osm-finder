@@ -1,6 +1,7 @@
 <script setup>
   import InteractiveCanvas from './components/InteractiveCanvas.vue'
   import InputBar from './components/InputBar.vue'
+  import QueryPage from './components/QueryPage.vue'
 </script>
 
 <script>
@@ -17,9 +18,10 @@ annotations: [
     subtype
     tags: []
     relations: [
-      [other_name]: {
-        max_distance
-        min_distance
+      {
+        name
+        maxDistance
+        minDistance
         angle
         error
       }
@@ -34,9 +36,10 @@ annotations: [
     subtype
     tags: []
     relations: [
-      [other_name]: {
-        max_distance
-        min_distance
+      {
+        name
+        maxDistance
+        minDistance
       }
     }
   
@@ -73,18 +76,18 @@ drawingState: {
     methods: {
       upload() {
         // Lets the user upload their own photo
-        var input = document.createElement('input');
+        let input = document.createElement('input');
         input.type = 'file';
 
         input.onchange = (e) => {
-          var file = e.target.files[0]; 
-          var reader = new FileReader();
+          let file = e.target.files[0]; 
+          let reader = new FileReader();
           reader.readAsDataURL(file);
 
           reader.onload = (readerEvent) => {
-              var content = readerEvent.target.result;
+              let content = readerEvent.target.result;
 
-              var img = new Image;
+              let img = new Image;
               img.src = content;
 
               img.onload = () => {
@@ -122,6 +125,8 @@ drawingState: {
     <InputBar @upload="upload" @programStageChange="programStageChange" @drawingStateChange="drawingStateChange" @annotationsChange="annotationsChange" 
       :programStage="programStage" :annotations="annotations" :drawingState="drawingState"/>
   </section>
+
+  <QueryPage v-if="this.programStage == 5" @programStageChange="programStageChange" :programStage="programStage" :annotations="annotations"/>
 </template>
 
 <style scoped>
