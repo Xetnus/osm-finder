@@ -2,23 +2,45 @@
 import {calculateIntersection} from '../assets/generalTools.js'
 
   export default {
-    props: ['annotations'],
-    emits: ['next', 'back', 'annotationsChange'],
-    created() {
-      this.primaryRemaining = this.annotations.slice(0);
+    props: ['annotations', 'relationsHistory'],
+    emits: ['next', 'back', 'annotationsChange', 'relationsHistoryChange'],
+    beforeMount() {
+      if (this.relationsHistory.length == 0) {
+        this.primaryRemaining = this.annotations.slice(0);
 
-      // Orders the annotations alphanumerically. This is necessary to ensure that the relation
-      // information is attached to the annotation whose name comes first when sorted.
-      this.primaryRemaining.sort((a, b) => {
-        if (a.name < b.name)
-          return -1;
-        else if (a.name > b.name)
-          return 1;
+        // Orders the annotations alphanumerically. This is necessary to ensure that the relation
+        // information is attached to the annotation whose name comes first when sorted.
+        this.primaryRemaining.sort((a, b) => {
+          if (a.name < b.name)
+            return -1;
+          else if (a.name > b.name)
+            return 1;
+          else
+            return 0;
+        });
 
-        return 0;
-      });
-      
-      this.handleNext();
+        let secondaryRemaining = [];
+        let primaryRemaining = this.annotations.slice(0);
+        let primary = null;
+        let second = null;
+
+        // Generates a sequential list of relations from all of the annotations in the network. 
+        while(primaryRemaining.length > 1) {
+          if (secondaryRemaining.length > 0) {
+            second = secondaryRemaining.pop();
+            this.nextRelations.push([primary, second]);
+          } else {
+            primary = primaryRemaining.pop();
+            secondaryRemaining = primaryRemaining.slice(0);
+            second = secondaryRemaining.pop();
+            this.nextRelations.push([primary, second]);
+          }
+        }
+        
+        this.handleNext();
+      } else {
+        this.handleBack();
+      }
     },
     data() {
       return {
@@ -28,40 +50,61 @@ import {calculateIntersection} from '../assets/generalTools.js'
         error: null,
         current1: null,
         current2: null,
-        primaryRemaining: [],
-        secondaryRemaining: [],
+        nextRelations: [],
       }
     },
     methods: {
       handleNext(event) {
         if (this.current1 && this.current2) {
-          const maxD = this.maxDistance;
-          const minD = this.minDistance;
-          const angle = this.angle;
-          const error = this.error;
+          this.relationsHistory.push([this.current1, this.current2]);
 
-          let index = this.annotations.findIndex((el) => el.name == this.current2.name);
           // Commit these properties to the global state. 
+          let index = this.annotations.findIndex((el) => el.name == this.current2.name);
+          const rel = {maxDistance: this.maxDistance, minDistance: this.minDistance, 
+            angle: this.angle, error: this.error};
+
           let ann = this.annotations;
-          const rel = {maxDistance: maxD, minDistance: minD, angle: angle, error: error};
           ann[index].relations[this.current1.name] = rel;
 
           this.$emit('annotationsChange', ann);
         }
 
-        if (this.secondaryRemaining.length > 0) {
-          this.current2 = this.secondaryRemaining.pop();
-          this.hideAllButTwo(this.current1, this.current2);
-        } else if (this.primaryRemaining.length > 1) {
-          this.current1 = this.primaryRemaining.pop();
-          this.secondaryRemaining = this.primaryRemaining.slice(0);
-          this.current2 = this.secondaryRemaining.pop();
-          this.hideAllButTwo(this.current1, this.current2);
-        } else {
+        if (this.nextRelations.length == 0) {
           this.showAll();
+          this.$emit('relationsHistoryChange', this.relationsHistory);
           this.$emit('next');
+          return;
         }
 
+        let current = this.nextRelations.pop();
+        this.current1 = current[0];
+        this.current2 = current[1];
+
+        this.fillInForm();
+        this.hideAllButTwo(this.current1, this.current2);
+      },
+
+      handleBack(event) {
+        if (this.current1 && this.current2) {
+          this.nextRelations.push([this.current1, this.current2]);
+        }
+        
+        if (this.relationsHistory.length == 0) {
+          this.showAll();
+          this.$emit('relationsHistoryChange', []);
+          this.$emit('back');
+          return;
+        }
+
+        let current = this.relationsHistory.pop();
+        this.current1 = current[0];
+        this.current2 = current[1];
+
+        this.fillInForm();
+        this.hideAllButTwo(this.current1, this.current2);
+      },
+
+      fillInForm() {
         // Initializes the inputs to the defaults or, if data has already been stored
         // for this relation, fills that data in.
         const match = this.current2.relations[this.current1.name];
@@ -70,10 +113,7 @@ import {calculateIntersection} from '../assets/generalTools.js'
         this.angle = match ? match.angle : '';
         this.error = match ? match.error : '';
       },
-      handleBack(event) {
-        this.showAll();
-        this.$emit('back');
-      },
+
       hideAllButTwo(hide1, hide2) {
         let anns = this.annotations;
         for (let i = 0; i < this.annotations.length; i++) {
@@ -82,6 +122,7 @@ import {calculateIntersection} from '../assets/generalTools.js'
         }
         this.$emit('annotationsChange', anns);
       },
+
       showAll() {
         let anns = this.annotations;
         for (let i = 0; i < this.annotations.length; i++) {
@@ -89,6 +130,7 @@ import {calculateIntersection} from '../assets/generalTools.js'
         }
         this.$emit('annotationsChange', anns);
       },
+
       intersects() {
         const line1 = this.current1.points;
         const line2 = this.current2.points;

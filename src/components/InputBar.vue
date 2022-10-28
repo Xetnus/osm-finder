@@ -2,13 +2,19 @@
   import UploadBar from './UploadBar.vue'
   import DrawBar from './DrawBar.vue'
   import PropertiesBar from './PropertiesBar.vue'
-  import RelationBar from './RelationBar.vue'
+  import RelationBar from './RelationsBar.vue'
 </script>
 
 <script>
   export default {
     props: ['programStage', 'annotations', 'drawingState'],
-    emits: ['upload', 'programStageChange', 'drawingStateChange', 'annotationsChange'],
+    emits: ['upload', 'programStageChange', 'annotationsChange', 'drawingStateChange'],
+    data() {
+      return {
+        propertiesHistory: -1,
+        relationsHistory: []
+      }
+    },
     methods: {
       next() {
         this.$emit('programStageChange', this.programStage + 1);
@@ -24,6 +30,12 @@
       },
       annotationsChange(annotations) {
         this.$emit('annotationsChange', annotations);
+      },
+      propertiesHistoryChange(history) {
+        this.propertiesHistory = history;
+      },
+      relationsHistoryChange(history) {
+        this.relationsHistory = history;
       }
     },
   }
@@ -39,12 +51,12 @@
       :drawingState="drawingState" :annotations="annotations"/>
 
     <PropertiesBar v-if="this.programStage == 3" 
-      @next="next" @back="back" @annotationsChange="annotationsChange"
-      :annotations="annotations"/>
+      @next="next" @back="back" @annotationsChange="annotationsChange" @propertiesHistoryChange="propertiesHistoryChange"
+      :annotations="annotations" :propertiesHistory="propertiesHistory"/>
 
     <RelationBar v-if="this.programStage == 4" 
-      @next="next" @back="back" @annotationsChange="annotationsChange"
-      :annotations="annotations"/>
+      @next="next" @back="back" @annotationsChange="annotationsChange" @relationsHistoryChange="relationsHistoryChange"
+      :annotations="annotations" :relationsHistory="relationsHistory"/>
   </section>
 </template>
 

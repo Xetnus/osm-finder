@@ -1,9 +1,14 @@
 <script>
   export default {
-    props: ['annotations'],
-    emits: ['next', 'back', 'annotationsChange'],
-    created() {
-      this.handleNext();
+    props: ['annotations', 'propertiesHistory'],
+    emits: ['next', 'back', 'annotationsChange', 'propertiesHistoryChange'],
+    beforeMount() {
+      if (this.propertiesHistory == -1) {
+        this.handleNext();
+      } else {
+        this.currentIndex = this.propertiesHistory;
+        this.handleBack();
+      }
     },
     data() {
       return {
@@ -27,7 +32,7 @@
           // Commit these properties to the global state
           let ann = this.annotations;
           ann[this.currentIndex].genericType = this.genericTypeSelected;
-          ann[this.currentIndex].subtype = this.subtypeTyped || this.subtypeSelected;
+          ann[this.currentIndex].subtype = this.subtypeSelected || this.subtypeTyped;
           if (this.tagsTyped)
             ann[this.currentIndex].tags = [...this.tagsTyped.split(',')];
 
@@ -36,31 +41,40 @@
 
         if (this.currentIndex >= this.annotations.length - 1) {
           this.showAll();
+          this.$emit('propertiesHistoryChange', this.currentIndex + 1);
           this.$emit('next');
         } else {
           this.currentIndex++;
-
-          // Initializes the inputs to the defaults or, if data has already been stored
-          // for this annotation, fills that data in.
-          const a = this.annotations[this.currentIndex];
-          this.genericTypeSelected = a.genericType || this.defaults.genericTypeSelected;
-          if (this.types[this.genericTypeSelected].length == 0) {
-            this.subtypeTyped = a.subtype || this.defaults.subtypeTyped;
-          } else {
-            this.subtypeSelected = a.subtype || this.defaults.subtypeSelected;
-          }
-          this.tagsTyped = a.tags.join(',') || this.defaults.tagsTyped;
-
+          this.fillInForm();
           this.hideAllButOne(this.currentElement);
         }
       },
+
       handleBack(event) {
-        this.showAll();
-        this.$emit('back');
+        if (this.currentIndex == 0) {
+          this.showAll();
+          this.$emit('propertiesHistoryChange', -1);
+          this.$emit('back');
+        } else {
+          this.currentIndex--;
+          this.fillInForm();
+          this.hideAllButOne(this.currentElement);
+        }
       },
-      genericTypeChange(event) {
-        this.subtypeSelected = this.types[this.genericTypeSelected][0];
+
+      fillInForm() {
+        // Initializes the inputs to the defaults or, if data has already been stored
+        // for this relation, fills that data in.
+        const a = this.annotations[this.currentIndex];
+        this.genericTypeSelected = a.genericType || this.defaults.genericTypeSelected;
+        if (this.types[[this.genericTypeSelected]].length == 0) {
+          this.subtypeTyped = a.subtype || this.defaults.subtypeTyped;
+        } else {
+          this.subtypeSelected = a.subtype || this.defaults.subtypeSelected;
+        }
+        this.tagsTyped = a.tags.join(',') || this.defaults.tagsTyped;
       },
+
       hideAllButOne(hide) {
         let anns = this.annotations;
         for (let i = 0; i < this.annotations.length; i++) {
@@ -68,13 +82,18 @@
         }
         this.$emit('annotationsChange', anns);
       },
+
       showAll() {
         let anns = this.annotations;
         for (let i = 0; i < this.annotations.length; i++) {
           anns[i].transparent = false;
         }
         this.$emit('annotationsChange', anns);
-      }
+      },
+
+      genericTypeChange(event) {
+        this.subtypeSelected = this.types[this.genericTypeSelected][0];
+      },
     }
   }
 </script>
