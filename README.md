@@ -9,11 +9,24 @@ This tool attempts to make it easier for researchers to find locations with a si
 
 This tool currently supports all [highway](https://wiki.openstreetmap.org/wiki/Key:highway), [railway](https://wiki.openstreetmap.org/wiki/Key:railway), and a couple [power line](https://wiki.openstreetmap.org/wiki/Key:power) (namely, 'line' and 'minor_line') types.
 
-When in doubt, it's always safer to enter larger/wider parameters than you think is needed (e.g., enter an angle of 25 +/- 20 instead of 25 +/- 5).
+When in doubt, it's always safer to enter larger/wider parameters than you think is needed (e.g., enter an angle of 25 ± 10° instead of 25 ± 5°).
 
 Works best on images with unique intersections. If there are any tags you can enter (e.g. bridge=yes, tunnel=yes), you'll decrease the size of the results significantly.
 
 Tested on Ubuntu 22.04.1 LTS. 
+
+Note: The default image used in this program is subject to copyright.  
+Image copyright by flickr user "willem van bergen". No modifications made.  
+https://www.flickr.com/photos/willemvanbergen/271226856/  
+https://creativecommons.org/licenses/by-sa/2.0/  
+
+## Usage
+The numbers below correspond to the stages in the application. By clicking the Next button, you either progress to the next stage or the next phase of the same stage.    
+1. Upload the image you want to geolocate 
+2. Draw the linestrings that make up the line network of the photo 
+3. Input the generic types, subtypes, and tags for each line. Multiple tags can be separated with a comma: `bridge=yes,surface=wood` 
+4. Input the max distances, min distances, angles, and angle errors for each relation 
+5. That's it! Your query should be generated and displayed automatically. 
 
 ## Installation
 Instructions below are for Linux.
@@ -55,16 +68,8 @@ Instructions below are for Linux.
 
 4. Start the server: `npm run dev`
 
-## Usage
-Stages Explained:
-1. Upload your own photo   
-2. Draw the linestrings that make up the line network of the photo 
-3. Input the generic types, subtypes, and tags for each line. Multiple tags can be separated with a comma: `bridge=yes,surface=wood` 
-4. Input the max distances, min distances, angles, and angle errors for each relation 
-5. That's it! Your query should be generated and displayed automatically. 
-
-## Next Steps
-- [ ] **Start from scratch.** Because this was created during a hackathon, little emphasis was put on code quality and future maintenance. No standard JavaScript libraries were used and most of the code is inefficient in one way or another. Now that I have a better idea for how this tool can be architected, reconstructing it should be easier.
+## Roadmap
+- [x] **Start from scratch.** Because this was created during a hackathon, little emphasis was put on code quality and future maintenance. No standard JavaScript libraries were used and most of the code is inefficient in one way or another. Now that I have a better idea for how this tool can be architected, reconstructing it should be easier.
 - [ ] **Add support for nodes.** Towers, buildings, and nodes of all types should be supported.
 - [ ] **Add support for shapes.** Many roads, buildings, structures, etc. have unique shapes that should be queryable using carefully crafted PostgreSQL queries.
 - [ ] **Host a public website.** Depending on cost, I'd like to integrate and host both the frontend (UI) and backend (PostgreSQL) on a public-facing website.
