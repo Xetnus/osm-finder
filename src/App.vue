@@ -138,6 +138,7 @@ drawingState: {
     margin: auto;
     z-index: 1;
     background-color: grey;
+    text-align: center;
   }
 
   #canvas-section {
