@@ -28,7 +28,7 @@ Instructions below are for Linux.
 
 3. **Download [flex.lua](https://github.com/Xetnus/osm-finder/blob/main/flex.lua)** and run the following commands (in Linux):
     - Note: you may need to move files around and change directory/file permissions appropriately to ensure that the postgres user can access `massachusetts-latest.osm.bz2` and `flex.lua`.
-    - Note: if you get an error message saying "peer authentication failed" when you run the last command, check out the solution at https://stackoverflow.com/a/26735105/1941353, but replace every instance of 'postgres' with 'osmuser'.
+    - Note: if you get an error saying "peer authentication failed" when you run the last command, check out the solution at https://stackoverflow.com/a/26735105/1941353, but replace every instance of 'postgres' with 'osmuser'.
 
 ```
     sudo -u postgres createuser osmuser 
@@ -57,11 +57,11 @@ Instructions below are for Linux.
 
 ## Usage
 Stages Explained:
-- 1: Upload your own photo to geolocate  
-- 2: Draw the linestrings that make up the line network of the photo 
-- 3: Input the generic types, subtypes, and tags for each line. Multiple tags can be separated with a comma: bridge=yes,surface=wood 
-- 4: Input the max distances, min distances, angles, and angle errors for each relation 
-- 5: That's it! Your query should be generated and displayed automatically. 
+1. Upload your own photo   
+2. Draw the linestrings that make up the line network of the photo 
+3. Input the generic types, subtypes, and tags for each line. Multiple tags can be separated with a comma: `bridge=yes,surface=wood` 
+4. Input the max distances, min distances, angles, and angle errors for each relation 
+5. That's it! Your query should be generated and displayed automatically. 
 
 ## Next Steps
 - [ ] **Start from scratch.** Because this was created during a hackathon, little emphasis was put on code quality and future maintenance. No standard JavaScript libraries were used and most of the code is inefficient in one way or another. Now that I have a better idea for how this tool can be architected, reconstructing it should be easier.
