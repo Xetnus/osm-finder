@@ -126,7 +126,7 @@ drawingState: {
       :programStage="programStage" :annotations="annotations" :drawingState="drawingState"/>
   </section>
 
-  <QueryPage v-if="this.programStage == 5" @programStageChange="programStageChange" :programStage="programStage" :annotations="annotations"/>
+  <QueryPage v-if="programStage == 5" @programStageChange="programStageChange" :programStage="programStage" :annotations="annotations"/>
 </template>
 
 <style scoped>

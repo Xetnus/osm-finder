@@ -43,18 +43,18 @@
 
 <template>
   <section>
-    <UploadBar v-if="this.programStage == 1" 
+    <UploadBar v-if="programStage == 1" 
       @next="next" @upload="upload"/>
 
-    <DrawBar v-if="this.programStage == 2" 
+    <DrawBar v-if="programStage == 2" 
       @next="next" @back="back" @drawingStateChange="drawingStateChange" @annotationsChange="annotationsChange"
       :drawingState="drawingState" :annotations="annotations"/>
 
-    <PropertiesBar v-if="this.programStage == 3" 
+    <PropertiesBar v-if="programStage == 3" 
       @next="next" @back="back" @annotationsChange="annotationsChange" @propertiesHistoryChange="propertiesHistoryChange"
       :annotations="annotations" :propertiesHistory="propertiesHistory"/>
 
-    <RelationBar v-if="this.programStage == 4" 
+    <RelationBar v-if="programStage == 4" 
       @next="next" @back="back" @annotationsChange="annotationsChange" @relationsHistoryChange="relationsHistoryChange"
       :annotations="annotations" :relationsHistory="relationsHistory"/>
   </section>
