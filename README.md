@@ -1,6 +1,6 @@
 # osm-finder
 
-## The UI is now accessible from anywhere on Heroku: https://osm-finder.herokuapp.com/
+## The UI is now accessible from anywhere on Netlify: https://osm-finder.netlify.app/
 
 ## Tool Description
 One of the most prominent tools that assists in geolocating images using openstreetmap data is [Overpass Turbo](https://overpass-turbo.eu/). This requires learning and using the [Overpass Query Language](https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_QL) and restricts your geolocation abilities to only what's permitted by the query language.  
