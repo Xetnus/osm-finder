@@ -135,6 +135,7 @@ drawingState: {
     left: 0;
     right: 0;
     width: 10em;
+    font-size: 16px;
     margin: auto;
     z-index: 1;
     background-color: grey;
@@ -143,13 +144,13 @@ drawingState: {
 
   #canvas-section {
     background-color: lightsteelblue;
-    height: 80%;
+    height: calc(100% - 155px);
     width: 100%;
   }
 
   #input-section {
     background-color: grey;
-    height: 20%;
+    height: 155px;
     width: 100%;
   }
 </style>

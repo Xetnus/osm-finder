@@ -56,17 +56,22 @@
 
 <style scoped>
   p {
+    font-size: 16px;
+    padding-top: 5px;
     text-align: center;
+  }
+
+  div:first-child {
+    padding-bottom: 10px;
   }
 
   div {
     display: flex;
-    gap: 20px;
+    gap: 10px;
     flex-direction: row;
     flex-wrap: wrap;
-    flex-shrink: 3;
+    flex-basis: auto;
     justify-content: center;
-    padding-bottom: 0.5em;
   }
 
   button.active {

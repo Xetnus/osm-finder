@@ -62,6 +62,6 @@
 
 <style scoped>
   section {
-    padding-top: 2em;
+    padding-top: 25px;
   }
 </style>
