@@ -16,10 +16,12 @@ body {
   background-color: grey;
 }
 
-
-button {
+input, button {
   font-size: 16px;
   height: 46px;
+}
+
+button {
   padding: 0 15px;
   text-align: center;
   border: 1px solid darkgreen;
