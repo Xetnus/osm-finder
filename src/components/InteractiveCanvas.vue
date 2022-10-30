@@ -1,8 +1,5 @@
 <script>
-import {calculateImageConfig, calculateIntersection, getLineLength, getPointAtDistance} from '../assets/generalTools.js'
-
-  const width = window.innerWidth;
-  const height = window.innerHeight;
+import {calculateIntersection, getLineLength, getPointAtDistance, debounce} from '../assets/generalTools.js'
 
   export default {
     props: ['image', 'programStage', 'annotations', 'drawingState'],
@@ -10,13 +7,17 @@ import {calculateImageConfig, calculateIntersection, getLineLength, getPointAtDi
     data() {
       return {
         stageConfig: {
-          width: width,
-          height: height
+          width: null,
+          height: null,
         },
         activeLinestring: [],            // [x1 y1 x2 y2] for line currently being drawn
         activeIntersections: [],         // Array of arrays for any intersections on the line being drawn
         isMouseDown: false,              // False if no line is being drawn, true otherwise
       };
+    },
+    created() {
+      var resize = debounce(this.resize);
+      window.addEventListener('resize', resize);
     },
     computed: {
       imageConfig() {
@@ -26,11 +27,20 @@ import {calculateImageConfig, calculateIntersection, getLineLength, getPointAtDi
         if (!canvas || !this.image) 
           return {};
 
-        // width and height variables don't line up with the true canvas dimensions,
-        // so we recalculate them 
-        this.stageConfig.width = canvas.offsetWidth;
         this.stageConfig.height = canvas.offsetHeight;
-        return calculateImageConfig(this.image, this.stageConfig.width, this.stageConfig.height);
+        this.stageConfig.width = canvas.offsetWidth;
+
+        const heightRatio = (this.stageConfig.height - 50) / this.image.height;
+        const widthRatio = (this.stageConfig.width - 50) / this.image.width;
+        const scale = Math.min(widthRatio, heightRatio);
+        const height = this.image.height * scale;
+        const width = this.image.width * scale;
+
+        // Centers image
+        const x = Math.abs(this.stageConfig.width - width) / 2;
+        const y = Math.abs(this.stageConfig.height - height) / 2;
+
+        return {image: this.image, height: height, width: width, x: x, y: y};
       },
 
       linestrings() {
@@ -219,7 +229,34 @@ import {calculateImageConfig, calculateIntersection, getLineLength, getPointAtDi
         state.drawingLinestring = false;
         this.$emit('drawingStateChange', state);
       },
-    }
+
+      resize() {
+        const canvas = document.querySelector('#canvas-section');
+        if (!canvas) 
+          return {};
+
+        const previousWidth = this.stageConfig.width;
+        const previousHeight = this.stageConfig.height;
+        this.stageConfig.width = canvas.offsetWidth;
+        this.stageConfig.height = canvas.offsetHeight;
+
+        // Repositions each annotation's point(s) with respect to
+        // the vertical and horizontal displacement of the resize. 
+        const widthDisp = (this.stageConfig.width - previousWidth) / 2;
+        const heightDisp = (this.stageConfig.height - previousHeight) / 2;
+
+        for (let i = 0; i < this.annotations.length; i++) {
+          if (this.annotations[i].geometryType == 'linestring') {
+            let points = this.annotations[i].points;
+            points[0] = points[0] + widthDisp;
+            points[1] = points[1] + heightDisp;
+            points[2] = points[2] + widthDisp;
+            points[3] = points[3] + heightDisp;
+            this.annotations[i].points = points;
+          }
+        }
+      },
+    },
   };
 </script>
 
