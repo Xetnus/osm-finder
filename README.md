@@ -68,6 +68,9 @@ Instructions below are for Linux.
 
 4. Start the server: `npm run dev`
 
+## Unit Testing
+Unit testing was added to detect unexpected changes in the generated PostgreSQL queries and their results once the queries are run. To run the unit tests, type `npm run test`. The unit tests assume you have a PostgreSQL database running that's been loaded with the OSM data for the US state of Massachusetts. To create your own tests, review the comments in the `queryCreator.test.js` file. 
+
 ## Roadmap
 - [x] **Start from scratch.** Because this was created during a hackathon, little emphasis was put on code quality and future maintenance. No standard JavaScript libraries were used and most of the code is inefficient in one way or another. Now that I have a better idea for how this tool can be architected, reconstructing it should be easier.
 - [ ] **Add support for nodes.** Towers, buildings, and nodes of all types should be supported.

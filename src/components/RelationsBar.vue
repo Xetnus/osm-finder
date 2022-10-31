@@ -1,5 +1,5 @@
 <script>
-import {calculateIntersection} from '../assets/generalTools.js'
+  import {calculateIntersection} from '../assets/generalTools.js'
 
   export default {
     props: ['annotations', 'relationsHistory'],

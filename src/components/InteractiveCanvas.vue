@@ -1,5 +1,5 @@
 <script>
-import {calculateIntersection, getLineLength, getPointAtDistance, debounce} from '../assets/generalTools.js'
+  import {calculateIntersection, getLineLength, getPointAtDistance, debounce} from '../assets/generalTools.js'
 
   export default {
     props: ['image', 'programStage', 'annotations', 'drawingState'],
@@ -215,7 +215,7 @@ import {calculateIntersection, getLineLength, getPointAtDistance, debounce} from
           genericType: null,
           subtype: null,
           tags: [],
-          relations: [],
+          relations: {},
         });
         this.$emit('annotationsChange', annotations);
 

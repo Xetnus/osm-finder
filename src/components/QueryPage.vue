@@ -1,5 +1,5 @@
 <script>
-import {constructQuery} from '../assets/queryCreator.js'
+  import {constructQuery} from '../assets/queryCreator.js'
 
   export default {
     props: ['annotations', 'programStage'],

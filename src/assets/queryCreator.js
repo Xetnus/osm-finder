@@ -5,7 +5,8 @@ import {calculateBounds, createLineTagsQuery, createMaxDistanceQuery, createMinD
 /*
 SELECT line1.way_id, line2.way_id
 FROM linestrings AS line1, linestrings as line2
-WHERE line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND line2.generic_type = 'highway' AND line2.subtype = 'vehicle' AND ST_DWithin(line1.geom, line2.geom, 50) AND 
+WHERE line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND line2.generic_type = 'highway'
+  AND line2.subtype = 'vehicle' AND ST_DWithin(line1.geom, line2.geom, 50) AND 
 (
   abs((
     degrees(ST_Azimuth(ST_StartPoint(line2.geom), ST_EndPoint(line2.geom)))
@@ -98,7 +99,11 @@ WITH intersections AS
     line2.way_id AS line2_way_id,
     line3.way_id AS line3_way_id
   FROM linestrings AS line1, linestrings AS line2, linestrings as line3
-  WHERE line1.tags->>'bridge' = 'yes' AND line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND line2.tags->>'bridge' = 'yes' AND line2.generic_type = 'highway' AND line2.subtype = 'vehicle' AND line1.way_id != line2.way_id AND line3.generic_type = 'highway' AND line3.subtype = 'vehicle' AND ST_Intersects(line1.geom, line3.geom) AND ST_Intersects(line2.geom, line3.geom) AND ST_DWithin(line1.geom, line2.geom, 1000) AND ST_Distance(line1.geom, line2.geom) > 200
+  WHERE line1.tags->>'bridge' = 'yes' AND line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND 
+    line2.tags->>'bridge' = 'yes' AND line2.generic_type = 'highway' AND line2.subtype = 'vehicle' AND 
+    line1.way_id != line2.way_id AND line3.generic_type = 'highway' AND line3.subtype = 'vehicle' AND 
+    ST_Intersects(line1.geom, line3.geom) AND ST_Intersects(line2.geom, line3.geom) AND 
+    ST_DWithin(line1.geom, line2.geom, 1000) AND ST_Distance(line1.geom, line2.geom) > 200
 ),
 buffers AS 
 (
@@ -337,6 +342,9 @@ function constructIntersectingQuery(nodes, lines, intersectingPairs) {
 }
 
 function constructQuery(annotations) {
+  // Uncomment to print the details of annotations, which can be used by the unit testing script.
+  // console.log(JSON.stringify(annotations));
+
   let nodes = [];
   let lines = [];
 

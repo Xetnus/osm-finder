@@ -1,0 +1,68 @@
+WITH intersections AS
+(
+  SELECT
+    ((ST_DumpPoints(
+      ST_Intersection(line1.geom, line2.geom)
+    )).geom) AS intersection1,
+    line1.geom AS line1_geom,
+    line1.way_id AS line1_way_id,
+    line2.geom AS line2_geom,
+    line2.way_id AS line2_way_id
+  FROM linestrings AS line1, linestrings AS line2
+  WHERE line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND line1.tags->>'tunnel' = 'yes' AND line2.generic_type = 'highway' AND line2.subtype = 'path' AND ST_Intersects(line1.geom, line2.geom) 
+),
+buffers AS
+(
+  SELECT
+    intersections.intersection1,
+    ST_ExteriorRing(ST_Buffer(intersections.intersection1, 0.5)) AS ring1,
+    intersections.line1_geom,
+    intersections.line1_way_id,
+    intersections.line2_geom,
+    intersections.line2_way_id
+  FROM intersections
+),
+points AS
+(
+  SELECT
+    ST_GeometryN
+    (
+      ST_Intersection(buffers.ring1, buffers.line1_geom)
+      , 1
+    ) AS ring1_p1,
+    ST_GeometryN
+    (
+      ST_Intersection(buffers.ring1, buffers.line2_geom)
+      , 1
+    ) AS ring1_p2,
+    buffers.intersection1,
+    buffers.ring1,
+    buffers.line1_geom,
+    buffers.line1_way_id,
+    buffers.line2_geom,
+    buffers.line2_way_id
+  FROM buffers
+)
+SELECT
+  points.line1_way_id,
+  points.line2_way_id
+FROM points
+WHERE
+(
+  (
+    abs(round(degrees(
+      ST_Azimuth(points.ring1_p2, points.intersection1)
+      -
+      ST_Azimuth(points.ring1_p1, points.intersection1)
+    ))::decimal % 180.0) BETWEEN 33 AND 37
+  ) 
+  OR
+  (
+    abs(round(degrees(
+      ST_Azimuth(points.ring1_p2, points.intersection1)
+      -
+      ST_Azimuth(points.ring1_p1, points.intersection1)
+    ))::decimal % 180.0) BETWEEN 143 AND 147
+  ) 
+);
+
