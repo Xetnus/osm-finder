@@ -13,7 +13,7 @@ When in doubt, it's always safer to enter larger/wider parameters than you think
 
 Works best on images with unique intersections. If there are any tags you can enter (e.g. bridge=yes, tunnel=yes), you'll decrease the size of the results significantly.
 
-Feel free to report an issue or create a pull request if you find any bugs.
+This tool is still in early development. Please feel free to report issues or create pull requests if you find any bugs.
 
 Tested on Ubuntu 22.04.1 LTS. 
 
