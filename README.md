@@ -2,7 +2,7 @@
 
 ## The UI is now accessible from anywhere on Netlify: https://osm-finder.netlify.app/
 
-## Tool Description
+## Description
 One of the most prominent tools that assists in geolocating images using openstreetmap data is [Overpass Turbo](https://overpass-turbo.eu/). This requires learning and using the [Overpass Query Language](https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_QL) and restricts your geolocation abilities to only what's permitted by the query language.  
 
 This tool attempts to make it easier for researchers to find locations with a simple click-and-drag interface. No need to learn a new query language. It also adds capabilities not present in existing tools, like the ability to search by the angle between roads, power lines, and railways.
@@ -12,6 +12,8 @@ This tool currently supports all [highway](https://wiki.openstreetmap.org/wiki/K
 When in doubt, it's always safer to enter larger/wider parameters than you think is needed (e.g., enter an angle of 25 ± 10° instead of 25 ± 5°).
 
 Works best on images with unique intersections. If there are any tags you can enter (e.g. bridge=yes, tunnel=yes), you'll decrease the size of the results significantly.
+
+Feel free to report an issue or create a pull request if you find any bugs.
 
 Tested on Ubuntu 22.04.1 LTS. 
 
@@ -24,7 +26,7 @@ https://creativecommons.org/licenses/by-sa/2.0/
 The numbers below correspond to the stages in the application. By clicking the Next button, you either progress to the next stage or the next phase of the same stage.    
 1. Upload the image you want to geolocate 
 2. Draw the linestrings that make up the line network of the photo 
-3. Input the generic types, subtypes, and tags for each line. Multiple tags can be separated with a comma: `bridge=yes,surface=wood` 
+3. Input the generic types, subtypes, and tags for each line. Multiple tags can be separated with a comma: `bridge=yes,surface=wood,junction` 
 4. Input the max distances, min distances, angles, and angle errors for each relation 
 5. That's it! Your query should be generated and displayed automatically. 
 
