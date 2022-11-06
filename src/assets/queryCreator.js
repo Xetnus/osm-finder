@@ -53,9 +53,9 @@ function constructNonIntersectingQuery(nodes, lines) {
     for (let k = 0; k < keys.length; k++) {
       const relation = lines[i].relations[keys[k]];
 
-      if (Number.isInteger(parseInt(relation.angle))) {
-        let angle = parseInt(relation.angle);
-        let error = relation.error ? parseInt(relation.error) : 0;
+      if (relation.angle != null) {
+        let angle = relation.angle;
+        let error = relation.error ? relation.error : 0;
 
         let bounds = calculateBounds(angle, error);
 
@@ -66,7 +66,13 @@ function constructNonIntersectingQuery(nodes, lines) {
           query += '      degrees(ST_Azimuth(ST_StartPoint(' + keys[k] + '.geom), ST_EndPoint(' + keys[k] + '.geom)))\n';
           query += '      -\n';
           query += '      degrees(ST_Azimuth(ST_StartPoint(' + lines[i].name + '.geom), ST_EndPoint(' + lines[i].name + '.geom)))\n';
-          query += '    )::decimal % 180.0) BETWEEN ' + bounds.lower[b] + ' AND ' + bounds.upper[b] + '\n';
+          query += '    )::decimal % 180.0) ';
+
+          if (bounds.lower[b] === bounds.upper[b])
+            query += '= ' + bounds.lower[b] + '\n';
+          else
+            query += 'BETWEEN ' + bounds.lower[b] + ' AND ' + bounds.upper[b] + '\n';
+
           query += '  ) ' + ((bounds.lower.length > 1 && b == 0) ? '\n  OR' : '') + '\n';
         }
         query += ')\n';
@@ -187,7 +193,7 @@ WHERE
 function constructIntersectingQuery(nodes, lines, intersectingPairs) {
   let intersectingPairsWithAngles = [];
   for (let i = 0; i < intersectingPairs.length; i++) {
-    if (intersectingPairs[i].angle) {
+    if (intersectingPairs[i].angle != null) {
       intersectingPairsWithAngles.push(intersectingPairs[i]);
     }
   }
@@ -327,7 +333,13 @@ function constructIntersectingQuery(nodes, lines, intersectingPairs) {
         query += '      ST_Azimuth(points.ring' + (i + 1) + '_p2, points.intersection' + (i + 1) + ')\n';
         query += '      -\n';
         query += '      ST_Azimuth(points.ring' + (i + 1) + '_p1, points.intersection' + (i + 1) + ')\n';
-        query += '    ))::decimal % 180.0) BETWEEN ' + bounds.lower[b] + ' AND ' + bounds.upper[b] + '\n';
+        query += '    ))::decimal % 180.0) ';
+
+        if (bounds.lower[b] === bounds.upper[b])
+          query += '= ' + bounds.lower[b] + '\n';
+        else
+          query += 'BETWEEN ' + bounds.lower[b] + ' AND ' + bounds.upper[b] + '\n';
+
         query += '  ) ' + ((bounds.lower.length > 1 && b == 0) ? '\n  OR' : '') + '\n';
       }
       query += ')\n';
@@ -378,7 +390,7 @@ function constructQuery(annotations) {
 
         if (find) {
           intersectingPairs.push({line1: lines[i].name, line2: lines[k].name, 
-            angle: parseInt(find.angle), error: parseInt(find.error)});
+            angle: find.angle, error: find.error});
         } else {
           intersectingPairs.push({line1: lines[i].name, line2: lines[k].name});
         }

@@ -60,8 +60,11 @@
 
           // Commit these properties to the global state. 
           let index = this.annotations.findIndex((el) => el.name == this.current2.name);
-          const rel = {maxDistance: this.maxDistance, minDistance: this.minDistance, 
-            angle: this.angle, error: this.error};
+          const maxD = Number.isInteger(parseInt(this.maxDistance)) ? parseInt(this.maxDistance) : null;
+          const minD = Number.isInteger(parseInt(this.minDistance)) ? parseInt(this.minDistance) : null;
+          const angle = Number.isInteger(parseInt(this.angle)) ? parseInt(this.angle) : null;
+          const error = Number.isInteger(parseInt(this.error)) ? parseInt(this.error) : null;
+          const rel = {maxDistance: maxD, minDistance: minD, angle: angle, error: error};
 
           let ann = this.annotations;
           ann[index].relations[this.current1.name] = rel;

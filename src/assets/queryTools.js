@@ -86,19 +86,24 @@ function createLineTagsQuery(line) {
 // Calculates the lower and upper bounds given an angle and error,
 // assuming maximum angle is 180 and minimum angle is 0.
 function calculateBounds(angle, error) {
+  angle = Math.abs(angle);
+  error = Math.abs(error);
   let lowerBounds = [angle - error]; 
   let upperBounds = [angle + error];
 
-  if (lowerBounds[0] / 180 > 1 && upperBounds[0] / 180 > 1) {
-    lowerBounds[0] %= 180;
-    upperBounds[0] %= 180;
-  } else if (upperBounds[0] / 180 > 1) {
-    let up = upperBounds[0];
-    let low = lowerBounds[0];
-    lowerBounds[0] = low;
-    upperBounds[0] = 180;
-    lowerBounds[1] = 0;
-    upperBounds[1] = up % 180;
+  if (upperBounds[0] > 180) {
+    if (lowerBounds[0] > 180) {
+      lowerBounds[0] %= 180;
+      upperBounds[0] %= 180;
+    } else if (lowerBounds[0] < 0) {
+      lowerBounds[0] = 0;
+      upperBounds[0] = 180;
+    } else {
+      const up = upperBounds[0];
+      upperBounds[0] = 180;
+      lowerBounds[1] = 0;
+      upperBounds[1] = up % 180;
+    }
   } else if (lowerBounds[0] < 0) {
     lowerBounds[1] = 180 + lowerBounds[0];
     lowerBounds[0] = 0;
