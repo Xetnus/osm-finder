@@ -11,7 +11,7 @@ programStage: int
 
 annotations: [
   0:
-    name: 'line0'
+    name: 'line1'
     geometryType: 'linestring'
     points
     transparent
@@ -28,8 +28,8 @@ annotations: [
     }
   
   1:
-    name: 'node0'
-    geometryType: 'circle'
+    name: 'node1'
+    geometryType: 'node'
     point
     transparent
     genericType

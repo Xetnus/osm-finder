@@ -43,18 +43,6 @@
         return {image: this.image, height: height, width: width, x: x, y: y};
       },
 
-      linestrings() {
-        let lines = [];
-        for (let i = 0; i < this.annotations.length; i++) {
-          if (this.annotations[i].geometryType != 'linestring') { 
-            continue;
-          }
-
-          lines.push(this.annotations[i]);
-        }
-        return lines;
-      },
-
       intersections() {
         let points = [];
         // Good old, trusty O(n^2)
@@ -80,8 +68,13 @@
     },
     methods: {
       getLineConfig(line) {
-        let opacity = line.transparent ? 0.2 : 1;
+        const opacity = line.transparent ? 0.2 : 1;
         return {stroke: 'black', strokeWidth: 5, points: Object.assign([], line.points), opacity: opacity}
+      },
+
+      getNodeConfig(node) {
+        const opacity = node.transparent ? 0.2 : 1;
+        return {fill: 'midnightblue', stroke: 'lightblue', radius: 10, strokeWidth: 3, x: node.point[0], y: node.point[1], opacity: opacity}
       },
 
       getActiveLineConfig(points) {
@@ -101,7 +94,7 @@
         const fill = active ? 'red' : 'orange';
         const stroke = active ? 'orange' : 'yellow';
 
-        return {radius: 6, fill: fill, stroke: stroke, strokeWidth: 2, x: point[0], y: point[1]}
+        return {fill: fill, stroke: stroke, radius: 6, strokeWidth: 2, x: point[0], y: point[1]}
       },
 
       getAngleConfig() {
@@ -169,13 +162,44 @@
         return {}
       },
 
-      mousedown() {
-        if (!this.drawingState.drawingLinestring || this.programStage != 2) return;
+      getAnnotationsOfType(type) {
+        let anns = [];
+        for (let i = 0; i < this.annotations.length; i++) {
+          if (this.annotations[i].geometryType === type) { 
+            anns.push(this.annotations[i]);
+          }
+        }
+        return anns;
+      },
 
-        this.isMouseDown = true;
+      mousedown() {
+        if (this.programStage != 2) return;
+
         const pos = this.$refs.stage.getStage().getPointerPosition();
-        if (pos) {
+
+        if (pos && this.drawingState.drawingLinestring) {
+          this.isMouseDown = true;
           this.activeLinestring = [pos.x, pos.y];
+        } else if (pos && this.drawingState.drawingNode) {
+          const count = this.annotations.filter(a => a.geometryType == 'node').length + 1;
+
+          let annotations = this.annotations;
+          annotations.push({
+            name: 'node' + count,
+            geometryType: 'node',
+            point: [pos.x, pos.y],
+            transparent: false,
+            genericType: null,
+            subtype: null,
+            tags: [],
+            relations: {},
+          });
+          this.$emit('annotationsChange', annotations);
+
+          // Lets the program know we aren't drawing anymore
+          let state = this.drawingState;
+          state.drawingNode = false;
+          this.$emit('drawingStateChange', state);
         }
       },
 
@@ -265,7 +289,8 @@
       @mousemove="mousemove" @mousedown="mousedown" @mouseup="mouseup_mouseleave" @mouseleave="mouseup_mouseleave">
     <v-layer ref="layer">
       <v-image :config="imageConfig"/>
-      <v-line v-for="line in linestrings" :config="getLineConfig(line)"/>
+      <v-line v-for="line in getAnnotationsOfType('linestring')" :config="getLineConfig(line)"/>
+      <v-circle v-for="node in getAnnotationsOfType('node')" :config="getNodeConfig(node)"/>
       <v-line v-if="isMouseDown" :config="getActiveLineConfig(activeLinestring)"/>
       <v-circle v-for="circle in intersections" :config="getIntersectionConfig(circle, false)"/>
       <v-circle v-for="intersection in activeIntersections" :config="getIntersectionConfig(intersection, true)"/>

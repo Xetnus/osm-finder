@@ -391,7 +391,7 @@ function constructQuery(annotations) {
   for (let i = 0; i < annotations.length; i++) { 
     if (annotations[i].geometryType == 'linestring') {
       lines.push(annotations[i]);
-    } else {
+    } else if (annotations[i].geometryType == 'node') {
       nodes.push(annotations[i]);
     }
   }

@@ -134,7 +134,14 @@
         this.$emit('annotationsChange', anns);
       },
 
+      isAngular() {
+        return this.current1.geometryType === 'linestring' && this.current2.geometryType === 'linestring';
+      },
+
       intersects() {
+        if (!this.isAngular())
+          return false;
+
         const line1 = this.current1.points;
         const line2 = this.current2.points;
         const intersection = calculateIntersection(line1, line2);
@@ -150,8 +157,8 @@
     <button @click="handleBack">Back</button>
     <input :disabled="intersects()" v-model="maxDistance" placeholder="Max distance (m)"/>
     <input :disabled="intersects()" v-model="minDistance" placeholder="Min distance (m)"/>
-    <input v-model="angle" placeholder="Angle"/>
-    <input v-model="error" placeholder="Error"/>
+    <input :disabled="!isAngular()" v-model="angle" placeholder="Angle"/>
+    <input :disabled="!isAngular()" v-model="error" placeholder="Error"/>
     <button @click="handleNext">Next</button>
   </div>
 </template>

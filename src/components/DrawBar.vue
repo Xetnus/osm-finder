@@ -22,9 +22,18 @@
       toggleLinestring(event) {
         let state = this.drawingState;
         state['drawingLinestring'] = !state['drawingLinestring'];
+        state['drawingNode'] = false;
         this.$emit('drawingStateChange', state);
 
         this.infoLabel = state['drawingLinestring'] ? 'Click and drag to draw a line.': '';
+      },
+      toggleNode(event) {
+        let state = this.drawingState;
+        state['drawingNode'] = !state['drawingNode'];
+        state['drawingLinestring'] = false;
+        this.$emit('drawingStateChange', state);
+
+        this.infoLabel = state['drawingNode'] ? 'Click once anywhere on the canvas to place a node.': '';
       },
       handleUndo(event) {
         let anns = this.annotations;
@@ -43,7 +52,7 @@
 <template>
   <div>
     <button :class="{active: this.drawingState.drawingLinestring}" @click="toggleLinestring">Linestring</button>
-    <button title="Not implemented" :class="{active: this.drawingState.drawingNode}" disabled>Node</button>
+    <button :class="{active: this.drawingState.drawingNode}" @click="toggleNode">Node</button>
   </div>
   <div>
     <button id="back" @click="handleBack">Back</button>

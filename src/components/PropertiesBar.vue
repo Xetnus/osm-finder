@@ -12,8 +12,14 @@
     },
     data() {
       return {
-        types: {'highway': ['vehicle', 'path'], 'railway': [], 'power': ['line', 'minor_line']},
-        defaults: {genericTypeSelected: 'highway', subtypeSelected: 'vehicle', subtypeTyped: '', tagsTyped: ''},
+        types: {
+          'linestring': {'highway': ['vehicle', 'path'], 'railway': [], 'power': ['line', 'minor_line']},
+          'node': {'man_made': ['tower', 'communications_tower', 'water_tower']}
+        },
+        defaults: {
+          'linestring': {'genericTypeSelected': 'highway', 'subtypeSelected': 'vehicle', 'subtypeTyped': '', 'tagsTyped': ''},
+          'node': {'genericTypeSelected': 'man_made', 'subtypeSelected': 'tower', 'subtypeTyped': '', 'tagsTyped': ''}
+        },
         genericTypeSelected: null,
         subtypeSelected: null,
         subtypeTyped: null,
@@ -22,7 +28,7 @@
       }
     },
     computed: {
-      currentElement() {
+      currentAnn() {
         return this.annotations[this.currentIndex];
       }
     },
@@ -46,7 +52,7 @@
         } else {
           this.currentIndex++;
           this.fillInForm();
-          this.hideAllButOne(this.currentElement);
+          this.hideAllButOne(this.currentAnn);
         }
       },
 
@@ -58,21 +64,23 @@
         } else {
           this.currentIndex--;
           this.fillInForm();
-          this.hideAllButOne(this.currentElement);
+          this.hideAllButOne(this.currentAnn);
         }
       },
 
       fillInForm() {
         // Initializes the inputs to the defaults or, if data has already been stored
         // for this relation, fills that data in.
-        const a = this.annotations[this.currentIndex];
-        this.genericTypeSelected = a.genericType || this.defaults.genericTypeSelected;
-        if (this.types[[this.genericTypeSelected]].length == 0) {
-          this.subtypeTyped = a.subtype || this.defaults.subtypeTyped;
+        const defaults = this.defaults[this.currentAnn.geometryType];
+        const types = this.types[this.currentAnn.geometryType];
+
+        this.genericTypeSelected = this.currentAnn.genericType || defaults.genericTypeSelected;
+        if (types[this.genericTypeSelected].length == 0) {
+          this.subtypeTyped = this.currentAnn.subtype || defaults.subtypeTyped;
         } else {
-          this.subtypeSelected = a.subtype || this.defaults.subtypeSelected;
+          this.subtypeSelected = this.currentAnn.subtype || defaults.subtypeSelected;
         }
-        this.tagsTyped = a.tags.join(',') || this.defaults.tagsTyped;
+        this.tagsTyped = this.currentAnn.tags.join(',') || defaults.tagsTyped;
       },
 
       hideAllButOne(hide) {
@@ -92,25 +100,35 @@
       },
 
       genericTypeChange(event) {
-        this.subtypeSelected = this.types[this.genericTypeSelected][0];
+        // Resets the subtype field if the generic type is changed
+        const types = this.types[this.currentAnn.geometryType];
+        this.subtypeSelected = types[this.genericTypeSelected][0];
+      },
+
+      getGenericTypes() {
+        return Object.keys(this.types[this.currentAnn.geometryType]);
+      },
+
+      getSubtypes() {
+        return this.types[this.currentAnn.geometryType][this.genericTypeSelected];
       },
     }
   }
 </script>
 
 <template>
-  <p>Properties for {{currentElement.name}}</p>
+  <p>Properties for {{currentAnn.name}}</p>
   <div>
     <button @click="handleBack" id="back">Back</button>
     <select v-model="genericTypeSelected" @change="genericTypeChange">
-      <option v-for="gType in Object.keys(types)" :value="gType">{{gType}}</option>
+      <option v-for="generic in getGenericTypes()" :value="generic">{{generic}}</option>
     </select>
 
     <!-- Either displays <select> or <input> depending on the subtypes available -->
-    <select v-model="subtypeSelected" v-if="genericTypeSelected && types[genericTypeSelected].length">
-      <option v-for="sub in types[genericTypeSelected]" :value="sub">{{sub}}</option>
+    <select v-if="genericTypeSelected && getSubtypes().length" v-model="subtypeSelected">
+      <option v-for="sub in getSubtypes()" :value="sub">{{sub}}</option>
     </select>
-    <input v-model="subtypeTyped" placeholder="Subtype" v-else/>
+    <input v-else v-model="subtypeTyped" placeholder="Subtype"/>
 
     <input v-model="tagsTyped" placeholder="Tags: bridge=yes"/>
     <button @click="handleNext" id="next">Next</button>
