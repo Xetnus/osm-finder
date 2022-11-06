@@ -131,6 +131,8 @@ drawingState: {
 
 <style scoped>
   header {
+    user-select: none;
+    -webkit-user-select: none;
     position: absolute;
     left: 0;
     right: 0;
