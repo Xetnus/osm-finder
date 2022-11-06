@@ -202,7 +202,7 @@ function constructIntersectingQuery(nodes, lines) {
       const line2 = lines[k].points;
       const intersection = calculateIntersection(line1, line2);
       if (intersection && intersection.seg1 && intersection.seg2) {
-        // The order of the lines doesn't matter
+        // Ensures that the pair hasn't already been pushed
         const pair = [lines[i].name, lines[k].name];
         const match = intersectingPairs.filter((el) => pair.includes(el.line1) && pair.includes(el.line2));
         if (match.length != 0) continue;
@@ -241,7 +241,7 @@ function constructIntersectingQuery(nodes, lines) {
   for (let i = 0; i < lines.length; i++) {
     const comma = (i == lines.length - 1) ? '' : ','
     if (intersectingPairsWithAngles.find(el => (el.line1 == lines[i].name || el.line2 == lines[i].name))) {
-      // We only need to carry the geometry of lines that intersect at defined angles
+      // We only need to carry the geometries of lines that intersect at defined angles
       query += '    ' + lines[i].name + '.geom AS ' + lines[i].name + '_geom,\n';
     }
     query += '    ' + lines[i].name + '.way_id AS ' + lines[i].name + '_way_id' + comma + '\n';
@@ -293,7 +293,7 @@ function constructIntersectingQuery(nodes, lines) {
   for (let i = 0; i < lines.length; i++) {
     const comma = (i == lines.length - 1) ? '' : ',';
     if (intersectingPairsWithAngles.find(el => (el.line1 == lines[i].name || el.line2 == lines[i].name))) {
-      // We only need to carry the geometry of lines that intersect at defined angles
+      // We only need to carry the geometries of lines that intersect at defined angles
       query += '    intersections.' + lines[i].name + '_geom,\n';
     }
     query += '    intersections.' + lines[i].name + '_way_id' + comma + '\n';
@@ -328,7 +328,7 @@ function constructIntersectingQuery(nodes, lines) {
   for (let i = 0; i < lines.length; i++) {
     const comma = (i == lines.length - 1) ? '' : ',';
     if (intersectingPairsWithAngles.find(el => (el.line1 == lines[i].name || el.line2 == lines[i].name))) {
-      // We only need to carry the geometry of lines that intersect at defined angles
+      // We only need to carry the geometries of lines that intersect at defined angles
       query += '    buffers.' + lines[i].name + '_geom,\n';
     }
     query += '    buffers.' + lines[i].name + '_way_id' + comma + '\n';
@@ -403,7 +403,14 @@ function constructQuery(annotations) {
 
       const intersection = calculateIntersection(lines[i].points, lines[k].points);
       if (intersection && intersection.seg1 && intersection.seg2) {
-        return constructIntersectingQuery(nodes, lines);
+        // The line whose name comes first when sorted holds the relation information. Find it.
+        const index1 = lines[i].name > lines[k].name ? k : i;
+        const index2 = lines[i].name > lines[k].name ? i : k;
+        const find = lines[index1].relations[lines[index2].name];
+
+        if (find && find.angle != null) {
+          return constructIntersectingQuery(nodes, lines);
+        }
       }
     }
   }
