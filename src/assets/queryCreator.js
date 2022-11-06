@@ -1,7 +1,7 @@
 import {calculateIntersection} from './generalTools.js'
 import {calculateBounds, createLineTagsQuery, createMaxDistanceQuery, createMinDistanceQuery, createNoOverlappingQuery} from './queryTools.js'
 
-// Example Query for NonIntersecting
+// Example Query for Disjoint
 /*
 SELECT line1.way_id, line2.way_id
 FROM linestrings AS line1, linestrings as line2
@@ -16,7 +16,7 @@ WHERE line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND line2.gen
 );
 */
 
-function constructNonIntersectingQuery(nodes, lines) {
+function constructDisjointQuery(nodes, lines) {
   let query = 'SELECT ';
   for (let i = 0; i < lines.length; i++) {
     query += lines[i].name + '.way_id' + (i == lines.length - 1 ? '\n' : ', ');
@@ -190,11 +190,39 @@ WHERE
   )
 ;
 */
-function constructIntersectingQuery(nodes, lines, intersectingPairs) {
+function constructIntersectingQuery(nodes, lines) {
+  // Generates an array that consists of pairs of intersecting lines
+  let intersectingPairs = [];
   let intersectingPairsWithAngles = [];
-  for (let i = 0; i < intersectingPairs.length; i++) {
-    if (intersectingPairs[i].angle != null) {
-      intersectingPairsWithAngles.push(intersectingPairs[i]);
+  for (let i = 0; i < lines.length; i++) { 
+    for (let k = 0; k < lines.length; k++) {
+      if (i == k) continue;
+
+      const line1 = lines[i].points;
+      const line2 = lines[k].points;
+      const intersection = calculateIntersection(line1, line2);
+      if (intersection && intersection.seg1 && intersection.seg2) {
+        // The order of the lines doesn't matter
+        const pair = [lines[i].name, lines[k].name];
+        const match = intersectingPairs.filter((el) => pair.includes(el.line1) && pair.includes(el.line2));
+        if (match.length != 0) continue;
+
+        // The line whose name comes first when sorted holds the relation information. Find it.
+        const index1 = lines[i].name > lines[k].name ? k : i;
+        const index2 = lines[i].name > lines[k].name ? i : k;
+        const find = lines[index1].relations[lines[index2].name];
+
+        if (find && find.angle != null) {
+          intersectingPairsWithAngles.push({
+            line1: lines[i].name,
+            line2: lines[k].name, 
+            angle: find.angle,
+            error: find.error
+          });
+        }
+
+        intersectingPairs.push({line1: lines[i].name, line2: lines[k].name});
+      }
     }
   }
 
@@ -368,41 +396,19 @@ function constructQuery(annotations) {
     }
   }
 
-  // Generates an array that consists of pairs of intersecting lines
-  let intersectingPairs = [];
+  // If at least two of the lines intersect, then call constructIntersectingQuery
   for (let i = 0; i < lines.length; i++) { 
     for (let k = 0; k < lines.length; k++) {
       if (i == k) continue;
 
-      const line1 = lines[i].points;
-      const line2 = lines[k].points;
-      const intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
+      const intersection = calculateIntersection(lines[i].points, lines[k].points);
       if (intersection && intersection.seg1 && intersection.seg2) {
-        // The order of the lines doesn't matter
-        const pair = [lines[i].name, lines[k].name];
-        const match = intersectingPairs.filter((el) => pair.includes(el.line1) && pair.includes(el.line2));
-        if (match.length != 0) continue;
-
-        // The line whose name comes first when sorted holds the relation information. Find it.
-        const index1 = lines[i].name > lines[k].name ? k : i;
-        const index2 = lines[i].name > lines[k].name ? i : k;
-        const find = lines[index1].relations[lines[index2].name];
-
-        if (find) {
-          intersectingPairs.push({line1: lines[i].name, line2: lines[k].name, 
-            angle: find.angle, error: find.error});
-        } else {
-          intersectingPairs.push({line1: lines[i].name, line2: lines[k].name});
-        }
+        return constructIntersectingQuery(nodes, lines);
       }
     }
   }
 
-  if (intersectingPairs.length == 0) {
-    return constructNonIntersectingQuery(nodes, lines);
-  } else {
-    return constructIntersectingQuery(nodes, lines, intersectingPairs);
-  }
+  return constructDisjointQuery(nodes, lines);
 }
 
 export {constructQuery}

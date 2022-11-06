@@ -69,7 +69,7 @@
 
             let line1 = this.annotations[i].points;
             let line2 = this.annotations[j].points;
-            let intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
+            let intersection = calculateIntersection(line1, line2);
             if (intersection && intersection.seg1 && intersection.seg2) {
               points.push([intersection.x, intersection.y]);
             }
@@ -110,7 +110,7 @@
 
         const line1 = lines[0].points;
         const line2 = lines[1].points;
-        let intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
+        let intersection = calculateIntersection(line1, line2);
         if (intersection && intersection.seg1 && intersection.seg2) {
           // Finds the longest segment of line1, assuming the line is split at the intersection
           const temp1_len1 = getLineLength(intersection.x, intersection.y, line1[0], line1[1]);
@@ -193,7 +193,7 @@
             if (this.annotations[i].geometryType != 'linestring') continue;
 
             let line2 = this.annotations[i].points;
-            let intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
+            let intersection = calculateIntersection(line1, line2);
             if (intersection && intersection.seg1 && intersection.seg2) {
               this.activeIntersections.push([intersection.x, intersection.y]);
             }

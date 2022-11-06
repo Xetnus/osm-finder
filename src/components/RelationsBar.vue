@@ -137,7 +137,7 @@
       intersects() {
         const line1 = this.current1.points;
         const line2 = this.current2.points;
-        const intersection = calculateIntersection(line1[0], line1[1], line1[2], line1[3], line2[0], line2[1], line2[2], line2[3]);
+        const intersection = calculateIntersection(line1, line2);
         return intersection && intersection.seg1 && intersection.seg2;
       },
     }
