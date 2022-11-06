@@ -1,0 +1,21 @@
+SELECT line1.way_id, line2.way_id
+FROM linestrings AS line1, linestrings AS line2
+WHERE line1.generic_type = 'railway' AND line1.subtype = 'abandoned' AND line2.generic_type = 'railway' AND line2.subtype = 'abandoned' AND line2.tags->>'bridge' = 'yes' AND line2.way_id != line1.way_id AND ST_DWithin(line1.geom, line2.geom, 100) AND ST_Distance(line1.geom, line2.geom) > 50 AND 
+(
+  (
+    abs((
+      degrees(ST_Azimuth(ST_StartPoint(line2.geom), ST_EndPoint(line2.geom)))
+      -
+      degrees(ST_Azimuth(ST_StartPoint(line1.geom), ST_EndPoint(line1.geom)))
+    )::decimal % 180.0) BETWEEN 5 AND 15
+  ) 
+  OR
+  (
+    abs((
+      degrees(ST_Azimuth(ST_StartPoint(line2.geom), ST_EndPoint(line2.geom)))
+      -
+      degrees(ST_Azimuth(ST_StartPoint(line1.geom), ST_EndPoint(line1.geom)))
+    )::decimal % 180.0) BETWEEN 165 AND 175
+  ) 
+)
+;

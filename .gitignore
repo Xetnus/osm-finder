@@ -1,4 +1,5 @@
-results/*
+tests/*/actual-query.txt
+tests/*/actual-results.txt
 
 # Logs
 logs
