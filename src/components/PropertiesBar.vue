@@ -17,8 +17,8 @@
           'node': {'man_made': ['tower', 'communications_tower', 'water_tower']}
         },
         defaults: {
-          'linestring': {'genericTypeSelected': 'highway', 'subtypeSelected': 'vehicle', 'subtypeTyped': '', 'tagsTyped': ''},
-          'node': {'genericTypeSelected': 'man_made', 'subtypeSelected': 'tower', 'subtypeTyped': '', 'tagsTyped': ''}
+          'linestring': {'genericTypeSelected': 'highway', 'subtypeSelected': '', 'subtypeTyped': '', 'tagsTyped': ''},
+          'node': {'genericTypeSelected': 'man_made', 'subtypeSelected': '', 'subtypeTyped': '', 'tagsTyped': ''}
         },
         genericTypeSelected: null,
         subtypeSelected: null,
@@ -38,7 +38,7 @@
           // Commit these properties to the global state
           let ann = this.annotations;
           ann[this.currentIndex].genericType = this.genericTypeSelected;
-          ann[this.currentIndex].subtype = this.subtypeSelected || this.subtypeTyped;
+          ann[this.currentIndex].subtype = this.subtypeTyped || this.subtypeSelected;
           if (this.tagsTyped)
             ann[this.currentIndex].tags = [...this.tagsTyped.split(',')];
 
@@ -72,13 +72,14 @@
         // Initializes the inputs to the defaults or, if data has already been stored
         // for this relation, fills that data in.
         const defaults = this.defaults[this.currentAnn.geometryType];
-        const types = this.types[this.currentAnn.geometryType];
 
         this.genericTypeSelected = this.currentAnn.genericType || defaults.genericTypeSelected;
-        if (types[this.genericTypeSelected].length == 0) {
+        if (this.getSubtypes().length == 0) {
           this.subtypeTyped = this.currentAnn.subtype || defaults.subtypeTyped;
+          this.subtypeSelected = null;
         } else {
           this.subtypeSelected = this.currentAnn.subtype || defaults.subtypeSelected;
+          this.subtypeTyped = null;
         }
         this.tagsTyped = this.currentAnn.tags.join(',') || defaults.tagsTyped;
       },
@@ -101,8 +102,8 @@
 
       genericTypeChange(event) {
         // Resets the subtype field if the generic type is changed
-        const types = this.types[this.currentAnn.geometryType];
-        this.subtypeSelected = types[this.genericTypeSelected][0];
+        this.subtypeSelected = '';
+        this.subtypeTyped = '';
       },
 
       getGenericTypes() {
@@ -126,6 +127,7 @@
 
     <!-- Either displays <select> or <input> depending on the subtypes available -->
     <select v-if="genericTypeSelected && getSubtypes().length" v-model="subtypeSelected">
+      <option value="">Any Subtype</option>
       <option v-for="sub in getSubtypes()" :value="sub">{{sub}}</option>
     </select>
     <input v-else v-model="subtypeTyped" placeholder="Subtype"/>
