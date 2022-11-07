@@ -49,7 +49,7 @@ local tables = {}
 
 
 
-tables.points = osm2pgsql.define_node_table('points', {
+tables.nodes = osm2pgsql.define_node_table('nodes', {
     { column = 'tags', type = 'jsonb' },
     { column = 'generic_type', type = 'text' },
     { column = 'subtype', type = 'text' },
@@ -99,7 +99,7 @@ function osm2pgsql.process_node(object)
     end
     
     if man_made == 'tower' or man_made == 'communications_tower' or man_made == 'water_tower' then
-        tables.points:insert({
+        tables.nodes:insert({
             tags = object.tags,
             generic_type = "tower",
             subtype = man_made,

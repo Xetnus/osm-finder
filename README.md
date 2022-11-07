@@ -55,7 +55,7 @@ Instructions below are for Linux.
 
 4. **Set up your (Linux) terminal** by running: `psql -d osm -U osmuser` 
     - Note: The interactive query terminal that opens is where you'll run the PostgreSQL queries that the front-end generates.
-    - You can confirm your database was set up correctly by running `\dt`. You should see four tables: `closed_shapes`, `linestrings`, `points`, and `spatial_ref_sys`.
+    - You can confirm your database was set up correctly by running `\dt`. You should see four tables: `closed_shapes`, `linestrings`, `nodes`, and `spatial_ref_sys`.
 
 
 ### II. Install Frontend
