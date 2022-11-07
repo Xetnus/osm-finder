@@ -1,47 +1,47 @@
 
 // Returns a partial query that filters by maximum distance
-function createMaxDistanceQuery(lines) {
+function createMaxDistanceQuery(annotations) {
   let query = '';
-  for (let i = 0; i < lines.length; i++) {
-    const keys = Object.keys(lines[i].relations);
+  for (let i = 0; i < annotations.length; i++) {
+    const keys = Object.keys(annotations[i].relations);
     for (let k = 0; k < keys.length; k++) {
-      const relation = lines[i].relations[keys[k]];
+      const relation = annotations[i].relations[keys[k]];
       const dist = parseInt(relation.maxDistance);
       if (dist)
-        query += 'ST_DWithin(' + lines[i].name + '.geom, ' + keys[k] + '.geom, ' + dist + ') AND ';
+        query += 'ST_DWithin(' + annotations[i].name + '.geom, ' + keys[k] + '.geom, ' + dist + ') AND ';
     }
   }
   return query;
 }
 
 // Returns a partial query that filters by minimum distance
-function createMinDistanceQuery(lines) {
+function createMinDistanceQuery(annotations) {
   let query = '';
-  for (let i = 0; i < lines.length; i++) {
-    const keys = Object.keys(lines[i].relations);
+  for (let i = 0; i < annotations.length; i++) {
+    const keys = Object.keys(annotations[i].relations);
     for (let k = 0; k < keys.length; k++) {
-      const relation = lines[i].relations[keys[k]];
+      const relation = annotations[i].relations[keys[k]];
       const dist = parseInt(relation.minDistance);
       if (dist)
-        query += 'ST_Distance(' + lines[i].name + '.geom, ' + keys[k] + '.geom' + ') > ' + dist + ' AND ';
+        query += 'ST_Distance(' + annotations[i].name + '.geom, ' + keys[k] + '.geom' + ') > ' + dist + ' AND ';
     }
   }
   return query;
 }
 
 // Returns a partial query that filters out overlapping comparisons
-function createNoOverlappingQuery(lines) {
+function createNoOverlappingQuery(annotations) {
   let identicalTypes = {};
 
-  for (let i = 0; i < lines.length; i++) {
-    let genericType = lines[i].genericType;
-    let subtype = lines[i].subtype;
+  for (let i = 0; i < annotations.length; i++) {
+    let genericType = annotations[i].genericType;
+    let subtype = annotations[i].subtype;
     let key = genericType + ' ' + subtype;
 
     if (identicalTypes[key] == undefined) {
-      identicalTypes[key] = [lines[i].name];
+      identicalTypes[key] = [annotations[i].name];
     } else {
-      identicalTypes[key].push(lines[i].name);
+      identicalTypes[key].push(annotations[i].name);
     }
   }
 
@@ -56,12 +56,12 @@ function createNoOverlappingQuery(lines) {
     while (primaryRemaining.length > 1) {
       if (secondaryRemaining.length > 0) {
         current2 = secondaryRemaining.pop();
-        query += current1 + '.way_id != ' + current2 + '.way_id AND ';
+        query += current1 + '.id != ' + current2 + '.id AND ';
       } else {
         current1 = primaryRemaining.pop();
         secondaryRemaining = primaryRemaining.slice(0);
         current2 = secondaryRemaining.pop();
-        query += current1 + '.way_id != ' + current2 + '.way_id AND ';
+        query += current1 + '.id != ' + current2 + '.id AND ';
       }
     }
   }
@@ -69,7 +69,7 @@ function createNoOverlappingQuery(lines) {
 }
 
 // Returns a partial query that filters by OSM tags
-function createLineTagsQuery(line) {
+function createTagsQuery(line) {
   let query = '';
   for (var j = 0; j < line.tags.length; j++) {
     let tag = line.tags[j].split('=');
@@ -118,4 +118,4 @@ function calculateBounds(angle, error) {
   return {lower: lowerBounds, upper: upperBounds};
 }
 
-export {createMaxDistanceQuery, createMinDistanceQuery, createNoOverlappingQuery, createLineTagsQuery, calculateBounds}
+export {createMaxDistanceQuery, createMinDistanceQuery, createNoOverlappingQuery, createTagsQuery, calculateBounds}

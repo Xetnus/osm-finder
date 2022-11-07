@@ -1,9 +1,9 @@
 import {calculateIntersection} from './generalTools.js'
-import {calculateBounds, createLineTagsQuery, createMaxDistanceQuery, createMinDistanceQuery, createNoOverlappingQuery} from './queryTools.js'
+import {calculateBounds, createTagsQuery, createMaxDistanceQuery, createMinDistanceQuery, createNoOverlappingQuery} from './queryTools.js'
 
 // Example Query for Disjoint
 /*
-SELECT line1.way_id, line2.way_id
+SELECT line1.id, line2.id
 FROM linestrings AS line1, linestrings as line2
 WHERE line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND line2.generic_type = 'highway'
   AND line2.subtype = 'vehicle' AND ST_DWithin(line1.geom, line2.geom, 50) AND 
@@ -17,33 +17,34 @@ WHERE line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND line2.gen
 */
 
 function constructDisjointQuery(nodes, lines) {
+  const annotations = lines.concat(nodes);
   let query = 'SELECT ';
-  for (let i = 0; i < lines.length; i++) {
-    query += lines[i].name + '.way_id' + (i == lines.length - 1 ? '\n' : ', ');
+  for (let i = 0; i < annotations.length; i++) {
+    query += annotations[i].name + '.id' + (i == annotations.length - 1 ? '\n' : ', ');
   }
-  
+
   query += 'FROM ';
-  for (let i = 0; i < lines.length; i++) {
-    query += 'linestrings AS ' + lines[i].name + (i == lines.length - 1 ? '\n' : ', ');
+  for (let i = 0; i < annotations.length; i++) {
+    query += annotations[i].geometryType + 's AS ' + annotations[i].name + (i == annotations.length - 1 ? '\n' : ', ');
   }
 
   query += 'WHERE ';
-  for (let i = 0; i < lines.length; i++) {
+  for (let i = 0; i < annotations.length; i++) {
     // Filters results by generic type and subtype
-    let genericType = lines[i].genericType;
-    let subtype = lines[i].subtype;
-    let subtypeString = (subtype == '' ? '' : lines[i].name + '.subtype = \'' + subtype + '\' AND ');
-    query += lines[i].name + '.generic_type = \'' + genericType + '\' AND ' + subtypeString;
+    let genericType = annotations[i].genericType;
+    let subtype = annotations[i].subtype;
+    let subtypeString = (subtype == '' ? '' : annotations[i].name + '.subtype = \'' + subtype + '\' AND ');
+    query += annotations[i].name + '.generic_type = \'' + genericType + '\' AND ' + subtypeString;
 
     // Adds any additional tag entered by the user to the WHERE
-    if (lines[i].tags.length != 0) {
-      query += createLineTagsQuery(lines[i]);
+    if (annotations[i].tags.length != 0) {
+      query += createTagsQuery(annotations[i]);
     }
   }
 
-  query += createNoOverlappingQuery(lines);
-  query += createMaxDistanceQuery(lines);
-  query += createMinDistanceQuery(lines);
+  query += createNoOverlappingQuery(annotations);
+  query += createMaxDistanceQuery(annotations);
+  query += createMinDistanceQuery(annotations);
 
   query += '\n';
 
@@ -101,13 +102,13 @@ WITH intersections AS
     line1.geom AS line1_geom,
     line2.geom AS line2_geom,
     line3.geom AS line3_geom,
-    line1.way_id AS line1_way_id,
-    line2.way_id AS line2_way_id,
-    line3.way_id AS line3_way_id
+    line1.id AS line1_id,
+    line2.id AS line2_id,
+    line3.id AS line3_id
   FROM linestrings AS line1, linestrings AS line2, linestrings as line3
   WHERE line1.tags->>'bridge' = 'yes' AND line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND 
     line2.tags->>'bridge' = 'yes' AND line2.generic_type = 'highway' AND line2.subtype = 'vehicle' AND 
-    line1.way_id != line2.way_id AND line3.generic_type = 'highway' AND line3.subtype = 'vehicle' AND 
+    line1.id != line2.id AND line3.generic_type = 'highway' AND line3.subtype = 'vehicle' AND 
     ST_Intersects(line1.geom, line3.geom) AND ST_Intersects(line2.geom, line3.geom) AND 
     ST_DWithin(line1.geom, line2.geom, 1000) AND ST_Distance(line1.geom, line2.geom) > 200
 ),
@@ -121,9 +122,9 @@ buffers AS
     intersections.line1_geom,
     intersections.line2_geom,
     intersections.line3_geom,
-    intersections.line1_way_id,
-    intersections.line2_way_id,
-    intersections.line3_way_id
+    intersections.line1_id,
+    intersections.line2_id,
+    intersections.line3_id
   FROM intersections
 ),
 points AS
@@ -156,15 +157,15 @@ points AS
     buffers.line1_geom,
     buffers.line2_geom,
     buffers.line3_geom,
-    buffers.line1_way_id,
-    buffers.line2_way_id,
-    buffers.line3_way_id
+    buffers.line1_id,
+    buffers.line2_id,
+    buffers.line3_id
   FROM buffers
 )
 SELECT 
-  points.line1_way_id,
-  points.line2_way_id,
-  points.line3_way_id
+  points.line1_id,
+  points.line2_id,
+  points.line3_id
 FROM points
 WHERE
   (
@@ -244,7 +245,7 @@ function constructIntersectingQuery(nodes, lines) {
       // We only need to carry the geometries of lines that intersect at defined angles
       query += '    ' + lines[i].name + '.geom AS ' + lines[i].name + '_geom,\n';
     }
-    query += '    ' + lines[i].name + '.way_id AS ' + lines[i].name + '_way_id' + comma + '\n';
+    query += '    ' + lines[i].name + '.id AS ' + lines[i].name + '_id' + comma + '\n';
   }
 
   query += '  FROM ';
@@ -263,7 +264,7 @@ function constructIntersectingQuery(nodes, lines) {
 
     // Adds any additional tag entered by the user to the WHERE
     if (lines[i].tags.length != 0) {
-      query += createLineTagsQuery(lines[i]);
+      query += createTagsQuery(lines[i]);
     }
   }
 
@@ -296,7 +297,7 @@ function constructIntersectingQuery(nodes, lines) {
       // We only need to carry the geometries of lines that intersect at defined angles
       query += '    intersections.' + lines[i].name + '_geom,\n';
     }
-    query += '    intersections.' + lines[i].name + '_way_id' + comma + '\n';
+    query += '    intersections.' + lines[i].name + '_id' + comma + '\n';
   }
   query += '  FROM intersections\n';
   query += '),\n';
@@ -331,7 +332,7 @@ function constructIntersectingQuery(nodes, lines) {
       // We only need to carry the geometries of lines that intersect at defined angles
       query += '    buffers.' + lines[i].name + '_geom,\n';
     }
-    query += '    buffers.' + lines[i].name + '_way_id' + comma + '\n';
+    query += '    buffers.' + lines[i].name + '_id' + comma + '\n';
   }
 
   query += '  FROM buffers\n';
@@ -340,7 +341,7 @@ function constructIntersectingQuery(nodes, lines) {
   query += 'SELECT\n';
   for (let i = 0; i < lines.length; i++) {
       const comma = (i == lines.length - 1) ? '' : ',';
-      query += '  points.' + lines[i].name + '_way_id' + comma + '\n';
+      query += '  points.' + lines[i].name + '_id' + comma + '\n';
   }
   query += 'FROM points\n';
   query += 'WHERE\n';
@@ -403,14 +404,7 @@ function constructQuery(annotations) {
 
       const intersection = calculateIntersection(lines[i].points, lines[k].points);
       if (intersection && intersection.seg1 && intersection.seg2) {
-        // The line whose name comes first when sorted holds the relation information. Find it.
-        const index1 = lines[i].name > lines[k].name ? k : i;
-        const index2 = lines[i].name > lines[k].name ? i : k;
-        const find = lines[index1].relations[lines[index2].name];
-
-        if (find && find.angle != null) {
-          return constructIntersectingQuery(nodes, lines);
-        }
+        return constructIntersectingQuery(nodes, lines);
       }
     }
   }

@@ -13,7 +13,7 @@
         if (this.annotations.length > 1) {
           this.$emit('next')
         } else {
-          this.infoLabel = 'Draw at least two lines.';
+          this.infoLabel = 'Draw at least two lines or nodes.';
         }
       },
       handleBack(event) {
