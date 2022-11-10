@@ -34,10 +34,10 @@ The numbers below correspond to the stages in the application. By clicking the N
 Instructions below are for Linux.
 
 ### I. Install and Configure Postgres Backend 
-1. **Ensure you have [PostGIS](https://postgis.net/) installed, and then install osm2pgsql version 1.7.0 or higher.** Note: On Ubuntu and Fedora, this requires building from source (as of Sep 25).  
-    - To install on Linux using a package manager: https://osm2pgsql.org/doc/install.html#installing-on-linux  
+1. **Ensure you have [PostGIS](https://postgis.net/) installed, and then install osm2pgsql version 1.7.1 or higher.** Note: in most Linux distributions, this requires building from source (as of Nov 7).  
     - To install on Windows using prebuilt binaries: https://osm2pgsql.org/doc/install.html#installing-on-windows  
-    - To install on Ubuntu, follow Building instructions: https://github.com/openstreetmap/osm2pgsql  
+    - To check for v1.7.1 support on your Linux distribution: https://osm2pgsql.org/doc/install.html#installing-on-linux  
+    - If v1.7.1 isn't available for your Linux distribution, follow Building instructions: https://github.com/openstreetmap/osm2pgsql  
 
 2. **Download openstreetmap data for your area of interest.** To follow along with the demo, download the data for Massachusetts at https://download.geofabrik.de/north-america/us.html. Click on the .osm.bz2 download.
 

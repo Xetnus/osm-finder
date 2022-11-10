@@ -14,7 +14,7 @@ annotations: [
     name: 'line1'
     geometryType: 'linestring'
     points
-    transparent
+    state // either transparent, support, or normal
     genericType
     subtype
     tags: []
@@ -31,15 +31,16 @@ annotations: [
     name: 'node1'
     geometryType: 'node'
     point
-    transparent
+    state // either transparent, support, or normal
     genericType
     subtype
     tags: []
     relations: {
       name: {
-        name
         maxDistance
         minDistance
+        angle
+        error
       }
     }
   

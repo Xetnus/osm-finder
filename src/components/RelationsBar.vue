@@ -6,11 +6,11 @@
     emits: ['next', 'back', 'annotationsChange', 'relationsHistoryChange'],
     beforeMount() {
       if (this.relationsHistory.length == 0) {
-        this.primaryRemaining = this.annotations.slice(0);
+        let primaryRemaining = this.annotations.filter(a => a.geometryType === 'linestring');
 
         // Orders the annotations alphanumerically. This is necessary to ensure that the relation
         // information is attached to the annotation whose name comes first when sorted.
-        this.primaryRemaining.sort((a, b) => {
+        primaryRemaining.sort((a, b) => {
           if (a.name < b.name)
             return -1;
           else if (a.name > b.name)
@@ -20,23 +20,49 @@
         });
 
         let secondaryRemaining = [];
-        let primaryRemaining = this.annotations.slice(0);
-        let primary = null;
+        let prime = null;
         let second = null;
+        let intersections = [];
 
         // Generates a sequential list of relations from all of the annotations in the network. 
         while(primaryRemaining.length > 1) {
           if (secondaryRemaining.length > 0) {
             second = secondaryRemaining.pop();
-            this.nextRelations.push([primary, second]);
           } else {
-            primary = primaryRemaining.pop();
+            prime = primaryRemaining.pop();
             secondaryRemaining = primaryRemaining.slice(0);
             second = secondaryRemaining.pop();
-            this.nextRelations.push([primary, second]);
+          }
+
+          const intersection = calculateIntersection(prime.points, second.points);
+          if (intersection && intersection.intersects) {
+            intersections.push([prime, second])
+          }
+
+          this.nextRelations.push([prime, second]);
+        }
+
+        const nodes = this.annotations.filter(a => a.geometryType === 'node');
+        let disjointLines = this.annotations.filter(a => a.geometryType === 'linestring');
+
+        for (let i = 0; i < intersections.length; i++) {
+          let line1 = intersections[i][0];
+          let line2 = intersections[i][1];
+          disjointLines = disjointLines.filter(line => line.name != line1.name && line.name != line2.name);
+        }
+
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = 0; j < disjointLines.length; j++) {
+            this.nextRelations.push([nodes[i], disjointLines[i]]);
           }
         }
         
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = 0; j < intersections.length; j++) {
+            this.nextRelations.push([nodes[i], intersections[i][0], intersections[i][1]]);
+          }
+        }
+
         this.handleNext();
       } else {
         this.handleBack();
@@ -50,6 +76,7 @@
         error: null,
         current1: null,
         current2: null,
+        current3: null,
         nextRelations: [],
       }
     },
@@ -84,7 +111,14 @@
         this.current2 = current[1];
 
         this.fillInForm();
-        this.hideAllButTwo(this.current1, this.current2);
+
+        if (current.length == 3) {
+          this.current3 = current[2];
+          this.hideAllButNodeLine(this.current1, this.current2, this.current3)
+        } else {
+          this.current3 = null;
+          this.hideAllButTwo(this.current1, this.current2);
+        }
       },
 
       handleBack(event) {
@@ -104,7 +138,14 @@
         this.current2 = current[1];
 
         this.fillInForm();
-        this.hideAllButTwo(this.current1, this.current2);
+
+        if (current.length == 3) {
+          this.current3 = current[2];
+          this.hideAllButNodeLine(this.current1, this.current2, this.current3)
+        } else {
+          this.current3 = null;
+          this.hideAllButTwo(this.current1, this.current2);
+        }
       },
 
       fillInForm() {
@@ -118,7 +159,16 @@
       },
 
       hideAllButTwo(hide1, hide2) {
-        let anns = this.annotations;
+        let anns = this.annotations.slice(0);
+        for (let i = 0; i < this.annotations.length; i++) {
+          let match = anns[i].name == hide1.name || anns[i].name == hide2.name;
+          anns[i].transparent = match ? false : true;
+        }
+        this.$emit('annotationsChange', anns);
+      },
+
+      hideAllButNodeLine(hide1, hide2, hide3) {
+        let anns = this.annotations.slice(0);
         for (let i = 0; i < this.annotations.length; i++) {
           let match = anns[i].name == hide1.name || anns[i].name == hide2.name;
           anns[i].transparent = match ? false : true;
@@ -140,7 +190,7 @@
 
       intersects() {
         if (!this.isAngular())
-          return false;
+          return;
 
         const line1 = this.current1.points;
         const line2 = this.current2.points;

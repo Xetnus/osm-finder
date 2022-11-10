@@ -56,13 +56,12 @@ function createNoOverlappingQuery(annotations) {
     while (primaryRemaining.length > 1) {
       if (secondaryRemaining.length > 0) {
         current2 = secondaryRemaining.pop();
-        query += current1 + '.id != ' + current2 + '.id AND ';
       } else {
         current1 = primaryRemaining.pop();
         secondaryRemaining = primaryRemaining.slice(0);
         current2 = secondaryRemaining.pop();
-        query += current1 + '.id != ' + current2 + '.id AND ';
       }
+      query += current1 + '.id != ' + current2 + '.id AND ';
     }
   }
   return query;

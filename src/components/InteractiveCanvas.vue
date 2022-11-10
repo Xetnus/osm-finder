@@ -44,26 +44,33 @@
       },
 
       intersections() {
-        let points = [];
-        // Good old, trusty O(n^2)
-        for (let i = 0; i < this.annotations.length; i++) {
-          if (this.annotations[i].geometryType != 'linestring') { 
-            continue;
-          }
-          for (let j = 0; j < this.annotations.length; j++) {
-            if (i == j || this.annotations[j].geometryType != 'linestring') { 
-              continue;
-            }
+        let intersections = [];
+        let primaryRemaining = this.annotations.filter((a) => a.geometryType == 'linestring');
+        let secondaryRemaining = [];
+        let current1 = null;
+        let current2 = null;
 
-            let line1 = this.annotations[i].points;
-            let line2 = this.annotations[j].points;
-            let intersection = calculateIntersection(line1, line2);
-            if (intersection && intersection.seg1 && intersection.seg2) {
-              points.push([intersection.x, intersection.y]);
-            }
+        while (primaryRemaining.length > 1) {
+          if (secondaryRemaining.length > 0) {
+            current2 = secondaryRemaining.pop();
+          } else {
+            current1 = primaryRemaining.pop();
+            secondaryRemaining = primaryRemaining.slice(0);
+            current2 = secondaryRemaining.pop();
+          }
+
+          let intersection = calculateIntersection(current1.points, current2.points);
+          if (intersection && intersection.intersects) {
+            const opacity = current1.transparent && current2.transparent ? 0.2 : 1;
+            intersections.push({
+              fill: 'orange', stroke: 'yellow',
+              opacity: opacity,
+              radius: 6, strokeWidth: 2,
+              x: intersection.x, y: intersection.y
+            });
           }
         }
-        return points;
+        return intersections;
       }
     },
     methods: {
@@ -90,13 +97,6 @@
         return {stroke: 'black', strokeWidth: 5, points: Object.assign([], points)}
       },
 
-      getIntersectionConfig(point, active) {
-        const fill = active ? 'red' : 'orange';
-        const stroke = active ? 'orange' : 'yellow';
-
-        return {fill: fill, stroke: stroke, radius: 6, strokeWidth: 2, x: point[0], y: point[1]}
-      },
-
       getAngleConfig() {
         const lines = this.annotations.filter(ann => !ann.transparent && ann.geometryType == 'linestring')
         if (lines.length != 2) return;
@@ -104,7 +104,7 @@
         const line1 = lines[0].points;
         const line2 = lines[1].points;
         let intersection = calculateIntersection(line1, line2);
-        if (intersection && intersection.seg1 && intersection.seg2) {
+        if (intersection && intersection.intersects) {
           // Finds the longest segment of line1, assuming the line is split at the intersection
           const temp1_len1 = getLineLength(intersection.x, intersection.y, line1[0], line1[1]);
           const temp2_len1 = getLineLength(intersection.x, intersection.y, line1[2], line1[3]);
@@ -160,6 +160,21 @@
         }
 
         return {}
+      },
+
+      getPseudoLineConfig() {
+        const visibleNodes = this.annotations.filter(ann => !ann.transparent && ann.geometryType == 'node');
+        if (visibleNodes.length != 1) return;
+        const node = visibleNodes[0];
+        const intersection = this.intersections.filter((i) => i.opacity == 1)[0];
+        if (!intersection) return;
+
+        return {stroke: 'white', strokeWidth: 3, points: [intersection.x, intersection.y, node.point[0], node.point[1]]}
+      },
+
+      getPseudoIntersectionConfig() {
+
+        const visibleNodes = this.annotations.filter(ann => !ann.transparent && ann.geometryType == 'node');
       },
 
       getAnnotationsOfType(type) {
@@ -218,8 +233,12 @@
 
             let line2 = this.annotations[i].points;
             let intersection = calculateIntersection(line1, line2);
-            if (intersection && intersection.seg1 && intersection.seg2) {
-              this.activeIntersections.push([intersection.x, intersection.y]);
+            if (intersection && intersection.intersects) {
+              this.activeIntersections.push({
+                fill: 'red', stroke: 'orange',
+                radius: 6, strokeWidth: 2,
+                x: intersection.x, y: intersection.y
+              });
             }
           }
         }
@@ -292,10 +311,11 @@
       <v-line v-for="line in getAnnotationsOfType('linestring')" :config="getLineConfig(line)"/>
       <v-circle v-for="node in getAnnotationsOfType('node')" :config="getNodeConfig(node)"/>
       <v-line v-if="isMouseDown" :config="getActiveLineConfig(activeLinestring)"/>
-      <v-circle v-for="circle in intersections" :config="getIntersectionConfig(circle, false)"/>
-      <v-circle v-for="intersection in activeIntersections" :config="getIntersectionConfig(intersection, true)"/>
+      <v-circle v-for="intersection in intersections" :config="intersection"/>
+      <v-circle v-for="intersection in activeIntersections" :config="intersection"/>
       <div v-if="programStage == 4">
         <v-shape :config="getAngleConfig()"/>
+        <v-line :config="getPseudoLineConfig()"/>
       </div>
     </v-layer>
   </v-stage>

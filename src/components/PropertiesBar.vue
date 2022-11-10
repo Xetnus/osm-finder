@@ -14,7 +14,7 @@
       return {
         types: {
           'linestring': {'highway': ['vehicle', 'path'], 'railway': [], 'power': ['line', 'minor_line']},
-          'node': {'man_made': ['tower', 'communications_tower', 'water_tower']}
+          'node': {'man_made': []}
         },
         defaults: {
           'linestring': {'genericTypeSelected': 'highway', 'subtypeSelected': '', 'subtypeTyped': '', 'tagsTyped': ''},

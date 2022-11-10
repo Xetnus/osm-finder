@@ -47,37 +47,41 @@ local srid = 3857
 
 local tables = {}
 
-
-
-tables.nodes = osm2pgsql.define_node_table('nodes', {
+tables.nodes = osm2pgsql.define_table({
+  name = 'nodes',
+  ids = { type = 'node', id_column = 'id' },
+  columns = {
     { column = 'tags', type = 'jsonb' },
     { column = 'generic_type', type = 'text' },
     { column = 'subtype', type = 'text' },
     { column = 'geom', type = 'point', projection = srid, not_null = true },
-})
+}})
 
-tables.closed_shapes = osm2pgsql.define_way_table('closed_shapes', {
-    { column = 'name', type = 'text' },
-    { column = 'tags', type = 'jsonb' },
-    { column = 'generic_type', type = 'text' },
-    { column = 'subtype', type = 'text' },
-    { column = 'geom', type = 'polygon', projection = srid, not_null = true },
-    { column = 'nodes', sql_type = 'int8[]' },
-})
+-- tables.closed_shapes = osm2pgsql.define_table({
+--   name = 'closed_shapes', 
+--   ids = { type = 'way', id_column = 'id' },
+--   columns = {
+--     { column = 'name', type = 'text' },
+--     { column = 'tags', type = 'jsonb' },
+--     { column = 'generic_type', type = 'text' },
+--     { column = 'subtype', type = 'text' },
+--     { column = 'geom', type = 'polygon', projection = srid, not_null = true },
+--     { column = 'nodes', sql_type = 'int8[]' },
+-- }})
 
-tables.linestrings = osm2pgsql.define_way_table('linestrings', {
+tables.linestrings = osm2pgsql.define_table({
+  name = 'linestrings',
+  ids = { type = 'way', id_column = 'id' },
+  columns = {
     { column = 'name', type = 'text' },
     { column = 'tags', type = 'jsonb' },
     { column = 'generic_type', type = 'text' },
     { column = 'subtype', type = 'text' },
     { column = 'geom', type = 'linestring', projection = srid, not_null = true },
     { column = 'nodes', sql_type = 'int8[]' },
-})
+}})
 
-
-
-
--- Prepare table "types" for quick checking of highway types
+-- Prepare dict "types" for quick checking of highway types
 local highway_types = {}
 for _, k in ipairs(highway_vehicle_types) do
     highway_types[k] = "vehicle"
@@ -94,14 +98,10 @@ function osm2pgsql.process_node(object)
 
     local man_made = object.tags['man_made']
 
-    if not man_made then
-        return
-    end
-    
-    if man_made == 'tower' or man_made == 'communications_tower' or man_made == 'water_tower' then
+    if man_made then
         tables.nodes:insert({
             tags = object.tags,
-            generic_type = "tower",
+            generic_type = 'man_made',
             subtype = man_made,
             geom = object:as_point()
         })
@@ -120,21 +120,21 @@ function osm2pgsql.process_way(object)
     local geom
 
     if object.tags.building ~= nil and object.is_closed then
-        generic_type = 'building'
-        subtype = object.tags.building  
+        -- generic_type = 'building'
+        -- subtype = object.tags.building  
         
-        tables.closed_shapes:insert({
-            name = name,
-            generic_type = generic_type,
-            subtype = subtype,
+        -- tables.closed_shapes:insert({
+        --     name = name,
+        --     generic_type = generic_type,
+        --     subtype = subtype,
 
-            -- The way node ids are put into a format that PostgreSQL understands
-            -- for a column of type "int8[]".
-            nodes = '{' .. table.concat(object.nodes, ',') .. '}',
+        --     -- The way node ids are put into a format that PostgreSQL understands
+        --     -- for a column of type "int8[]".
+        --     nodes = '{' .. table.concat(object.nodes, ',') .. '}',
 
-            tags = object.tags,
-            geom = object:as_polygon()
-        })
+        --     tags = object.tags,
+        --     geom = object:as_polygon()
+        -- })
         return
     elseif highway_types[object.tags.highway] then
         generic_type = 'highway'

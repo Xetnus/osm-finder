@@ -14,10 +14,11 @@ function calculateIntersection(line1, line2) {
   ua = ((x4 - x3)*(y1 - y3) - (y4 - y3)*(x1 - x3))/denom;
   ub = ((x2 - x1)*(y1 - y3) - (y2 - y1)*(x1 - x3))/denom;
   return {
-      x: x1 + ua * (x2 - x1),
-      y: y1 + ua * (y2 - y1),
-      seg1: ua >= 0 && ua <= 1,
-      seg2: ub >= 0 && ub <= 1
+    // Returns true if the two lines intersect, false otherwise.
+    intersects: ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1,
+    // Returns the X and Y coords of the (potential) intersection
+    x: x1 + ua * (x2 - x1),
+    y: y1 + ua * (y2 - y1)
   };
 }
 

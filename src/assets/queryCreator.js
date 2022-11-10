@@ -20,12 +20,14 @@ function constructDisjointQuery(nodes, lines) {
   const annotations = lines.concat(nodes);
   let query = 'SELECT ';
   for (let i = 0; i < annotations.length; i++) {
-    query += annotations[i].name + '.id' + (i == annotations.length - 1 ? '\n' : ', ');
+    const comma = (i == annotations.length - 1) ? '\n' : ', ';
+    query += annotations[i].name + '.id' + comma;
   }
 
   query += 'FROM ';
   for (let i = 0; i < annotations.length; i++) {
-    query += annotations[i].geometryType + 's AS ' + annotations[i].name + (i == annotations.length - 1 ? '\n' : ', ');
+    const comma = (i == annotations.length - 1) ? '\n' : ', ';
+    query += annotations[i].geometryType + 's AS ' + annotations[i].name + comma;
   }
 
   query += 'WHERE ';
@@ -36,7 +38,7 @@ function constructDisjointQuery(nodes, lines) {
     let subtypeString = (subtype == '' ? '' : annotations[i].name + '.subtype = \'' + subtype + '\' AND ');
     query += annotations[i].name + '.generic_type = \'' + genericType + '\' AND ' + subtypeString;
 
-    // Adds any additional tag entered by the user to the WHERE
+    // Adds any additional tags entered by the user to the WHERE
     if (annotations[i].tags.length != 0) {
       query += createTagsQuery(annotations[i]);
     }
@@ -192,6 +194,7 @@ WHERE
 ;
 */
 function constructIntersectingQuery(nodes, lines) {
+  const annotations = lines.concat(nodes);
   // Generates an array that consists of pairs of intersecting lines
   let intersectingPairs = [];
   let intersectingPairsWithAngles = [];
@@ -202,7 +205,7 @@ function constructIntersectingQuery(nodes, lines) {
       const line1 = lines[i].points;
       const line2 = lines[k].points;
       const intersection = calculateIntersection(line1, line2);
-      if (intersection && intersection.seg1 && intersection.seg2) {
+      if (intersection && intersection.intersects) {
         // Ensures that the pair hasn't already been pushed
         const pair = [lines[i].name, lines[k].name];
         const match = intersectingPairs.filter((el) => pair.includes(el.line1) && pair.includes(el.line2));
@@ -240,35 +243,35 @@ function constructIntersectingQuery(nodes, lines) {
   }
 
   for (let i = 0; i < lines.length; i++) {
-    const comma = (i == lines.length - 1) ? '' : ','
     if (intersectingPairsWithAngles.find(el => (el.line1 == lines[i].name || el.line2 == lines[i].name))) {
       // We only need to carry the geometries of lines that intersect at defined angles
       query += '    ' + lines[i].name + '.geom AS ' + lines[i].name + '_geom,\n';
     }
+    const comma = (i == lines.length - 1) ? '' : ','
     query += '    ' + lines[i].name + '.id AS ' + lines[i].name + '_id' + comma + '\n';
   }
 
   query += '  FROM ';
-  for (let i = 0; i < lines.length; i++) {
-    const comma = (i == lines.length - 1) ? '\n' : ', ';
-    query += 'linestrings AS ' + lines[i].name + comma;
+  for (let i = 0; i < annotations.length; i++) {
+    const comma = (i == annotations.length - 1) ? '\n' : ', ';
+    query += annotations[i].geometryType + 's AS ' + annotations[i].name + comma;
   }
 
   query += '  WHERE ';
-  for (let i = 0; i < lines.length; i++) {
+  for (let i = 0; i < annotations.length; i++) {
     // Filters results by generic type and subtype
-    let genericType = lines[i].genericType;
-    let subtype = lines[i].subtype;
-    let subtypeString = (subtype == '' ? '' : lines[i].name + '.subtype = \'' + subtype + '\' AND ');
-    query += lines[i].name + '.generic_type = \'' + genericType + '\' AND ' + subtypeString;
+    let genericType = annotations[i].genericType;
+    let subtype = annotations[i].subtype;
+    let subtypeString = (subtype == '' ? '' : annotations[i].name + '.subtype = \'' + subtype + '\' AND ');
+    query += annotations[i].name + '.generic_type = \'' + genericType + '\' AND ' + subtypeString;
 
-    // Adds any additional tag entered by the user to the WHERE
-    if (lines[i].tags.length != 0) {
-      query += createTagsQuery(lines[i]);
+    // Adds any additional tags entered by the user to the WHERE
+    if (annotations[i].tags.length != 0) {
+      query += createTagsQuery(annotations[i]);
     }
   }
 
-  query += createNoOverlappingQuery(lines);
+  query += createNoOverlappingQuery(annotations);
 
   // Filters results early by ensuring that all of the lines that are supposed to intersect, do intersect
   for (let i = 0; i < intersectingPairs.length; i++) {
@@ -276,8 +279,8 @@ function constructIntersectingQuery(nodes, lines) {
     query += 'ST_Intersects(' + pair.line1 + '.geom, ' + pair.line2 + '.geom) AND '
   }
 
-  query += createMaxDistanceQuery(lines);
-  query += createMinDistanceQuery(lines);
+  query += createMaxDistanceQuery(annotations);
+  query += createMinDistanceQuery(annotations);
 
   query = query.slice(0, query.length - 4); // remove last AND
   query += '\n';
@@ -292,11 +295,11 @@ function constructIntersectingQuery(nodes, lines) {
   }
 
   for (let i = 0; i < lines.length; i++) {
-    const comma = (i == lines.length - 1) ? '' : ',';
     if (intersectingPairsWithAngles.find(el => (el.line1 == lines[i].name || el.line2 == lines[i].name))) {
       // We only need to carry the geometries of lines that intersect at defined angles
       query += '    intersections.' + lines[i].name + '_geom,\n';
     }
+    const comma = (i == lines.length - 1) ? '' : ',';
     query += '    intersections.' + lines[i].name + '_id' + comma + '\n';
   }
   query += '  FROM intersections\n';
@@ -327,11 +330,11 @@ function constructIntersectingQuery(nodes, lines) {
   }
 
   for (let i = 0; i < lines.length; i++) {
-    const comma = (i == lines.length - 1) ? '' : ',';
     if (intersectingPairsWithAngles.find(el => (el.line1 == lines[i].name || el.line2 == lines[i].name))) {
       // We only need to carry the geometries of lines that intersect at defined angles
       query += '    buffers.' + lines[i].name + '_geom,\n';
     }
+    const comma = (i == lines.length - 1) ? '' : ',';
     query += '    buffers.' + lines[i].name + '_id' + comma + '\n';
   }
 
@@ -403,7 +406,7 @@ function constructQuery(annotations) {
       if (i == k) continue;
 
       const intersection = calculateIntersection(lines[i].points, lines[k].points);
-      if (intersection && intersection.seg1 && intersection.seg2) {
+      if (intersection && intersection.intersects) {
         return constructIntersectingQuery(nodes, lines);
       }
     }
