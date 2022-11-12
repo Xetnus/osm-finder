@@ -26,11 +26,11 @@ function getLineLength(x1, y1, x2, y2) {
   return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 }
 
-function getPointAtDistance(x1, y1, x2, y2, distance) {
-  const d = getLineLength(x1, y1, x2, y2);
+function getPointAtDistance(point1, point2, distance) {
+  const d = getLineLength(point1[0], point1[1], point2[0], point2[1]);
   const t = distance / d;
-  const x = (1 - t) * x1 + t * x2;
-  const y = (1 - t) * y1 + t * y2;
+  const x = (1 - t) * point1[0] + t * point2[0];
+  const y = (1 - t) * point1[1] + t * point2[1];
   return {x: x, y: y};
 }
 
@@ -43,4 +43,24 @@ function debounce(func, timeout = 300) {
   };
 }
 
-export {calculateIntersection, getLineLength, getPointAtDistance, debounce}
+function getUniquePairs(list) {
+  let pairs = []
+  let primaryRemaining = list.slice(0);
+  let secondaryRemaining = [];
+  let current1 = null;
+  let current2 = null;
+
+  while (primaryRemaining.length > 1) {
+    if (secondaryRemaining.length > 0) {
+      current2 = secondaryRemaining.pop();
+    } else {
+      current1 = primaryRemaining.pop();
+      secondaryRemaining = primaryRemaining.slice(0);
+      current2 = secondaryRemaining.pop();
+    }
+    pairs.push({first: current1, second: current2});
+  }
+  return pairs;
+}
+
+export {calculateIntersection, getLineLength, getPointAtDistance, debounce, getUniquePairs}

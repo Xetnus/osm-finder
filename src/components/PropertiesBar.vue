@@ -87,7 +87,7 @@
       hideAllButOne(hide) {
         let anns = this.annotations;
         for (let i = 0; i < this.annotations.length; i++) {
-          anns[i].transparent = (anns[i].name == hide.name) ? false : true;
+          anns[i].state = (anns[i].name == hide.name) ? 'default' : 'transparent';
         }
         this.$emit('annotationsChange', anns);
       },
@@ -95,7 +95,7 @@
       showAll() {
         let anns = this.annotations;
         for (let i = 0; i < this.annotations.length; i++) {
-          anns[i].transparent = false;
+          anns[i].state = 'default';
         }
         this.$emit('annotationsChange', anns);
       },

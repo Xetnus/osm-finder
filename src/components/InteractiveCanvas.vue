@@ -1,5 +1,5 @@
 <script>
-  import {calculateIntersection, getLineLength, getPointAtDistance, debounce} from '../assets/generalTools.js'
+  import {calculateIntersection, getLineLength, getPointAtDistance, debounce, getUniquePairs} from '../assets/generalTools.js'
 
   export default {
     props: ['image', 'programStage', 'annotations', 'drawingState'],
@@ -44,29 +44,23 @@
       },
 
       intersections() {
-        let intersections = [];
-        let primaryRemaining = this.annotations.filter((a) => a.geometryType == 'linestring');
-        let secondaryRemaining = [];
-        let current1 = null;
-        let current2 = null;
+        const uniquePairs = getUniquePairs(this.annotations.filter((a) => a.geometryType == 'linestring'))
+        let intersections = []
 
-        while (primaryRemaining.length > 1) {
-          if (secondaryRemaining.length > 0) {
-            current2 = secondaryRemaining.pop();
-          } else {
-            current1 = primaryRemaining.pop();
-            secondaryRemaining = primaryRemaining.slice(0);
-            current2 = secondaryRemaining.pop();
-          }
-
-          let intersection = calculateIntersection(current1.points, current2.points);
+        for (let i = 0; i < uniquePairs.length; i++) {
+          let first = uniquePairs[i].first;
+          let second = uniquePairs[i].second;
+          let intersection = calculateIntersection(first.points, second.points);
           if (intersection && intersection.intersects) {
-            const opacity = current1.transparent && current2.transparent ? 0.2 : 1;
+            let state = 'default';
+            if (first.state === 'transparent' || second.state === 'transparent') {
+              state = 'transparent';
+            }
+
             intersections.push({
-              fill: 'orange', stroke: 'yellow',
-              opacity: opacity,
-              radius: 6, strokeWidth: 2,
-              x: intersection.x, y: intersection.y
+              state: state,
+              x: intersection.x, y: intersection.y,
+              first: first, second: second,
             });
           }
         }
@@ -75,12 +69,12 @@
     },
     methods: {
       getLineConfig(line) {
-        const opacity = line.transparent ? 0.2 : 1;
+        const opacity = line.state === 'transparent' || line.state === 'transparent-but-related' ? 0.2 : 1;
         return {stroke: 'black', strokeWidth: 5, points: Object.assign([], line.points), opacity: opacity}
       },
 
       getNodeConfig(node) {
-        const opacity = node.transparent ? 0.2 : 1;
+        const opacity = node.state === 'transparent' ? 0.2 : 1;
         return {fill: 'midnightblue', stroke: 'lightblue', radius: 10, strokeWidth: 3, x: node.point[0], y: node.point[1], opacity: opacity}
       },
 
@@ -90,91 +84,109 @@
           this.activeLinestring = [];
           this.activeIntersections = [];
           this.isMouseDown = false;
-
           return {};
         }
 
         return {stroke: 'black', strokeWidth: 5, points: Object.assign([], points)}
       },
 
-      getAngleConfig() {
-        const lines = this.annotations.filter(ann => !ann.transparent && ann.geometryType == 'linestring')
-        if (lines.length != 2) return;
+      getIntersectionConfig(intersection) {
+        return {
+          fill: 'orange', stroke: 'yellow',
+          opacity: intersection.state === 'transparent' ? 0.2 : 1,
+          radius: 6, strokeWidth: 2,
+          x: intersection.x, y: intersection.y
+        };
+      },
 
-        const line1 = lines[0].points;
-        const line2 = lines[1].points;
+      calculateAngleConfig(line1, line2) {
         let intersection = calculateIntersection(line1, line2);
-        if (intersection && intersection.intersects) {
-          // Finds the longest segment of line1, assuming the line is split at the intersection
-          const temp1_len1 = getLineLength(intersection.x, intersection.y, line1[0], line1[1]);
-          const temp2_len1 = getLineLength(intersection.x, intersection.y, line1[2], line1[3]);
-          let line1_x = 2; 
-          let line1_y = 3;
-          let len1 = temp2_len1;
+        if (!intersection) return {};
 
-          if (temp1_len1 > temp2_len1) {
-            line1_x = 0;
-            line1_y = 1;
-            len1 = temp1_len1;
-          }
+        // Finds the longest segment of line1, assuming the line is split at the intersection
+        const temp1_len1 = getLineLength(intersection.x, intersection.y, line1[0], line1[1]);
+        const temp2_len1 = getLineLength(intersection.x, intersection.y, line1[2], line1[3]);
+        let line1_x = 2; 
+        let line1_y = 3;
+        let len1 = temp2_len1;
 
-          // Finds the longest segment of line2, assuming the line is split at the intersection
-          const temp1_len2 = getLineLength(intersection.x, intersection.y, line2[0], line2[1]);
-          const temp2_len2 = getLineLength(intersection.x, intersection.y, line2[2], line2[3]);
-          let line2_x = 2; 
-          let line2_y = 3;
-          let len2 = temp2_len2;
-
-          if (temp1_len2 > temp2_len2) {
-            line2_x = 0;
-            line2_y = 1;
-            len2 = temp1_len2;
-          }
-
-          // Determines the shortest segment between each line's longest segment
-          const minLen = len1 > len2 ? len2 : len1;
-
-          // Determines where the angle path intersects the lines
-          const line1d = getPointAtDistance(intersection.x, intersection.y, line1[line1_x], line1[line1_y], minLen / 3);
-          const line2d = getPointAtDistance(intersection.x, intersection.y, line2[line2_x], line2[line2_y], minLen / 3);
-
-          // Determines the 'height' of the angle path
-          const line1_control = getPointAtDistance(intersection.x, intersection.y, line1[line1_x], line1[line1_y], minLen / 2);
-          const line2_control = getPointAtDistance(intersection.x, intersection.y, line2[line2_x], line2[line2_y], minLen / 2);
-          const controlX = line2_control.x + (line1_control.x - line2_control.x) / 2;
-          const controlY = line2_control.y + (line1_control.y - line2_control.y) / 2;
-
-          // Uses code from: https://konvajs.org/docs/sandbox/Modify_Curves_with_Anchor_Points.html
-          return {
-            stroke: 'crimson',
-            strokeWidth: 2,
-            sceneFunc: (ctx, shape) => {
-              ctx.beginPath();
-              ctx.moveTo(line1d.x, line1d.y);
-              ctx.quadraticCurveTo(controlX, controlY, line2d.x, line2d.y);
-              ctx.fillStrokeShape(shape);
-            }
-          }
-
-          // TODO: make this method work with multiple intersections
+        if (temp1_len1 > temp2_len1) {
+          line1_x = 0;
+          line1_y = 1;
+          len1 = temp1_len1;
         }
 
-        return {}
+        // Finds the longest segment of line2, assuming the line is split at the intersection
+        const temp1_len2 = getLineLength(intersection.x, intersection.y, line2[0], line2[1]);
+        const temp2_len2 = getLineLength(intersection.x, intersection.y, line2[2], line2[3]);
+        let line2_x = 2; 
+        let line2_y = 3;
+        let len2 = temp2_len2;
+
+        if (temp1_len2 > temp2_len2) {
+          line2_x = 0;
+          line2_y = 1;
+          len2 = temp1_len2;
+        }
+
+        // Determines the shortest segment between each line's longest segment
+        const minLen = len1 > len2 ? len2 : len1;
+
+        // Determines where the angle path intersects the lines
+        const point1 = [intersection.x, intersection.y];
+        const line1d = getPointAtDistance(point1, [line1[line1_x], line1[line1_y]], minLen / 3);
+        const line2d = getPointAtDistance(point1, [line2[line2_x], line2[line2_y]], minLen / 3);
+
+        // Determines the 'height' of the angle path
+        const line1_control = getPointAtDistance(point1, [line1[line1_x], line1[line1_y]], minLen / 2);
+        const line2_control = getPointAtDistance(point1, [line2[line2_x], line2[line2_y]], minLen / 2);
+        const controlX = line2_control.x + (line1_control.x - line2_control.x) / 2;
+        const controlY = line2_control.y + (line1_control.y - line2_control.y) / 2;
+
+        // Uses code from: https://konvajs.org/docs/sandbox/Modify_Curves_with_Anchor_Points.html
+        return {
+          stroke: 'crimson',
+          strokeWidth: 2,
+          sceneFunc: (ctx, shape) => {
+            ctx.beginPath();
+            ctx.moveTo(line1d.x, line1d.y);
+            ctx.quadraticCurveTo(controlX, controlY, line2d.x, line2d.y);
+            ctx.fillStrokeShape(shape);
+          },
+        }
       },
 
-      getPseudoLineConfig() {
-        const visibleNodes = this.annotations.filter(ann => !ann.transparent && ann.geometryType == 'node');
-        if (visibleNodes.length != 1) return;
+      getAngleConfig(intersection) {
+        const pseudoStates = ['transparent-but-related', 'default'];
+
+        if (intersection.first.state === 'default' && intersection.second.state === 'default') {
+          return this.calculateAngleConfig(intersection.first.points, intersection.second.points);
+        } else if (pseudoStates.includes(intersection.first.state) && pseudoStates.includes(intersection.second.state)) {
+          const visibleNodes = this.annotations.filter(ann => ann.state === 'default' && ann.geometryType === 'node');
+          if (visibleNodes.length != 1) return {};
+          const node = visibleNodes[0];
+
+          let mainLine = intersection.first.points;
+          if (intersection.second.state === 'default') {
+            mainLine = intersection.second.points;
+          }
+
+          const pseudoLine = [intersection.x, intersection.y, node.point[0], node.point[1]];
+          return this.calculateAngleConfig(pseudoLine, mainLine);
+        } else {
+          return {};
+        }
+      },
+
+      getPseudoLineConfig(intersection) {
+        if (intersection.first.state === 'transparent' || intersection.second.state === 'transparent') return {};
+
+        const visibleNodes = this.annotations.filter(ann => ann.state === 'default' && ann.geometryType === 'node');
+        if (visibleNodes.length != 1) return {};
         const node = visibleNodes[0];
-        const intersection = this.intersections.filter((i) => i.opacity == 1)[0];
-        if (!intersection) return;
 
-        return {stroke: 'white', strokeWidth: 3, points: [intersection.x, intersection.y, node.point[0], node.point[1]]}
-      },
-
-      getPseudoIntersectionConfig() {
-
-        const visibleNodes = this.annotations.filter(ann => !ann.transparent && ann.geometryType == 'node');
+        const pseudoLine = [intersection.x, intersection.y, node.point[0], node.point[1]];
+        return {stroke: 'black', strokeWidth: 3, dash: [11, 4], points: pseudoLine}
       },
 
       getAnnotationsOfType(type) {
@@ -254,7 +266,7 @@
           name: 'line' + count,
           geometryType: 'linestring',
           points: this.activeLinestring,
-          transparent: false,
+          state: 'default',
           genericType: null,
           subtype: null,
           tags: [],
@@ -296,6 +308,11 @@
             points[2] = points[2] + widthDisp;
             points[3] = points[3] + heightDisp;
             this.annotations[i].points = points;
+          } else if (this.annotations[i].geometryType == 'node') {
+            let point = this.annotations[i].point;
+            point[0] = point[0] + widthDisp;
+            point[1] = point[1] + heightDisp;
+            this.annotations[i].point = point;
           }
         }
       },
@@ -308,15 +325,15 @@
       @mousemove="mousemove" @mousedown="mousedown" @mouseup="mouseup_mouseleave" @mouseleave="mouseup_mouseleave">
     <v-layer ref="layer">
       <v-image :config="imageConfig"/>
+      <div v-if="programStage == 4">
+        <v-line v-for="intersection in intersections" :config="getPseudoLineConfig(intersection)" __useStrictMode/>
+        <v-shape v-for="intersection in intersections" :config="getAngleConfig(intersection)" __useStrictMode/>
+      </div>
       <v-line v-for="line in getAnnotationsOfType('linestring')" :config="getLineConfig(line)"/>
       <v-circle v-for="node in getAnnotationsOfType('node')" :config="getNodeConfig(node)"/>
       <v-line v-if="isMouseDown" :config="getActiveLineConfig(activeLinestring)"/>
-      <v-circle v-for="intersection in intersections" :config="intersection"/>
-      <v-circle v-for="intersection in activeIntersections" :config="intersection"/>
-      <div v-if="programStage == 4">
-        <v-shape :config="getAngleConfig()"/>
-        <v-line :config="getPseudoLineConfig()"/>
-      </div>
+      <v-circle v-for="intersection in intersections" :config="getIntersectionConfig(intersection)"/>
+      <v-circle v-for="config in activeIntersections" :config="config"/>
     </v-layer>
   </v-stage>
 </template>

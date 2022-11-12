@@ -14,7 +14,7 @@ annotations: [
     name: 'line1'
     geometryType: 'linestring'
     points
-    state // either transparent, support, or normal
+    state // either transparent, transparent-but-related, or default 
     genericType
     subtype
     tags: []
@@ -31,7 +31,7 @@ annotations: [
     name: 'node1'
     geometryType: 'node'
     point
-    state // either transparent, support, or normal
+    state // either transparent, transparent-but-related, or default
     genericType
     subtype
     tags: []
