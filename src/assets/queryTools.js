@@ -68,12 +68,12 @@ function createNoOverlappingQuery(annotations) {
 }
 
 // Returns a partial query that filters by OSM tags
-function createTagsQuery(line) {
+function createTagsQuery(ann) {
   let query = '';
-  for (var j = 0; j < line.tags.length; j++) {
-    let tag = line.tags[j].split('=');
+  for (var j = 0; j < ann.tags.length; j++) {
+    let tag = ann.tags[j].split('=');
 
-    query += line.name + '.tags->>\'' + tag[0] + '\' ';
+    query += ann.name + '.tags->>\'' + tag[0] + '\' ';
 
     if (tag.length == 2)
       query += '= \'' + tag[1] + '\' ';

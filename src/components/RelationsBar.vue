@@ -6,35 +6,23 @@
     emits: ['next', 'back', 'annotationsChange', 'relationsHistoryChange'],
     data() {
       return {
-        maxDistance: null,
-        minDistance: null,
-        angle: null,
-        error: null,
+        maxDistance: '',
+        minDistance: '',
+        angle: '',
+        error: '',
         current1: null,
         current2: null,
         nextRelations: [],
-        history: this.relationsHistory.slice(0),
+        anns: JSON.parse(JSON.stringify(this.annotations)),
       }
     },
     beforeMount() {
-      if (this.history.length == 0) {
-        let sortedAnnotations = this.annotations.filter(a => a.geometryType === 'linestring');
-
-        // Orders the annotations alphanumerically. This is necessary to ensure that the relation
-        // information is attached to the annotation whose name comes first when sorted.
-        sortedAnnotations.sort((a, b) => {
-          if (a.name < b.name)
-            return -1;
-          else if (a.name > b.name)
-            return 1;
-          else
-            return 0;
-        });
-
-        // Generates a sequential list of relations from all of the annotations in the network. 
-        const uniquePairs = getUniquePairs(sortedAnnotations);
+      if (this.relationsHistory.length == 0) {
+        const linestrings = this.anns.filter(a => a.geometryType === 'linestring');
+        const uniquePairs = getUniquePairs(linestrings);
         let intersections = [];
 
+        // Generates relations between each pair of lines that compose an intersection
         for (let i = 0; i < uniquePairs.length; i++) {
           const intersection = calculateIntersection(uniquePairs[i].first.points, uniquePairs[i].second.points);
           if (intersection && intersection.intersects) {
@@ -44,8 +32,8 @@
           this.nextRelations.push([uniquePairs[i].first, uniquePairs[i].second]);
         }
 
-        const nodes = this.annotations.filter(a => a.geometryType === 'node');
-        let disjointLines = this.annotations.filter(a => a.geometryType === 'linestring');
+        const nodes = this.anns.filter(a => a.geometryType === 'node');
+        let disjointLines = this.anns.filter(a => a.geometryType === 'linestring');
 
         for (let i = 0; i < intersections.length; i++) {
           let line1 = intersections[i][0];
@@ -53,12 +41,14 @@
           disjointLines = disjointLines.filter(line => line.name != line1.name && line.name != line2.name);
         }
 
+        // Generates relations between nodes and lines that have no intersections
         for (let i = 0; i < nodes.length; i++) {
           for (let k = 0; k < disjointLines.length; k++) {
             this.nextRelations.push([nodes[i], disjointLines[k]]);
           }
         }
         
+        // Generates relations between nodes and intersections
         for (let i = 0; i < nodes.length; i++) {
           for (let k = 0; k < intersections.length; k++) {
             this.nextRelations.push([
@@ -66,6 +56,12 @@
               [intersections[k][0], intersections[k][1]]
             ]);
           }
+        }
+
+        // Generates relations between each node
+        const nodePairs = getUniquePairs(nodes);
+        for (let i = 0; i < nodePairs.length; i++) {
+          this.nextRelations.push([nodePairs[i].first, nodePairs[i].second]);
         }
 
         this.handleNext();
@@ -76,7 +72,7 @@
     methods: {
       handleNext(event) {
         if (this.current1 && this.current2) {
-          this.history.push([this.current1, this.current2]);
+          this.relationsHistory.push([this.current1, this.current2]);
 
           let annName, saveName;
           if (this.current2 instanceof Array) {
@@ -93,17 +89,14 @@
           const angle = Number.isInteger(parseInt(this.angle)) ? parseInt(this.angle) : null;
           const error = Number.isInteger(parseInt(this.error)) ? parseInt(this.error) : null;
           const rel = {maxDistance: maxD, minDistance: minD, angle: angle, error: error};
-          let index = this.annotations.findIndex((a) => a.name == annName);
+          let index = this.anns.findIndex((a) => a.name == annName);
 
-          let anns = JSON.parse(JSON.stringify(this.annotations));
           this.anns[index].relations[saveName] = rel;
-
-          this.$emit('annotationsChange', anns);
         }
 
         if (this.nextRelations.length == 0) {
           this.showAll();
-          this.$emit('relationsHistoryChange', this.history);
+          this.$emit('relationsHistoryChange', this.relationsHistory);
           this.$emit('next');
           return;
         }
@@ -121,14 +114,14 @@
           this.nextRelations.push([this.current1, this.current2]);
         }
         
-        if (this.history.length == 0) {
+        if (this.relationsHistory.length == 0) {
           this.showAll();
           this.$emit('relationsHistoryChange', []);
           this.$emit('back');
           return;
         }
 
-        let current = this.history.pop();
+        let current = this.relationsHistory.pop();
         this.current1 = current[0];
         this.current2 = current[1];
 
@@ -145,7 +138,6 @@
         } else {
           match = this.current2.relations[this.current1.name];
         }
-        console.log(match)
         this.maxDistance = match ? match.maxDistance : '';
         this.minDistance = match ? match.minDistance : '';
         this.angle = match ? match.angle : '';
@@ -153,30 +145,27 @@
       },
 
       hideAllExcept(first, second) {
-        let anns = JSON.parse(JSON.stringify(this.annotations));
-
-        for (let i = 0; i < anns.length; i++) {
-          anns[i].state = 'transparent';
+        for (let i = 0; i < this.anns.length; i++) {
+          this.anns[i].state = 'transparent';
 
           if (second instanceof Array) {
-            if (anns[i].name === first.name || anns[i].name === second[0].name) {
-              anns[i].state = 'default';
-            } else if (anns[i].name === second[1].name) {
-              anns[i].state = 'transparent-but-related';
+            if (this.anns[i].name === first.name || this.anns[i].name === second[0].name) {
+              this.anns[i].state = 'default';
+            } else if (this.anns[i].name === second[1].name) {
+              this.anns[i].state = 'transparent-but-related';
             }
-          } else if (anns[i].name === first.name || anns[i].name === second.name) {
-            anns[i].state = 'default';
+          } else if (this.anns[i].name === first.name || this.anns[i].name === second.name) {
+            this.anns[i].state = 'default';
           }
         }
-        this.$emit('annotationsChange', anns);
+        this.$emit('annotationsChange', this.anns);
       },
 
       showAll() {
-        let anns = JSON.parse(JSON.stringify(this.annotations));
-        for (let i = 0; i < this.annotations.length; i++) {
-          anns[i].state = 'default';
+        for (let i = 0; i < this.anns.length; i++) {
+          this.anns[i].state = 'default';
         }
-        this.$emit('annotationsChange', anns);
+        this.$emit('annotationsChange', this.anns);
       },
 
       isAngular() {

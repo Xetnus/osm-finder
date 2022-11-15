@@ -16,8 +16,7 @@ WHERE line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND line2.gen
 );
 */
 
-function constructDisjointQuery(nodes, lines) {
-  const annotations = lines.concat(nodes);
+function constructDisjointQuery(annotations, nodes, lines) {
   let query = 'SELECT ';
   for (let i = 0; i < annotations.length; i++) {
     const comma = (i == annotations.length - 1) ? '\n' : ', ';
@@ -193,11 +192,11 @@ WHERE
   )
 ;
 */
-function constructIntersectingQuery(nodes, lines) {
-  const annotations = lines.concat(nodes);
+function constructIntersectingQuery(annotations, nodes, lines) {
   // Generates an array that consists of pairs of intersecting lines
-  let intersectingPairs = [];
-  let intersectingPairsWithAngles = [];
+  let lineIntersections = [];
+  let lineIntersectionsWithAngles = [];
+  let allIntersectionsWithAngles = [];
   for (let i = 0; i < lines.length; i++) { 
     for (let k = 0; k < lines.length; k++) {
       if (i == k) continue;
@@ -208,7 +207,7 @@ function constructIntersectingQuery(nodes, lines) {
       if (intersection && intersection.intersects) {
         // Ensures that the pair hasn't already been pushed
         const pair = [lines[i].name, lines[k].name];
-        const match = intersectingPairs.filter((el) => pair.includes(el.line1) && pair.includes(el.line2));
+        const match = lineIntersections.filter(a => pair.includes(a.line1) && pair.includes(a.line2));
         if (match.length != 0) continue;
 
         // The line whose name comes first when sorted holds the relation information. Find it.
@@ -217,16 +216,49 @@ function constructIntersectingQuery(nodes, lines) {
         const find = lines[index1].relations[lines[index2].name];
 
         if (find && find.angle != null) {
-          intersectingPairsWithAngles.push({
+          const description = {
             line1: lines[i].name,
             line2: lines[k].name, 
             angle: find.angle,
             error: find.error
-          });
+          }
+          
+          lineIntersectionsWithAngles.push(description);
+          allIntersectionsWithAngles.push(description)
         }
 
-        intersectingPairs.push({line1: lines[i].name, line2: lines[k].name});
+        lineIntersections.push({line1: lines[i].name, line2: lines[k].name});
       }
+    }
+  }
+
+  // Generates an array containing the 'pseudo' intersections created by temporary lines drawn
+  // between individual nodes and intersections.
+  let pseudoIntersectionsWithAngles = [];
+  for (let i = 0; i < nodes.length; i++) {
+    const keys = Object.keys(nodes[i].relations);
+    for (let k = 0; k < keys.length; k++) {
+      if (!keys[k].includes('&')) continue;
+
+      const key = keys[k];
+      const line1 = key.split('&')[0];
+      const line2 = key.split('&')[1];
+      const relation = nodes[i].relations[key];
+
+      const description = {
+        node: key,
+        line1: line1,
+        line2: line2, 
+        angle: relation.angle,
+        error: relation.error
+      }
+      pseudoIntersectionsWithAngles.push(description);
+
+      // Ensures that the pair hasn't already been pushed
+      const pair = [line1, line2];
+      const match = allIntersectionsWithAngles.filter(a => pair.includes(a.line1) && pair.includes(a.line2));
+      if (match.length == 0)
+        allIntersectionsWithAngles.push(description);
     }
   }
 
@@ -234,8 +266,8 @@ function constructIntersectingQuery(nodes, lines) {
   query += '(\n';
   query += '  SELECT\n';
 
-  for (let i = 0; i < intersectingPairsWithAngles.length; i++) {
-    const pair = intersectingPairsWithAngles[i];
+  for (let i = 0; i < allIntersectionsWithAngles.length; i++) { 
+    const pair = allIntersectionsWithAngles[i];
 
     query += '    ((ST_DumpPoints(\n';
     query += '      ST_Intersection(' + pair.line1 + '.geom, ' + pair.line2 + '.geom)\n';
@@ -243,12 +275,25 @@ function constructIntersectingQuery(nodes, lines) {
   }
 
   for (let i = 0; i < lines.length; i++) {
-    if (intersectingPairsWithAngles.find(el => (el.line1 == lines[i].name || el.line2 == lines[i].name))) {
+    if (allIntersectionsWithAngles.find(a => (a.line1 == lines[i].name || a.line2 == lines[i].name))) {
       // We only need to carry the geometries of lines that intersect at defined angles
       query += '    ' + lines[i].name + '.geom AS ' + lines[i].name + '_geom,\n';
     }
-    const comma = (i == lines.length - 1) ? '' : ','
-    query += '    ' + lines[i].name + '.id AS ' + lines[i].name + '_id' + comma + '\n';
+
+    if (i == lines.length - 1 && nodes.length == 0) {
+      query += '    ' + lines[i].name + '.id AS ' + lines[i].name + '_id\n';
+    } else {
+      query += '    ' + lines[i].name + '.id AS ' + lines[i].name + '_id,\n';
+    }
+  }
+
+  for (let i = 0; i < nodes.length; i++) {
+    if (allIntersectionsWithAngles.find(a => a.node == nodes[i].name)) {
+      // We only need to carry the geometries of nodes that intersect at defined angles
+      query += '    ' + nodes[i].name + '.geom AS ' + nodes[i].name + '_geom,\n';
+    }
+    const comma = (i == nodes.length - 1) ? '' : ','
+    query += '    ' + nodes[i].name + '.id AS ' + nodes[i].name + '_id' + comma + '\n';
   }
 
   query += '  FROM ';
@@ -274,8 +319,8 @@ function constructIntersectingQuery(nodes, lines) {
   query += createNoOverlappingQuery(annotations);
 
   // Filters results early by ensuring that all of the lines that are supposed to intersect, do intersect
-  for (let i = 0; i < intersectingPairs.length; i++) {
-    const pair = intersectingPairs[i];
+  for (let i = 0; i < lineIntersections.length; i++) {
+    const pair = lineIntersections[i];
     query += 'ST_Intersects(' + pair.line1 + '.geom, ' + pair.line2 + '.geom) AND '
   }
 
@@ -289,19 +334,33 @@ function constructIntersectingQuery(nodes, lines) {
   query += '(\n';
   query += '  SELECT\n';
 
-  for (let i = 0; i < intersectingPairsWithAngles.length; i++) {
+  for (let i = 0; i < allIntersectionsWithAngles.length; i++) {
     query += '    intersections.intersection' + (i + 1)+ ',\n';
     query += '    ST_ExteriorRing(ST_Buffer(intersections.intersection' + (i + 1) + ', 0.5)) AS ring' + (i + 1) + ',\n';
   }
 
   for (let i = 0; i < lines.length; i++) {
-    if (intersectingPairsWithAngles.find(el => (el.line1 == lines[i].name || el.line2 == lines[i].name))) {
+    if (allIntersectionsWithAngles.find(a => (a.line1 == lines[i].name || a.line2 == lines[i].name))) {
       // We only need to carry the geometries of lines that intersect at defined angles
       query += '    intersections.' + lines[i].name + '_geom,\n';
     }
-    const comma = (i == lines.length - 1) ? '' : ',';
-    query += '    intersections.' + lines[i].name + '_id' + comma + '\n';
+
+    if (i == lines.length - 1 && nodes.length == 0) {
+      query += '    intersections.' + lines[i].name + '_id\n';
+    } else {
+      query += '    intersections.' + lines[i].name + '_id,\n';
+    }
   }
+
+  for (let i = 0; i < nodes.length; i++) {
+    if (allIntersectionsWithAngles.find(a => a.node == nodes[i].name)) {
+      // We only need to carry the geometries of nodes that intersect at defined angles
+      query += '    intersections.' + nodes[i].name + '_geom,\n';
+    }
+    const comma = (i == nodes.length - 1) ? '' : ','
+    query += '    intersections.' + nodes[i].name + '_id' + comma + '\n';
+  }
+
   query += '  FROM intersections\n';
   query += '),\n';
 
@@ -309,8 +368,8 @@ function constructIntersectingQuery(nodes, lines) {
   query += '(\n';
   query += '  SELECT\n';
 
-  for (let i = 0; i < intersectingPairsWithAngles.length; i++) {
-    const pair = intersectingPairsWithAngles[i];
+  for (let i = 0; i < allIntersectionsWithAngles.length; i++) {
+    const pair = allIntersectionsWithAngles[i];
 
     query += '    ST_GeometryN\n';
     query += '    (\n';
@@ -324,18 +383,31 @@ function constructIntersectingQuery(nodes, lines) {
     query += '    ) AS ring' + (i + 1) + '_p2,\n';
   }
 
-  for (let i = 0; i < intersectingPairsWithAngles.length; i++) {
+  for (let i = 0; i < allIntersectionsWithAngles.length; i++) {
     query += '    buffers.intersection' + (i + 1) + ',\n';
     query += '    buffers.ring' + (i + 1) + ',\n';
   }
 
   for (let i = 0; i < lines.length; i++) {
-    if (intersectingPairsWithAngles.find(el => (el.line1 == lines[i].name || el.line2 == lines[i].name))) {
+    if (allIntersectionsWithAngles.find(a => (a.line1 == lines[i].name || a.line2 == lines[i].name))) {
       // We only need to carry the geometries of lines that intersect at defined angles
       query += '    buffers.' + lines[i].name + '_geom,\n';
     }
-    const comma = (i == lines.length - 1) ? '' : ',';
-    query += '    buffers.' + lines[i].name + '_id' + comma + '\n';
+
+    if (i == lines.length - 1 && nodes.length == 0) {
+      query += '    buffers.' + lines[i].name + '_id\n';
+    } else {
+      query += '    buffers.' + lines[i].name + '_id,\n';
+    }
+  }
+
+  for (let i = 0; i < nodes.length; i++) {
+    if (allIntersectionsWithAngles.find(a => a.node == nodes[i].name)) {
+      // We only need to carry the geometries of nodes that intersect at defined angles
+      query += '    buffers.' + nodes[i].name + '_geom,\n';
+    }
+    const comma = (i == nodes.length - 1) ? '' : ','
+    query += '    buffers.' + nodes[i].name + '_id' + comma + '\n';
   }
 
   query += '  FROM buffers\n';
@@ -350,8 +422,8 @@ function constructIntersectingQuery(nodes, lines) {
   query += 'WHERE\n';
   
   // Performs final angle comparison between intersections with defined angles
-  for (let i = 0; i < intersectingPairsWithAngles.length; i++) {
-    const pair = intersectingPairsWithAngles[i];
+  for (let i = 0; i < lineIntersectionsWithAngles.length; i++) {
+    const pair = lineIntersectionsWithAngles[i];
 
     if (pair.angle != null) {
       const error = pair.error ? pair.error : 0;
@@ -365,6 +437,51 @@ function constructIntersectingQuery(nodes, lines) {
         query += '      ST_Azimuth(points.ring' + (i + 1) + '_p2, points.intersection' + (i + 1) + ')\n';
         query += '      -\n';
         query += '      ST_Azimuth(points.ring' + (i + 1) + '_p1, points.intersection' + (i + 1) + ')\n';
+        query += '    ))::decimal % 180.0) ';
+
+        if (bounds.lower[b] === bounds.upper[b])
+          query += '= ' + bounds.lower[b] + '\n';
+        else
+          query += 'BETWEEN ' + bounds.lower[b] + ' AND ' + bounds.upper[b] + '\n';
+
+        query += '  ) ' + ((bounds.lower.length > 1 && b == 0) ? '\n  OR' : '') + '\n';
+      }
+      query += ')\n';
+      query += 'AND \n';
+    }
+  }
+
+  for (let i = 0; i < pseudoIntersectionsWithAngles.length; i++) {
+    const pair = pseudoIntersectionsWithAngles[i];
+
+    if (pair.angle != null) {
+      const error = pair.error ? pair.error : 0;
+
+      let bounds = calculateBounds(pair.angle, error);
+
+      query += '(\n';
+      for (let b = 0; b < bounds.lower.length; b++) {
+        query += '  (\n';
+        query += '    abs(round(degrees(\n';
+        query += '      ST_Azimuth(points.ring' + (i + 1) + '_p1, points.intersection' + (i + 1) + ')\n';
+        query += '      -\n';
+        query += '      ST_Azimuth(points.intersection' + (i + 1) + ', node' + (i + 1) + '_geom)\n';
+        query += '    ))::decimal % 180.0) ';
+
+        if (bounds.lower[b] === bounds.upper[b])
+          query += '= ' + bounds.lower[b] + '\n';
+        else
+          query += 'BETWEEN ' + bounds.lower[b] + ' AND ' + bounds.upper[b] + '\n';
+
+        query += '  ) \n  OR\n';
+      }
+      
+      for (let b = 0; b < bounds.lower.length; b++) {
+        query += '  (\n';
+        query += '    abs(round(degrees(\n';
+        query += '      ST_Azimuth(points.ring' + (i + 1) + '_p2, points.intersection' + (i + 1) + ')\n';
+        query += '      -\n';
+        query += '      ST_Azimuth(points.intersection' + (i + 1) + ', node' + (i + 1) + '_geom)\n';
         query += '    ))::decimal % 180.0) ';
 
         if (bounds.lower[b] === bounds.upper[b])
@@ -407,12 +524,12 @@ function constructQuery(annotations) {
 
       const intersection = calculateIntersection(lines[i].points, lines[k].points);
       if (intersection && intersection.intersects) {
-        return constructIntersectingQuery(nodes, lines);
+        return constructIntersectingQuery(annotations, nodes, lines);
       }
     }
   }
 
-  return constructDisjointQuery(nodes, lines);
+  return constructDisjointQuery(annotations, nodes, lines);
 }
 
 export {constructQuery}

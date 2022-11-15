@@ -20,32 +20,30 @@
           'linestring': {'genericTypeSelected': 'highway', 'subtypeSelected': '', 'subtypeTyped': '', 'tagsTyped': ''},
           'node': {'genericTypeSelected': 'man_made', 'subtypeSelected': '', 'subtypeTyped': '', 'tagsTyped': ''}
         },
-        genericTypeSelected: null,
-        subtypeSelected: null,
-        subtypeTyped: null,
-        tagsTyped: null,
+        genericTypeSelected: '',
+        subtypeSelected: '',
+        subtypeTyped: '',
+        tagsTyped: '',
         currentIndex: -1,
+        anns: JSON.parse(JSON.stringify(this.annotations)),
       }
     },
     computed: {
       currentAnn() {
-        return this.annotations[this.currentIndex];
+        return this.anns[this.currentIndex];
       }
     },
     methods: {
       handleNext(event) {
         if (this.currentIndex >= 0) {
           // Commit these properties to the global state
-          let ann = this.annotations;
-          ann[this.currentIndex].genericType = this.genericTypeSelected;
-          ann[this.currentIndex].subtype = this.subtypeTyped || this.subtypeSelected;
+          this.anns[this.currentIndex].genericType = this.genericTypeSelected;
+          this.anns[this.currentIndex].subtype = this.subtypeTyped || this.subtypeSelected;
           if (this.tagsTyped)
-            ann[this.currentIndex].tags = [...this.tagsTyped.split(',')];
-
-          this.$emit('annotationsChange', ann);
+            this.anns[this.currentIndex].tags = [...this.tagsTyped.split(',')];
         }
 
-        if (this.currentIndex >= this.annotations.length - 1) {
+        if (this.currentIndex >= this.anns.length - 1) {
           this.showAll();
           this.$emit('propertiesHistoryChange', this.currentIndex + 1);
           this.$emit('next');
@@ -76,28 +74,26 @@
         this.genericTypeSelected = this.currentAnn.genericType || defaults.genericTypeSelected;
         if (this.getSubtypes().length == 0) {
           this.subtypeTyped = this.currentAnn.subtype || defaults.subtypeTyped;
-          this.subtypeSelected = null;
+          this.subtypeSelected = '';
         } else {
           this.subtypeSelected = this.currentAnn.subtype || defaults.subtypeSelected;
-          this.subtypeTyped = null;
+          this.subtypeTyped = '';
         }
         this.tagsTyped = this.currentAnn.tags.join(',') || defaults.tagsTyped;
       },
 
       hideAllButOne(hide) {
-        let anns = this.annotations;
-        for (let i = 0; i < this.annotations.length; i++) {
-          anns[i].state = (anns[i].name == hide.name) ? 'default' : 'transparent';
+        for (let i = 0; i < this.anns.length; i++) {
+          this.anns[i].state = (this.anns[i].name == hide.name) ? 'default' : 'transparent';
         }
-        this.$emit('annotationsChange', anns);
+        this.$emit('annotationsChange', this.anns);
       },
 
       showAll() {
-        let anns = this.annotations;
-        for (let i = 0; i < this.annotations.length; i++) {
-          anns[i].state = 'default';
+        for (let i = 0; i < this.anns.length; i++) {
+          this.anns[i].state = 'default';
         }
-        this.$emit('annotationsChange', anns);
+        this.$emit('annotationsChange', this.anns);
       },
 
       genericTypeChange(event) {
