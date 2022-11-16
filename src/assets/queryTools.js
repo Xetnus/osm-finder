@@ -7,7 +7,7 @@ function createMaxDistanceQuery(annotations) {
     for (let k = 0; k < keys.length; k++) {
       const relation = annotations[i].relations[keys[k]];
       const dist = parseInt(relation.maxDistance);
-      if (dist)
+      if (dist && !keys[k].includes('&'))
         query += 'ST_DWithin(' + annotations[i].name + '.geom, ' + keys[k] + '.geom, ' + dist + ') AND ';
     }
   }
@@ -22,7 +22,7 @@ function createMinDistanceQuery(annotations) {
     for (let k = 0; k < keys.length; k++) {
       const relation = annotations[i].relations[keys[k]];
       const dist = parseInt(relation.minDistance);
-      if (dist)
+      if (dist && !keys[k].includes('&'))
         query += 'ST_Distance(' + annotations[i].name + '.geom, ' + keys[k] + '.geom' + ') > ' + dist + ' AND ';
     }
   }
