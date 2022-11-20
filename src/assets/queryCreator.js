@@ -363,7 +363,7 @@ function constructIntersectingQuery(annotations, nodes, lines) {
   // Filters results early by ensuring that all of the lines that are supposed to intersect, do intersect
   for (let i = 0; i < intersections.length; i++) {
     const item = intersections[i];
-    if (item.isPseudo == true) continue;
+    if (item.isAngle == false || (item.isPseudo == true && item.angle == null)) continue;
 
     query += 'ST_Intersects(' + item.line1 + '.geom, ' + item.line2 + '.geom) AND '
   }
@@ -447,15 +447,15 @@ function constructIntersectingQuery(annotations, nodes, lines) {
   if (minDistances.length > 0 || maxDistances.length > 0) {
     query += '  WHERE '
 
-    for (let i = 0; i < minDistances.length; i++) {
-      const item = minDistances[i];
-      query += 'ST_Distance(intersections.intersection' + item.id + ', intersections.' + item.node + '_geom) > ' + item.minDistance + ' AND ';
-    }
-
     for (let i = 0; i < maxDistances.length; i++) {
       const item = maxDistances[i];
       query += 'ST_DWithin(intersections.intersection' + item.id + ', intersections.' + item.node + '_geom, ' + item.maxDistance + ') AND ';
     }
+    for (let i = 0; i < minDistances.length; i++) {
+      const item = minDistances[i];
+      query += 'ST_Distance(intersections.intersection' + item.id + ', intersections.' + item.node + '_geom) > ' + item.minDistance + ' AND ';
+    }
+    
     query = query.slice(0, query.length - 5); // remove last AND
     query += '\n';
   }
@@ -518,11 +518,11 @@ function constructIntersectingQuery(annotations, nodes, lines) {
   query += 'SELECT\n';
   for (let i = 0; i < lines.length; i++) {
     const comma = (i == lines.length - 1 && nodes.length == 0) ? '' : ',';
-    query += '  points.' + lines[i].name + '_id' + comma + '\n';
+    query += '  points.' + lines[i].name + '_id AS ' + lines[i].name + '_way_id' + comma + '\n';
   }
   for (let i = 0; i < nodes.length; i++) {
     const comma = (i == nodes.length - 1) ? '' : ','
-    query += '  points.' + nodes[i].name + '_id' + comma + '\n';
+    query += '  points.' + nodes[i].name + '_id AS ' + nodes[i].name + '_node_id' + comma + '\n';
   }
   query += 'FROM points\n';
   query += 'WHERE\n';
