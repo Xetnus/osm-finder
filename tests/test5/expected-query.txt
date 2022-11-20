@@ -1,0 +1,57 @@
+SELECT line1.id, line2.id, line3.id
+FROM linestrings AS line1, linestrings AS line2, linestrings AS line3
+WHERE line1.generic_type = 'highway' AND line1.subtype = 'path' AND line1.tags->>'surface' = 'concrete' AND line2.generic_type = 'highway' AND line2.subtype = 'path' AND line3.generic_type = 'highway' AND line3.subtype = 'path' AND line3.id != line2.id AND line3.id != line1.id AND line2.id != line1.id AND ST_DWithin(line1.geom, line2.geom, 30) AND ST_DWithin(line1.geom, line3.geom, 20) AND 
+(
+  (
+    abs((
+      degrees(ST_Azimuth(ST_StartPoint(line2.geom), ST_EndPoint(line2.geom)))
+      -
+      degrees(ST_Azimuth(ST_StartPoint(line1.geom), ST_EndPoint(line1.geom)))
+    )::decimal % 180.0) BETWEEN 75 AND 85
+  ) 
+  OR
+  (
+    abs((
+      degrees(ST_Azimuth(ST_StartPoint(line2.geom), ST_EndPoint(line2.geom)))
+      -
+      degrees(ST_Azimuth(ST_StartPoint(line1.geom), ST_EndPoint(line1.geom)))
+    )::decimal % 180.0) BETWEEN 95 AND 105
+  ) 
+)
+ AND 
+(
+  (
+    abs((
+      degrees(ST_Azimuth(ST_StartPoint(line3.geom), ST_EndPoint(line3.geom)))
+      -
+      degrees(ST_Azimuth(ST_StartPoint(line1.geom), ST_EndPoint(line1.geom)))
+    )::decimal % 180.0) BETWEEN 42 AND 48
+  ) 
+  OR
+  (
+    abs((
+      degrees(ST_Azimuth(ST_StartPoint(line3.geom), ST_EndPoint(line3.geom)))
+      -
+      degrees(ST_Azimuth(ST_StartPoint(line1.geom), ST_EndPoint(line1.geom)))
+    )::decimal % 180.0) BETWEEN 132 AND 138
+  ) 
+)
+ AND 
+(
+  (
+    abs((
+      degrees(ST_Azimuth(ST_StartPoint(line3.geom), ST_EndPoint(line3.geom)))
+      -
+      degrees(ST_Azimuth(ST_StartPoint(line2.geom), ST_EndPoint(line2.geom)))
+    )::decimal % 180.0) BETWEEN 42 AND 48
+  ) 
+  OR
+  (
+    abs((
+      degrees(ST_Azimuth(ST_StartPoint(line3.geom), ST_EndPoint(line3.geom)))
+      -
+      degrees(ST_Azimuth(ST_StartPoint(line2.geom), ST_EndPoint(line2.geom)))
+    )::decimal % 180.0) BETWEEN 132 AND 138
+  ) 
+)
+;

@@ -1,1 +1,1 @@
-two intersecting highways with a known intersection angle
+two intersecting linestrings: two highways intersecting at a known intersection angle
