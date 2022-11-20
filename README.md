@@ -9,10 +9,6 @@ This tool attempts to make it easier for researchers to find locations with a si
 
 This tool currently supports all [highway](https://wiki.openstreetmap.org/wiki/Key:highway), [railway](https://wiki.openstreetmap.org/wiki/Key:railway), and a couple [power line](https://wiki.openstreetmap.org/wiki/Key:power) (namely, 'line' and 'minor_line') types.
 
-When in doubt, it's always safer to enter larger/wider parameters than you think is needed (e.g., enter an angle of 25 ± 10° instead of 25 ± 5°).
-
-Works best on images with unique intersections. If there are any tags you can enter (e.g. bridge=yes, tunnel=yes), you'll decrease the size of the results significantly.
-
 This tool is still in early development. Please feel free to report issues or create pull requests if you find any bugs.
 
 Tested on Ubuntu 22.04.1 LTS. 
@@ -22,13 +18,50 @@ Image copyright by flickr user "willem van bergen". No modifications made.
 https://www.flickr.com/photos/willemvanbergen/271226856/  
 https://creativecommons.org/licenses/by-sa/2.0/  
 
-## Usage
+## General Usage
 The numbers below correspond to the stages in the application. By clicking the Next button, you either progress to the next stage or the next phase of the same stage.    
 1. Upload the image you want to geolocate 
 2. Draw the linestrings that make up the line network of the photo 
 3. Input the generic types, subtypes, and tags for each line. Multiple tags can be separated with a comma: `bridge=yes,surface=wood,junction` 
 4. Input the max distances, min distances, angles, and angle errors for each relation 
+   - Important note: all distances and angles should be entered as if you are viewing the image from a bird's perspective, directly overhead.
 5. That's it! Your query should be generated and displayed automatically. 
+
+The final step is to execute that query in a PostgreSQL backend. Once you have your list of query results, you can view the individual results in a map by replacing "YourIDHere" in the following URLs with an ID from the results: https://www.openstreetmap.org/way/YourIDHere and https://www.openstreetmap.org/node/YourIDHere for linestrings (i.e., ways) and nodes, respectively.
+
+### Tips
+The general rule is that the more objects you add to the network, the longer the query will take to execute, oftentimes on an exponential scale.
+
+When in doubt, it's always safer to enter larger/wider parameters than you think is needed. For instance, enter an angle of 25 ± 10° instead of 25 ± 5°. Also, if there are any additional tags you can enter (e.g. bridge=yes, tunnel=yes), you'll decrease the size of the results significantly.
+
+## Detailed Usage
+Before getting into the details, let's define some terms:
+- **intersecting**: linestrings that fully or partially overlap in 2D space when viewed from above (as the bird flies). For instance, a bridge that crosses over a major highway is said to *intersect* with that highway. Two linestrings only need to have one point in common to intersect.
+- **disjoint**: an object (e.g., linestring, node) that does not intersect and does not have any defined angles to any other object in the network. Maximum and minimum distances may be entered for disjoint objects, but no angle or error values may be entered.
+- **disjoint but directional (DBD)**: an object (e.g., linestring, node) that does not intersect with any other object, but does have defined angles to at least one other object in the network. 
+
+The following "network" configurations are expressly supported, although other configurations will likely work:
+- 1 linestring and 1 node
+  - both disjoint (but you may as well use [Overpass Turbo](https://overpass-turbo.eu/))
+- 2 linestrings
+  - both intersecting
+  - both DBD
+  - both disjoint (but you may as well use [Overpass Turbo](https://overpass-turbo.eu/))
+- 2 linestrings and 1 node
+  - 2 intersecting linestrings and 1 disjoint node
+  - 2 intersecting linestrings and 1 DBD node
+  - 2 DBD linestrings and 1 disjoint node
+- 3 linestrings
+  - all intersecting
+  - 2 intersecting and 1 DBD
+  - all DBD
+
+### Warning for DBD Linestrings
+Due to technical limitations of PostgreSQL, linestrings that intersect are usually preferred over DBD linestrings. If you must enter a DBD linestring, be aware that the entire linestring will be used (as it appears in OpenStreetMap), even though the image you're trying to geolocate may only show a portion of the linestring. This will affect any angles you enter for that linestring.
+
+To see why this is an issue, take a look at this linestring: https://www.openstreetmap.org/way/300593937. It's possible that only a fraction of the full linestring is visible in your image. However, if you draw a linestring that represents the portion that's visible to you and then enter an angle to relate it to another object, the actual angle calculated by PostgreSQL will be determined by a straight line drawn between the starting point and ending point of the linestring as it appears in OpenStreetMap. Thus, any angle you enter will likely be different to the angle that PostgreSQL calculates.
+
+Intersecting linestrings don't have this issue because we compute a small ring around the intersection and then calculate the angle using only the sections of the linestrings that fall within that ring.
 
 ## Installation
 Instructions below are for Linux.
@@ -39,9 +72,11 @@ Instructions below are for Linux.
     - To check for v1.7.1 support on your Linux distribution: https://osm2pgsql.org/doc/install.html#installing-on-linux  
     - If v1.7.1 isn't available for your Linux distribution, follow Building instructions: https://github.com/openstreetmap/osm2pgsql  
 
-2. **Download openstreetmap data for your area of interest.** To follow along with the demo, download the data for Massachusetts at https://download.geofabrik.de/north-america/us.html. Click on the .osm.bz2 download.
+2. **Optional: tune your PostgreSQL server.** https://osm2pgsql.org/doc/manual.html#tuning-the-postgresql-server
 
-3. **Download [flex.lua](https://github.com/Xetnus/osm-finder/blob/main/flex.lua)** and run the following commands (in Linux):
+3. **Download openstreetmap data for your area of interest.** To follow along with the demo, download the data for Massachusetts at https://download.geofabrik.de/north-america/us.html. Click on the .osm.bz2 download.
+
+4. **Download [flex.lua](https://github.com/Xetnus/osm-finder/blob/main/flex.lua)** and run the following commands (in Linux):
     - Note: you may need to move files around and change directory/file permissions appropriately to ensure that the postgres user can access `massachusetts-latest.osm.bz2` and `flex.lua`.
     - Note: if you get an error saying "peer authentication failed" when you run the last command, check out the solution at https://stackoverflow.com/a/26735105/1941353, but replace every instance of 'postgres' with 'osmuser'.
 
@@ -53,7 +88,7 @@ Instructions below are for Linux.
     osm2pgsql -d osm -U osmuser -c massachusetts-latest.osm.bz2 -S flex.lua -O flex 
 ```
 
-4. **Set up your (Linux) terminal** by running: `psql -d osm -U osmuser` 
+5. **Set up your (Linux) terminal** by running: `psql -d osm -U osmuser` 
     - Note: The interactive query terminal that opens is where you'll run the PostgreSQL queries that the front-end generates.
     - You can confirm your database was set up correctly by running `\dt`. You should see four tables: `closed_shapes`, `linestrings`, `nodes`, and `spatial_ref_sys`.
 
@@ -74,7 +109,12 @@ Instructions below are for Linux.
 Unit testing was added to detect unexpected changes in the generated PostgreSQL queries and their results once the queries are run. To run the unit tests, type `npm run test`. The unit tests assume you have a PostgreSQL database running that's been loaded with the OSM data for the US state of Massachusetts. To create your own tests, review the comments in the `queryCreator.test.js` file. 
 
 ## Roadmap
-- [x] **Start from scratch.** Because this was created during a hackathon, little emphasis was put on code quality and future maintenance. No standard JavaScript libraries were used and most of the code is inefficient in one way or another. Now that I have a better idea for how this tool can be architected, reconstructing it should be easier.
-- [ ] **Add support for nodes.** Towers, buildings, and nodes of all types should be supported.
+### Alpha
+- [x] **Start from scratch.** Because this was created during a hackathon, little emphasis was put on code quality and future maintenance. No standard JavaScript libraries were used and most of the code is inefficient in one way or another.
+- [x] **Add support for nodes.** Towers, buildings, and nodes of all types should be supported.
+- [ ] **Update flex.lua.** Include more node and linestring types. Add "downsampling" capability such that ways and relations can be queried as nodes.
+- [ ] **Revamp UI.** Give the bottom input bar a more modern and functional appearance.
+### Beta
 - [ ] **Add support for shapes.** Many roads, buildings, structures, etc. have unique shapes that should be queryable using carefully crafted PostgreSQL queries.
-- [ ] **Host a public website.** Depending on cost, I'd like to integrate and host both the frontend (UI) and backend (PostgreSQL) on a public-facing website.
+### Future
+- [ ] **Host a public website.** Depending on cost, integrate and host both the frontend (UI) and backend (PostgreSQL) on a public-facing website.
