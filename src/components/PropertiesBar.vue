@@ -39,12 +39,11 @@
           // Commit these properties to the global state
           this.anns[this.currentIndex].genericType = this.genericTypeSelected;
           this.anns[this.currentIndex].subtype = this.subtypeTyped || this.subtypeSelected;
-          if (this.tagsTyped)
-            this.anns[this.currentIndex].tags = [...this.tagsTyped.split(',')];
+          this.anns[this.currentIndex].tags = this.tagsTyped ? [...this.tagsTyped.split(',')] : '';
         }
 
         if (this.currentIndex >= this.anns.length - 1) {
-          this.showAll();
+          this.$emit('annotationsChange', this.anns);
           this.$emit('propertiesHistoryChange', this.currentIndex + 1);
           this.$emit('next');
         } else {
@@ -79,7 +78,7 @@
           this.subtypeSelected = this.currentAnn.subtype || defaults.subtypeSelected;
           this.subtypeTyped = '';
         }
-        this.tagsTyped = this.currentAnn.tags.join(',') || defaults.tagsTyped;
+        this.tagsTyped = this.currentAnn.tags ? this.currentAnn.tags.join(',') : defaults.tagsTyped;
       },
 
       hideAllButOne(hide) {

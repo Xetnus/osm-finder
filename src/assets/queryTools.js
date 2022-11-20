@@ -73,10 +73,13 @@ function createTagsQuery(ann) {
   for (var j = 0; j < ann.tags.length; j++) {
     let tag = ann.tags[j].split('=');
 
-    query += ann.name + '.tags->>\'' + tag[0] + '\' ';
-
-    if (tag.length == 2)
+    if (tag.length == 1) {
+      query += ann.name + '.tags ? \'' + tag[0] + '\' ';
+    } else if (tag.length == 2) {
+      query += ann.name + '.tags->>\'' + tag[0] + '\' ';
       query += '= \'' + tag[1] + '\' ';
+    }
+
     query += 'AND ';
   }
   return query;

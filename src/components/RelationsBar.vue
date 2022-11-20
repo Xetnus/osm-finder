@@ -72,8 +72,6 @@
     methods: {
       handleNext(event) {
         if (this.current1 && this.current2) {
-          this.relationsHistory.push([this.current1, this.current2]);
-
           let annName, saveName;
           if (this.current2 instanceof Array) {
             annName = this.current1.name;
@@ -92,10 +90,18 @@
           let index = this.anns.findIndex((a) => a.name == annName);
 
           this.anns[index].relations[saveName] = rel;
+
+          if (this.current2 instanceof Array) {
+            this.current1.relations[saveName] = rel;
+          } else {
+            this.current2.relations[saveName] = rel;
+          }
+
+          this.relationsHistory.push([this.current1, this.current2]);
         }
 
         if (this.nextRelations.length == 0) {
-          this.showAll();
+          this.$emit('annotationsChange', this.anns);
           this.$emit('relationsHistoryChange', this.relationsHistory);
           this.$emit('next');
           return;
