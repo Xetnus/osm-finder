@@ -15,8 +15,7 @@ annotations: [
     geometryType: 'linestring'
     points
     state // either transparent, transparent-but-related, or default 
-    genericType
-    subtype
+    category
     tags: []
     relations: {
       name: {
@@ -32,8 +31,7 @@ annotations: [
     geometryType: 'node'
     point
     state // either transparent, transparent-but-related, or default
-    genericType
-    subtype
+    category
     tags: []
     relations: {
       name: {
@@ -75,29 +73,21 @@ drawingState: {
       };
     },
     methods: {
-      upload() {
-        // Lets the user upload their own photo
-        let input = document.createElement('input');
-        input.type = 'file';
+      upload(file) {
+        let reader = new FileReader();
+        reader.readAsDataURL(file);
 
-        input.onchange = (e) => {
-          let file = e.target.files[0]; 
-          let reader = new FileReader();
-          reader.readAsDataURL(file);
+        reader.onload = (readerEvent) => {
+          let content = readerEvent.target.result;
 
-          reader.onload = (readerEvent) => {
-              let content = readerEvent.target.result;
+          let img = new Image;
+          img.src = content;
 
-              let img = new Image;
-              img.src = content;
-
-              img.onload = () => {
-                this.image = img;
-                this.annotations = [];
-              }
+          img.onload = () => {
+            this.image = img;
+            this.annotations = [];
           }
         }
-        input.click();
       },
       programStageChange(programStage) {
         this.programStage = programStage;

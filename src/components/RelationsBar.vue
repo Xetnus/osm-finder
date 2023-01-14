@@ -208,12 +208,12 @@
 <template>
   <p>Relationship between {{current1.name}} and {{getReadableName(current2)}}</p>
   <div>
-    <button @click="handleBack">Back</button>
-    <input :disabled="intersects()" v-model="maxDistance" placeholder="Max distance (m)"/>
-    <input :disabled="intersects()" v-model="minDistance" placeholder="Min distance (m)"/>
-    <input :disabled="!isAngular()" v-model="angle" placeholder="Angle"/>
-    <input :disabled="!isAngular()" v-model="error" placeholder="Error"/>
-    <button @click="handleNext">Next</button>
+    <q-btn @click="handleBack" id="back" label="Back" color="primary"/>
+    <q-input :disable="intersects()" v-model="maxDistance" standout="bg-secondary text-white" label="Max distance (m)" color="primary"/>
+    <q-input :disable="intersects()" v-model="minDistance" standout="bg-secondary text-white" label="Min distance (m)" color="primary"/>
+    <q-input :disable="!isAngular()" v-model="angle" standout="bg-secondary text-white" label="Angle" color="primary"/>
+    <q-input :disable="!isAngular()" v-model="error" standout="bg-secondary text-white" label="Error" color="primary"/>
+    <q-btn @click="handleNext" id="next" label="Next" color="primary"/>
   </div>
 </template>
 

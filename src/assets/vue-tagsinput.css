@@ -1,0 +1,22 @@
+/* Modified from https://github.com/james090500/vue-tagsinput/blob/master/public/style.css */
+
+
+.tags-input-wrapper-default {
+    padding: .25em .25em !important;
+    background: #fff;
+    border-color: #dbdbdb;
+    max-width: 35em !important;
+    max-height: 5em !important;
+    overflow-y: auto;
+}
+
+.tags-input input {
+    font-size: 100%;
+    width: auto !important;
+    height: auto !important;
+}
+
+/* Tag badge styles */
+.tags-input-badge {
+    font-size: 100% !important;
+}

@@ -4,7 +4,6 @@
     emits: ['next', 'back', 'drawingStateChange', 'annotationsChange'],
     data() {
       return {
-        infoLabel: '',
         history: [],
       }
     },
@@ -13,7 +12,12 @@
         if (this.annotations.length > 1) {
           this.$emit('next')
         } else {
-          this.infoLabel = 'Draw at least two lines or nodes.';
+          // Displays warning if fewer than 2 items have been drawn
+          this.$refs.warning.show();
+          setTimeout(() => {
+            if (this.$refs.warning)
+              this.$refs.warning.hide();
+          }, 5000);
         }
       },
       handleBack(event) {
@@ -24,16 +28,12 @@
         state['drawingLinestring'] = !state['drawingLinestring'];
         state['drawingNode'] = false;
         this.$emit('drawingStateChange', state);
-
-        this.infoLabel = state['drawingLinestring'] ? 'Click and drag to draw a line.': '';
       },
       toggleNode(event) {
         let state = this.drawingState;
         state['drawingNode'] = !state['drawingNode'];
         state['drawingLinestring'] = false;
         this.$emit('drawingStateChange', state);
-
-        this.infoLabel = state['drawingNode'] ? 'Click once anywhere on the canvas to place a node.': '';
       },
       handleUndo(event) {
         let anns = this.annotations;
@@ -51,16 +51,33 @@
 
 <template>
   <div>
-    <button :class="{active: this.drawingState.drawingLinestring}" @click="toggleLinestring">Linestring</button>
-    <button :class="{active: this.drawingState.drawingNode}" @click="toggleNode">Node</button>
+    <q-btn :class="{active: this.drawingState.drawingLinestring}" icon="north_east" @click="toggleLinestring" label="Linestring" color="primary">
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Click and drag to draw a line.
+      </q-tooltip>
+    </q-btn>
+    <q-btn :class="{active: this.drawingState.drawingNode}" icon="radio_button_checked" @click="toggleNode" label="Node" color="primary">
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Click once on the canvas to place a node.
+      </q-tooltip>
+    </q-btn>
   </div>
+
   <div>
-    <button id="back" @click="handleBack">Back</button>
-    <button id="undo" :disabled="!annotations.length" @click="handleUndo">Undo</button>
-    <button id="redo" :disabled="!history.length" @click="handleRedo">Redo</button>
-    <button id="next" @click="handleNext">Next</button>
+    <q-btn @click="handleBack" id="back" label="Back" color="primary"/>
+    <q-btn @click="handleUndo" :disabled="!annotations.length" icon="undo" id="undo" label="Undo" color="secondary"/>
+    <q-btn @click="handleRedo" :disabled="!history.length" icon="redo" id="redo" label="Redo" color="secondary"/>
+    <q-btn @click="handleNext" id="next" label="Next" color="primary"/>
   </div>
-  <p>{{infoLabel}}</p>
+
+  <q-dialog ref="warning" v-model="seamless" seamless position="top">
+    <q-card class="bg-warning text-black">
+      <q-card-section id="card-section" class="row items-center no-wrap">
+        <div id="warning-msg">Draw at least two linestrings, nodes, or a combination of both.</div>
+        <q-btn flat round icon="close" v-close-popup />
+      </q-card-section>
+    </q-card>
+  </q-dialog>
 </template>
 
 <style scoped>
@@ -68,6 +85,14 @@
     font-size: 16px;
     padding-top: 5px;
     text-align: center;
+  }
+
+  #card-section {
+    padding: 0.5em 1em 0 1em;
+  }
+
+  #warning-msg {
+    padding: 0;
   }
 
   div:first-child {

@@ -88,18 +88,18 @@ Instructions below are for Linux.
     osm2pgsql -d osm -U osmuser -c massachusetts-latest.osm.bz2 -S flex.lua -O flex 
 ```
 
-5. **Set up your (Linux) terminal** by running: `psql -d osm -U osmuser` 
-    - Note: The interactive query terminal that opens is where you'll run the PostgreSQL queries that the front-end generates.
+5. **Open the interative query terminal** by running: `psql -d osm -U osmuser` 
+    - Note: The interactive terminal that opens is where you'll run the PostgreSQL queries that the frontend generates.
     - You can confirm your database was set up correctly by running `\dt`. You should see four tables: `closed_shapes`, `linestrings`, `nodes`, and `spatial_ref_sys`.
 
 
 ### II. Install Frontend
 1. Download this project repository.  
-      `git clone git@github.com:Xetnus/osm-finder.git`
+      `git clone https://github.com/Xetnus/osm-finder.git`
 
 2. Change your directory: `cd osm-finder`
 
-3. Install npm version >= 14.18.0 (if not already installed). Confirm your installation with `npm -v`
+3. Install nodejs version >= 14.18.0 (if not already installed). Confirm your installation with `nodejs -v`
 
 3. Install dependencies: `npm install`
 

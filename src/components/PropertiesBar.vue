@@ -12,20 +12,17 @@
     },
     data() {
       return {
-        types: {
-          'linestring': {'highway': ['vehicle', 'path'], 'railway': [], 'power': ['line', 'minor_line']},
-          'node': {'man_made': []}
-        },
-        defaults: {
-          'linestring': {'genericTypeSelected': 'highway', 'subtypeSelected': '', 'subtypeTyped': '', 'tagsTyped': ''},
-          'node': {'genericTypeSelected': 'man_made', 'subtypeSelected': '', 'subtypeTyped': '', 'tagsTyped': ''}
-        },
-        genericTypeSelected: '',
-        subtypeSelected: '',
-        subtypeTyped: '',
-        tagsTyped: '',
         currentIndex: -1,
         anns: JSON.parse(JSON.stringify(this.annotations)),
+        tags: [],
+        defaultCategory: 'None',
+        currentCategory: this.defaultCategory,
+        allCategories: {
+          'node': ['None', 'Building', 'Railway', 'Power', 'Man Made'],
+          'linestring': ['None', 'Walkway', 'Roadway', 'Railway', 'Power', 'Waterway', 'Coastline', 'Man Made'],
+          // 'area': ['None', 'Building', 'Waterway', 'Coastline'],
+        },
+        categoryList: null,
       }
     },
     computed: {
@@ -37,9 +34,7 @@
       handleNext(event) {
         if (this.currentIndex >= 0) {
           // Commit these properties to the global state
-          this.anns[this.currentIndex].genericType = this.genericTypeSelected;
-          this.anns[this.currentIndex].subtype = this.subtypeTyped || this.subtypeSelected;
-          this.anns[this.currentIndex].tags = this.tagsTyped ? [...this.tagsTyped.split(',')] : '';
+          this.saveProperties();
         }
 
         if (this.currentIndex >= this.anns.length - 1) {
@@ -54,6 +49,10 @@
       },
 
       handleBack(event) {
+        if (this.currentIndex < this.anns.length) {
+          this.saveProperties();
+        }
+
         if (this.currentIndex == 0) {
           this.showAll();
           this.$emit('propertiesHistoryChange', -1);
@@ -65,20 +64,30 @@
         }
       },
 
+      saveProperties() {
+        this.currentAnn.tags = [];
+        for (let i = 0; i < this.tags.length; i++) {
+          this.currentAnn.tags.push(this.tags[i].value);
+        }
+
+        this.currentAnn.category = this.currentCategory;
+      },
+
       fillInForm() {
         // Initializes the inputs to the defaults or, if data has already been stored
         // for this relation, fills that data in.
-        const defaults = this.defaults[this.currentAnn.geometryType];
 
-        this.genericTypeSelected = this.currentAnn.genericType || defaults.genericTypeSelected;
-        if (this.getSubtypes().length == 0) {
-          this.subtypeTyped = this.currentAnn.subtype || defaults.subtypeTyped;
-          this.subtypeSelected = '';
+        if (this.currentAnn.tags.length > 0) {
+          this.tags = [];
+          for (let i = 0; i < this.currentAnn.tags.length; i++) {
+            this.tags.push({key: '', value: this.currentAnn.tags[i]});
+          }
         } else {
-          this.subtypeSelected = this.currentAnn.subtype || defaults.subtypeSelected;
-          this.subtypeTyped = '';
+          this.tags = [];
         }
-        this.tagsTyped = this.currentAnn.tags ? this.currentAnn.tags.join(',') : defaults.tagsTyped;
+
+        this.categoryList = this.allCategories[this.currentAnn.geometryType];
+        this.currentCategory = this.currentAnn.category ? this.currentAnn.category : this.defaultCategory;
       },
 
       hideAllButOne(hide) {
@@ -94,20 +103,6 @@
         }
         this.$emit('annotationsChange', this.anns);
       },
-
-      genericTypeChange(event) {
-        // Resets the subtype field if the generic type is changed
-        this.subtypeSelected = '';
-        this.subtypeTyped = '';
-      },
-
-      getGenericTypes() {
-        return Object.keys(this.types[this.currentAnn.geometryType]);
-      },
-
-      getSubtypes() {
-        return this.types[this.currentAnn.geometryType][this.genericTypeSelected];
-      },
     }
   }
 </script>
@@ -115,20 +110,19 @@
 <template>
   <p>Properties for {{currentAnn.name}}</p>
   <div>
-    <button @click="handleBack" id="back">Back</button>
-    <select v-model="genericTypeSelected" @change="genericTypeChange">
-      <option v-for="generic in getGenericTypes()" :value="generic">{{generic}}</option>
-    </select>
+    <q-btn @click="handleBack" id="back" label="Back" color="primary"/>
+    <q-select standout="bg-secondary text-white" v-model="currentCategory" :options="categoryList"
+      label="Category" color="primary" style="width:100%; max-width:150px;"/>
 
-    <!-- Either displays <select> or <input> depending on the subtypes available -->
-    <select v-if="genericTypeSelected && getSubtypes().length" v-model="subtypeSelected">
-      <option value="">Any Subtype</option>
-      <option v-for="sub in getSubtypes()" :value="sub">{{sub}}</option>
-    </select>
-    <input v-else v-model="subtypeTyped" placeholder="Subtype"/>
+    <tags-input element-id="tags"
+      v-model="tags"
+      :existing-tags="[
+        // TODO
+      ]"
+      :add-tags-on-space="true" :add-tags-on-comma="true" :add-tags-on-blur="true" :delete-on-backspace="true">
+    </tags-input>
 
-    <input v-model="tagsTyped" placeholder="Tags: bridge=yes"/>
-    <button @click="handleNext" id="next">Next</button>
+    <q-btn @click="handleNext" id="next" label="Next" color="primary"/>
   </div>
 </template>
 
@@ -138,10 +132,6 @@
     font-size: 20px;
     text-align: center;
     margin-bottom: 0.4em;
-  }
-
-  select, input {
-    width: 10em;
   }
 
   div {

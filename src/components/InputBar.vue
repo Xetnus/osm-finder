@@ -22,8 +22,8 @@
       back() {
         this.$emit('programStageChange', this.programStage - 1);
       },
-      upload() {
-        this.$emit('upload');
+      upload(file) {
+        this.$emit('upload', file);
       },
       drawingStateChange(state) {
         this.$emit('drawingStateChange', state);
