@@ -40,7 +40,8 @@
         const x = Math.abs(this.stageConfig.width - width) / 2;
         const y = Math.abs(this.stageConfig.height - height) / 2;
 
-        return {image: this.image, height: height, width: width, x: x, y: y};
+        return {image: this.image, height: height, width: width, x: x, y: y, 
+          shadowBlur: 40, shadowColor: 'black'};
       },
 
       intersections() {

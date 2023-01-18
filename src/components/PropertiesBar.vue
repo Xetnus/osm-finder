@@ -108,16 +108,16 @@
 </script>
 
 <template>
-  <p>Properties for {{currentAnn.name}}</p>
-  <div>
+  <p class="input-title">Properties for {{currentAnn.name}}</p>
+  <div class="input-bar-flex">
     <q-btn @click="handleBack" id="back" label="Back" color="primary"/>
-    <q-select standout="bg-secondary text-white" v-model="currentCategory" :options="categoryList"
-      label="Category" color="primary" style="width:100%; max-width:150px;"/>
+    <q-select outlined v-model="currentCategory" :options="categoryList"
+      label="Category" bg-color="secondary" label-color="white" style="width:100%; max-width:150px;"/>
 
     <tags-input element-id="tags"
       v-model="tags"
       :existing-tags="[
-        // TODO
+        // TODO?
       ]"
       :add-tags-on-space="true" :add-tags-on-comma="true" :add-tags-on-blur="true" :delete-on-backspace="true">
     </tags-input>
@@ -127,18 +127,4 @@
 </template>
 
 <style scoped>
-  p {
-    font-weight: bold;
-    font-size: 20px;
-    text-align: center;
-    margin-bottom: 0.4em;
-  }
-
-  div {
-    display: flex;
-    gap: 20px;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
 </style>

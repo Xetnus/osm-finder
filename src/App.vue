@@ -103,9 +103,26 @@ drawingState: {
 </script>
 
 <template>
-  <header>
-    <p>OSM Finder</p>
-  </header>
+  <q-bar class="bg-dark">
+    <q-badge class="q-mr-xl q-px-md" color="dark">
+      <q-icon name="public" size="md"/>
+      <div id="title" class="q-pl-sm">OSM Finder</div>
+    </q-badge>
+
+    <q-space />
+
+    <q-btn square href="https://github.com/Xetnus/osm-finder" target="_blank" icon="code" size="md" color="secondary">
+      <q-tooltip class="bg-secondary text-body2" :offset="[10, 10]" :delay="400">
+        View source code
+      </q-tooltip>
+    </q-btn>
+
+    <q-btn square href="https://github.com/Xetnus/osm-finder/blob/main/README.md" target="_blank" icon="help" size="md" color="secondary">
+      <q-tooltip class="bg-secondary text-body2" :offset="[10, 10]" :delay="400">
+        View instructions
+      </q-tooltip>
+    </q-btn>
+  </q-bar>
 
   <section id="canvas-section">
     <InteractiveCanvas @annotationsChange="annotationsChange" @drawingStateChange="drawingStateChange"
@@ -121,28 +138,19 @@ drawingState: {
 </template>
 
 <style scoped>
-  header {
+  #title {
     user-select: none;
     -webkit-user-select: none;
-    position: absolute;
-    left: 0;
-    right: 0;
-    width: 10em;
-    font-size: 16px;
-    margin: auto;
-    z-index: 1;
-    background-color: grey;
-    text-align: center;
   }
-
+  
   #canvas-section {
-    background-color: lightsteelblue;
-    height: calc(100% - 155px);
+    background-color: #666;
+    height: calc(100% - 155px - 32px);
     width: 100%;
   }
 
   #input-section {
-    background-color: grey;
+    background-color: #333;
     height: 155px;
     width: 100%;
   }

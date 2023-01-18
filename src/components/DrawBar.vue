@@ -5,6 +5,32 @@
     data() {
       return {
         history: [],
+        warningVisible: false,
+      }
+    },
+    computed: {
+      linestringProps() {
+        let icon = 'north_east'
+        let color = 'primary';
+
+        if (this.drawingState.drawingLinestring) {
+          icon = 'cancel';
+          color = 'negative';
+        }
+
+        return {'icon': icon, 'color': color};
+      },
+
+      nodeProps() {
+        let icon = 'radio_button_checked'
+        let color = 'primary';
+
+        if (this.drawingState.drawingNode) {
+          icon = 'cancel';
+          color = 'negative';
+        }
+
+        return {'icon': icon, 'color': color};
       }
     },
     methods: {
@@ -13,10 +39,9 @@
           this.$emit('next')
         } else {
           // Displays warning if fewer than 2 items have been drawn
-          this.$refs.warning.show();
+          this.warningVisible = true;
           setTimeout(() => {
-            if (this.$refs.warning)
-              this.$refs.warning.hide();
+            this.warningVisible = false;
           }, 5000);
         }
       },
@@ -50,27 +75,27 @@
 </script>
 
 <template>
-  <div>
-    <q-btn :class="{active: this.drawingState.drawingLinestring}" icon="north_east" @click="toggleLinestring" label="Linestring" color="primary">
+  <div class="input-bar-flex">
+    <q-btn class="q-py-md" @click="toggleLinestring" label="Linestring" v-bind="linestringProps">
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
         Click and drag to draw a line.
       </q-tooltip>
     </q-btn>
-    <q-btn :class="{active: this.drawingState.drawingNode}" icon="radio_button_checked" @click="toggleNode" label="Node" color="primary">
+    <q-btn class="q-py-md" @click="toggleNode" label="Node" v-bind="nodeProps">
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
         Click once on the canvas to place a node.
       </q-tooltip>
     </q-btn>
   </div>
 
-  <div>
+  <div class="input-bar-flex">
     <q-btn @click="handleBack" id="back" label="Back" color="primary"/>
     <q-btn @click="handleUndo" :disabled="!annotations.length" icon="undo" id="undo" label="Undo" color="secondary"/>
     <q-btn @click="handleRedo" :disabled="!history.length" icon="redo" id="redo" label="Redo" color="secondary"/>
     <q-btn @click="handleNext" id="next" label="Next" color="primary"/>
   </div>
 
-  <q-dialog ref="warning" v-model="seamless" seamless position="top">
+  <q-dialog v-model="warningVisible" seamless position="top">
     <q-card class="bg-warning text-black">
       <q-card-section id="card-section" class="row items-center no-wrap">
         <div id="warning-msg">Draw at least two linestrings, nodes, or a combination of both.</div>
@@ -95,17 +120,8 @@
     padding: 0;
   }
 
-  div:first-child {
-    padding-bottom: 10px;
-  }
-
-  div {
-    display: flex;
+  .input-bar-flex {
     gap: 10px;
-    flex-direction: row;
-    flex-wrap: wrap;
-    flex-basis: auto;
-    justify-content: center;
   }
 
   button.active {

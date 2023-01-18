@@ -16,6 +16,23 @@ import './assets/main.css'
 
 const app = createApp(App);
 app.use(VueKonva);
-app.use(Quasar);
+app.use(Quasar, {
+    config: {
+        brand: {
+            primary: '#124559',
+        //     secondary: '#ececec',
+        //     accent: '#9C27B0',
+
+        //     dark: '#1d1d1d',
+        //     'dark-page': '#121212',
+            dark: '#333',
+
+        //     positive: '#21BA45',
+        //     negative: '#C10015',
+        //     info: '#31CCEC',
+        //     warning: '#F2C037'
+        }
+    }
+});
 app.component('tags-input', VoerroTagsInput)
 app.mount('#app');

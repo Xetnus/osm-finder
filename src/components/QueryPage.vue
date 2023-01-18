@@ -51,5 +51,7 @@ import {constructQuery} from '../assets/queryCreator.js'
 </template>
 
 <style scoped>
-
+  div {
+    color: black;
+  }
 </style>

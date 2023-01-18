@@ -201,39 +201,29 @@
           return ann.name;
         }
       },
+
+      getAngleInputColor() {
+        return this.isAngular() ? 'secondary' : 'warning'
+      },
+
+      getDistanceInputColor() {
+        return this.intersects() ? 'secondary' : 'primary'
+      }
     }
   }
 </script>
 
 <template>
-  <p>Relationship between {{current1.name}} and {{getReadableName(current2)}}</p>
-  <div>
+  <p class="input-title">Relationship between {{current1.name}} and {{getReadableName(current2)}}</p>
+  <div class="input-bar-flex">
     <q-btn @click="handleBack" id="back" label="Back" color="primary"/>
-    <q-input :disable="intersects()" v-model="maxDistance" standout="bg-secondary text-white" label="Max distance (m)" color="primary"/>
-    <q-input :disable="intersects()" v-model="minDistance" standout="bg-secondary text-white" label="Min distance (m)" color="primary"/>
-    <q-input :disable="!isAngular()" v-model="angle" standout="bg-secondary text-white" label="Angle" color="primary"/>
-    <q-input :disable="!isAngular()" v-model="error" standout="bg-secondary text-white" label="Error" color="primary"/>
+    <q-input :disable="intersects()" v-model="maxDistance" outlined label="Max distance (m)" :bg-color="getDistanceInputColor()"/>
+    <q-input :disable="intersects()" v-model="minDistance" outlined label="Min distance (m)" :bg-color="getDistanceInputColor()"/>
+    <q-input :disable="!isAngular()" v-model="angle" outlined label="Angle" :bg-color="getAngleInputColor()"/>
+    <q-input :disable="!isAngular()" v-model="error" outlined label="Error" :bg-color="getAngleInputColor()"/>
     <q-btn @click="handleNext" id="next" label="Next" color="primary"/>
   </div>
 </template>
 
 <style scoped>
-  p {
-    font-weight: bold;
-    font-size: 20px;
-    text-align: center;
-    margin-bottom: 0.4em;
-  }
-
-  input {
-    width: 10em;
-  }
-
-  div {
-    display: flex;
-    gap: 20px;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
 </style>

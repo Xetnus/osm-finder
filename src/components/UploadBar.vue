@@ -54,14 +54,14 @@
 </script>
 
 <template>
-  <div>
-    <q-btn @click="upload" id="upload" icon="upload" label="Upload Photo" color="primary"/>
-    <q-btn @click="handleNext" id="next" label="Next" color="primary"/>
+  <div class="input-bar-flex">
+    <q-btn @click="upload" id="upload" size="lg" icon="upload" label="Upload Photo" color="primary"/>
+    <q-btn @click="handleNext" id="next" size="lg" label="Next" color="primary"/>
 
     <q-dialog v-model="dialogVisible">
       <q-card>
-        <q-card-section class="q-px-xl q-mb-none q-pb-none">
-          <q-btn icon="image" size="xl" flat round />
+        <q-card-section class="q-px-xl q-mx-xl q-mb-none q-pb-none">
+          <q-btn icon="image" class="q-px-xl q-mx-xl" size="xl" flat round />
         </q-card-section>
 
         <q-card-section class="q-px-xl q-pb-lg q-mx-xl q-pt-none q-mt-none">
@@ -74,11 +74,6 @@
 
 <style scoped>
   div {
-    display: flex;
-    gap: 20px;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: flex-start;
+    color: black;
   }
 </style>

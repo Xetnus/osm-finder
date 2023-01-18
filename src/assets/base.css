@@ -13,25 +13,26 @@ html {
 
 body {
   height: 100%;
-  background-color: grey;
+  background-color: #333;
+  color: #c9d6df;
 }
 
-input, button {
-  font-size: 16px;
-  height: 46px;
+.input-bar-flex {
+    display: flex;
+    gap: 20px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
-button {
-  padding: 0 15px;
+.input-bar-flex:first-child {
+  padding-bottom: 10px;
+}
+
+.input-title {
+  font-weight: bold;
+  font-size: 20px;
   text-align: center;
-  border: 1px solid darkgreen;
-  background-color: lightgreen;
+  margin-bottom: 0.4em;
 }
 
-button:hover:enabled {
-  filter: brightness(80%)
-}
-
-button:active:enabled {
-  filter: brightness(40%)
-}
