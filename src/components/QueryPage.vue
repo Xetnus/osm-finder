@@ -7,6 +7,7 @@ import {constructQuery} from '../assets/queryCreator.js'
     data() {
       return {
         queryVisible: true,
+        displayUrls: true,
       }
     },
     methods: {
@@ -21,8 +22,8 @@ import {constructQuery} from '../assets/queryCreator.js'
           alert('Copying not supported on this browser.')
         });
       },
-      getQuery() {
-        return constructQuery(this.annotations);
+      getQuery(urls) {
+        return constructQuery(this.annotations, urls);
       }
     }
   }
@@ -32,6 +33,15 @@ import {constructQuery} from '../assets/queryCreator.js'
   <q-dialog v-model="queryVisible" full-width persistent transition-show="rotate" transition-hide="rotate">
     <q-card>
       <q-card-actions align="right">
+        <q-toggle
+          class="q-mr-lg"
+          v-model="displayUrls"
+          checked-icon="check"
+          color="green"
+          unchecked-icon="clear"
+          left-label
+          label="With URLs"
+        />
         <q-btn flat icon="content_copy" @click="copy()" padding="15px 10px" color="primary">
           <q-tooltip>Copy Query</q-tooltip>
         </q-btn>
@@ -43,7 +53,7 @@ import {constructQuery} from '../assets/queryCreator.js'
 
       <q-card-section class="q-pt-none">
         <div>
-          <pre id="content">{{ getQuery() }}</pre>
+          <pre id="content">{{ getQuery(displayUrls) }}</pre>
         </div>
       </q-card-section>
     </q-card>

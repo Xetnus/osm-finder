@@ -5,8 +5,8 @@ import {calculateBounds, createTagsQuery, createMaxDistanceQuery, createMinDista
 /*
 SELECT line1.id, line2.id
 FROM linestrings AS line1, linestrings as line2
-WHERE line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND line2.generic_type = 'highway'
-  AND line2.subtype = 'vehicle' AND ST_DWithin(line1.geom, line2.geom, 50) AND 
+WHERE line1.category = 'highway' AND line1.subcategory = 'vehicle' AND line2.category = 'highway'
+  AND line2.subcategory = 'vehicle' AND ST_DWithin(line1.geom, line2.geom, 50) AND 
 (
   abs((
     degrees(ST_Azimuth(ST_StartPoint(line2.geom), ST_EndPoint(line2.geom)))
@@ -16,11 +16,17 @@ WHERE line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND line2.gen
 );
 */
 
-function constructDisjointQuery(annotations, nodes, lines) {
-  let query = 'SELECT ';
+function constructDisjointQuery(annotations, nodes, lines, displayUrls) {
+  let query = 'SELECT\n';
   for (let i = 0; i < annotations.length; i++) {
-    const comma = (i == annotations.length - 1) ? '\n' : ', ';
-    query += annotations[i].name + '.id' + comma;
+    const comma = (i == annotations.length - 1) ? '' : ', ';
+    if (displayUrls) {
+      query += '  replace(replace(' + annotations[i].name + ".osm_type, 'N', 'www.openstreetmap.org/node/'), 'W', 'www.openstreetmap.org/way/')";
+      query += ' || ' + annotations[i].name + '.osm_id AS ' + annotations[i].name + '_url' + comma + '\n';
+    } else {
+      query += '  ' + annotations[i].name + '.osm_id AS ' + annotations[i].name + '_id, ';
+      query += annotations[i].name + '.osm_type AS ' + annotations[i].name + '_type' + comma + '\n';
+    }
   }
 
   query += 'FROM ';
@@ -31,11 +37,11 @@ function constructDisjointQuery(annotations, nodes, lines) {
 
   query += 'WHERE ';
   for (let i = 0; i < annotations.length; i++) {
-    // Filters results by generic type and subtype
-    let genericType = annotations[i].genericType;
-    let subtype = annotations[i].subtype;
-    let subtypeString = (subtype == '' ? '' : annotations[i].name + '.subtype = \'' + subtype + '\' AND ');
-    query += annotations[i].name + '.generic_type = \'' + genericType + '\' AND ' + subtypeString;
+    // Filters results by category and subcategory
+    let category = annotations[i].category;
+    let subcategory = annotations[i].subcategory;
+    let subcategoryString = (subcategory == '' ? '' : annotations[i].name + '.subcategory = \'' + subcategory + '\' AND ');
+    query += annotations[i].name + '.category = \'' + category + '\' AND ' + subcategoryString;
 
     // Adds any additional tags entered by the user to the WHERE
     if (annotations[i].tags.length != 0) {
@@ -107,9 +113,9 @@ WITH intersections AS
     line2.id AS line2_id,
     line3.id AS line3_id
   FROM linestrings AS line1, linestrings AS line2, linestrings as line3
-  WHERE line1.tags->>'bridge' = 'yes' AND line1.generic_type = 'highway' AND line1.subtype = 'vehicle' AND 
-    line2.tags->>'bridge' = 'yes' AND line2.generic_type = 'highway' AND line2.subtype = 'vehicle' AND 
-    line1.id != line2.id AND line3.generic_type = 'highway' AND line3.subtype = 'vehicle' AND 
+  WHERE line1.tags->>'bridge' = 'yes' AND line1.category = 'highway' AND line1.subcategory = 'vehicle' AND 
+    line2.tags->>'bridge' = 'yes' AND line2.category = 'highway' AND line2.subcategory = 'vehicle' AND 
+    line1.id != line2.id AND line3.category = 'highway' AND line3.subcategory = 'vehicle' AND 
     ST_Intersects(line1.geom, line3.geom) AND ST_Intersects(line2.geom, line3.geom) AND 
     ST_DWithin(line1.geom, line2.geom, 1000) AND ST_Distance(line1.geom, line2.geom) > 200
 ),
@@ -192,7 +198,7 @@ WHERE
   )
 ;
 */
-function constructIntersectingQuery(annotations, nodes, lines) {
+function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
   // Generates an array that consists of pairs of intersecting lines
   let intersections = [];
   let dbd = [];
@@ -322,11 +328,9 @@ function constructIntersectingQuery(annotations, nodes, lines) {
       query += '    ' + lines[i].name + '.geom AS ' + lines[i].name + '_geom,\n';
     }
 
-    if (i == lines.length - 1 && nodes.length == 0) {
-      query += '    ' + lines[i].name + '.id AS ' + lines[i].name + '_id\n';
-    } else {
-      query += '    ' + lines[i].name + '.id AS ' + lines[i].name + '_id,\n';
-    }
+    query += '    ' + lines[i].name + '.osm_id AS ' + lines[i].name + '_id,\n';
+    const comma = (i == lines.length - 1 && nodes.length == 0) ? '' : ',';
+    query += '    ' + lines[i].name + '.osm_type AS ' + lines[i].name + '_type' + comma + '\n';
   }
 
   for (let i = 0; i < nodes.length; i++) {
@@ -334,8 +338,9 @@ function constructIntersectingQuery(annotations, nodes, lines) {
       // We only need to carry the geometries of nodes that intersect at defined angles
       query += '    ' + nodes[i].name + '.geom AS ' + nodes[i].name + '_geom,\n';
     }
+    query += '    ' + nodes[i].name + '.osm_id AS ' + nodes[i].name + '_id,\n';
     const comma = (i == nodes.length - 1) ? '' : ',';
-    query += '    ' + nodes[i].name + '.id AS ' + nodes[i].name + '_id' + comma + '\n';
+    query += '    ' + nodes[i].name + '.osm_type AS ' + nodes[i].name + '_type' + comma + '\n';
   }
 
   query += '  FROM ';
@@ -346,11 +351,11 @@ function constructIntersectingQuery(annotations, nodes, lines) {
 
   query += '  WHERE ';
   for (let i = 0; i < annotations.length; i++) {
-    // Filters results by generic type and subtype
-    let genericType = annotations[i].genericType;
-    let subtype = annotations[i].subtype;
-    let subtypeString = (subtype == '' ? '' : annotations[i].name + '.subtype = \'' + subtype + '\' AND ');
-    query += annotations[i].name + '.generic_type = \'' + genericType + '\' AND ' + subtypeString;
+    // Filters results by category and subcategory
+    let category = annotations[i].category;
+    let subcategory = annotations[i].subcategory;
+    let subcategoryString = (subcategory == '' ? '' : annotations[i].name + '.subcategory = \'' + subcategory + '\' AND ');
+    query += annotations[i].name + '.category = \'' + category + '\' AND ' + subcategoryString;
 
     // Adds any additional tags entered by the user to the WHERE
     if (annotations[i].tags.length != 0) {
@@ -422,11 +427,9 @@ function constructIntersectingQuery(annotations, nodes, lines) {
       query += '    intersections.' + lines[i].name + '_geom,\n';
     }
 
-    if (i == lines.length - 1 && nodes.length == 0) {
-      query += '    intersections.' + lines[i].name + '_id\n';
-    } else {
-      query += '    intersections.' + lines[i].name + '_id,\n';
-    }
+    query += '    intersections.' + lines[i].name + '_id,\n';
+    const comma = (i == lines.length - 1 && nodes.length == 0) ? '' : ','
+    query += '    intersections.' + lines[i].name + '_type' + comma + '\n';
   }
 
   for (let i = 0; i < nodes.length; i++) {
@@ -434,8 +437,9 @@ function constructIntersectingQuery(annotations, nodes, lines) {
       // We only need to carry the geometries of nodes that intersect at defined angles
       query += '    intersections.' + nodes[i].name + '_geom,\n';
     }
+    query += '    intersections.' + nodes[i].name + '_id,\n';
     const comma = (i == nodes.length - 1) ? '' : ','
-    query += '    intersections.' + nodes[i].name + '_id' + comma + '\n';
+    query += '    intersections.' + nodes[i].name + '_type' + comma + '\n';
   }
 
   query += '  FROM intersections\n';
@@ -496,11 +500,9 @@ function constructIntersectingQuery(annotations, nodes, lines) {
       query += '    buffers.' + lines[i].name + '_geom,\n';
     }
 
-    if (i == lines.length - 1 && nodes.length == 0) {
-      query += '    buffers.' + lines[i].name + '_id\n';
-    } else {
-      query += '    buffers.' + lines[i].name + '_id,\n';
-    }
+    query += '    buffers.' + lines[i].name + '_id,\n';
+    const comma = (i == lines.length - 1 && nodes.length == 0) ? '' : ','
+    query += '    buffers.' + lines[i].name + '_type' + comma + '\n';
   }
 
   for (let i = 0; i < nodes.length; i++) {
@@ -508,22 +510,37 @@ function constructIntersectingQuery(annotations, nodes, lines) {
       // We only need to carry the geometries of nodes that intersect at defined angles
       query += '    buffers.' + nodes[i].name + '_geom,\n';
     }
+    query += '    buffers.' + nodes[i].name + '_id,\n';
     const comma = (i == nodes.length - 1) ? '' : ','
-    query += '    buffers.' + nodes[i].name + '_id' + comma + '\n';
+    query += '    buffers.' + nodes[i].name + '_type' + comma + '\n';
   }
 
   query += '  FROM buffers\n';
   query += ')\n';
 
   query += 'SELECT\n';
+
   for (let i = 0; i < lines.length; i++) {
     const comma = (i == lines.length - 1 && nodes.length == 0) ? '' : ',';
-    query += '  points.' + lines[i].name + '_id AS ' + lines[i].name + '_way_id' + comma + '\n';
+    if (displayUrls) {
+      query += '  replace(replace(points.' + lines[i].name + "_type, 'N', 'www.openstreetmap.org/node/'), 'W', 'www.openstreetmap.org/way/')";
+      query += ' || points.' + lines[i].name + '_id AS ' + lines[i].name + '_url' + comma + '\n';
+    } else {
+      query += '  points.' + lines[i].name + '_type AS ' + lines[i].name + '_type,\n';
+      query += '  points.' + lines[i].name + '_id AS ' + lines[i].name + '_id' + comma + '\n';
+    }
   }
   for (let i = 0; i < nodes.length; i++) {
     const comma = (i == nodes.length - 1) ? '' : ','
-    query += '  points.' + nodes[i].name + '_id AS ' + nodes[i].name + '_node_id' + comma + '\n';
+    if (displayUrls) {
+      query += '  replace(replace(points.' + nodes[i].name + "_type, 'N', 'www.openstreetmap.org/node/'), 'W', 'www.openstreetmap.org/way/')";
+      query += ' || points.' + nodes[i].name + '_id AS ' + nodes[i].name + '_url' + comma + '\n';
+    } else {
+      query += '  points.' + nodes[i].name + '_type AS ' + nodes[i].name + '_type,\n';
+      query += '  points.' + nodes[i].name + '_id AS ' + nodes[i].name + '_id' + comma + '\n';
+    }
   }
+
   query += 'FROM points\n';
   query += 'WHERE\n';
   
@@ -610,7 +627,7 @@ function constructIntersectingQuery(annotations, nodes, lines) {
   return query;
 }
 
-function constructQuery(annotations) {
+function constructQuery(annotations, displayUrls = true) {
   // Uncomment to print the details of annotations, which can be used by the unit testing script.
   // console.log(JSON.stringify(annotations));
 
@@ -632,12 +649,12 @@ function constructQuery(annotations) {
 
       const intersection = calculateIntersection(lines[i].points, lines[k].points);
       if (intersection && intersection.intersects) {
-        return constructIntersectingQuery(annotations, nodes, lines);
+        return constructIntersectingQuery(annotations, nodes, lines, displayUrls);
       }
     }
   }
 
-  return constructDisjointQuery(annotations, nodes, lines);
+  return constructDisjointQuery(annotations, nodes, lines, displayUrls);
 }
 
 export {constructQuery}

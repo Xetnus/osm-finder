@@ -16,6 +16,7 @@ annotations: [
     points
     state // either transparent, transparent-but-related, or default 
     category
+    subcategory
     tags: []
     relations: {
       name: {
@@ -32,6 +33,7 @@ annotations: [
     point
     state // either transparent, transparent-but-related, or default
     category
+    subcategory
     tags: []
     relations: {
       name: {

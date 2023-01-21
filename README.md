@@ -22,7 +22,7 @@ https://creativecommons.org/licenses/by-sa/2.0/
 The numbers below correspond to the stages in the application. By clicking the Next button, you either progress to the next stage or the next phase of the same stage.    
 1. Upload the image you want to geolocate 
 2. Draw the linestrings that make up the line network of the photo 
-3. Input the generic types, subtypes, and tags for each line. Multiple tags can be separated with a comma: `bridge=yes,surface=wood,junction` 
+3. Input the category, subcategory, and tags for each line. Multiple tags can be separated with a space: `bridge=yes surface=wood junction` 
 4. Input the max distances, min distances, angles, and angle errors for each relation 
    - Important note: all distances and angles should be entered as if you are viewing the image from a bird's perspective, directly overhead.
 5. That's it! Your query should be generated and displayed automatically. 

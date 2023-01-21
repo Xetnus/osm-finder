@@ -55,8 +55,8 @@
 
 <template>
   <div class="input-bar-flex">
-    <q-btn @click="upload" id="upload" size="lg" icon="upload" label="Upload Photo" color="primary"/>
-    <q-btn @click="handleNext" id="next" size="lg" label="Next" color="primary"/>
+    <q-btn @click="upload" size="lg" icon="upload" label="Upload Photo" color="primary"/>
+    <q-btn @click="handleNext" size="lg" label="Next" color="primary"/>
 
     <q-dialog v-model="dialogVisible">
       <q-card>

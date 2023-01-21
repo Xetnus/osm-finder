@@ -1,6 +1,9 @@
-SELECT line1.id, line2.id, line3.id
+SELECT
+  line1.osm_id AS line1_id, line1.osm_type AS line1_type, 
+  line2.osm_id AS line2_id, line2.osm_type AS line2_type, 
+  line3.osm_id AS line3_id, line3.osm_type AS line3_type
 FROM linestrings AS line1, linestrings AS line2, linestrings AS line3
-WHERE line1.generic_type = 'highway' AND line1.subtype = 'path' AND line1.tags->>'surface' = 'concrete' AND line2.generic_type = 'highway' AND line2.subtype = 'path' AND line3.generic_type = 'highway' AND line3.subtype = 'path' AND line3.id != line2.id AND line3.id != line1.id AND line2.id != line1.id AND ST_DWithin(line1.geom, line2.geom, 30) AND ST_DWithin(line1.geom, line3.geom, 20) AND 
+WHERE line1.category = 'walkway' AND line1.tags->>'surface' = 'concrete' AND line2.category = 'walkway' AND line3.category = 'walkway' AND line3.osm_id != line2.osm_id AND line3.osm_id != line1.osm_id AND line2.osm_id != line1.osm_id AND ST_DWithin(line1.geom, line2.geom, 30) AND ST_DWithin(line1.geom, line3.geom, 20) AND 
 (
   (
     abs((

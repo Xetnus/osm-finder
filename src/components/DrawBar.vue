@@ -89,10 +89,10 @@
   </div>
 
   <div class="input-bar-flex">
-    <q-btn @click="handleBack" id="back" label="Back" color="primary"/>
-    <q-btn @click="handleUndo" :disabled="!annotations.length" icon="undo" id="undo" label="Undo" color="secondary"/>
-    <q-btn @click="handleRedo" :disabled="!history.length" icon="redo" id="redo" label="Redo" color="secondary"/>
-    <q-btn @click="handleNext" id="next" label="Next" color="primary"/>
+    <q-btn @click="handleBack" label="Back" color="primary"/>
+    <q-btn @click="handleUndo" :disabled="!annotations.length" icon="undo" label="Undo" color="secondary"/>
+    <q-btn @click="handleRedo" :disabled="!history.length" icon="redo" label="Redo" color="secondary"/>
+    <q-btn @click="handleNext" label="Next" color="primary"/>
   </div>
 
   <q-dialog v-model="warningVisible" seamless position="top">

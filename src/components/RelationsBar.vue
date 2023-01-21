@@ -69,6 +69,45 @@
         this.handleBack();
       }
     },
+    computed: {
+      // Enables the angle inputs if both annotations are of type linestring
+      angleProps() {
+        let props = {'disable': false, 'bg-color': 'secondary', 'label-color': 'white', 'input-style': 'color: white'};
+
+        if (this.current2 instanceof Array)
+          return props;
+
+        if (this.current1.geometryType !== 'linestring' || this.current2.geometryType !== 'linestring') {
+          props['disable'] = true;
+          props['bg-color'] = 'none';
+        }
+
+        return props;
+      },
+
+      // Determines if the distance inputs are enabled based on if
+      // the two lines intersect
+      distanceProps() {
+        let props = {'disable': false, 'bg-color': 'secondary', 'label-color': 'white', 'input-style': 'color: white'};
+
+        if (this.current2 instanceof Array)
+          return props;
+
+        if (this.current1.geometryType !== 'linestring' || this.current2.geometryType !== 'linestring')
+          return props;
+
+        const line1 = this.current1.points;
+        const line2 = this.current2.points;
+        const intersection = calculateIntersection(line1, line2);
+
+        if (intersection && intersection.intersects) {
+          props['disable'] = true;
+          props['bg-color'] = 'none';
+        }
+
+        return props;
+      },
+    },
     methods: {
       handleNext(event) {
         if (this.current1 && this.current2) {
@@ -174,26 +213,6 @@
         this.$emit('annotationsChange', this.anns);
       },
 
-      isAngular() {
-        if (this.current2 instanceof Array)
-          return true;
-
-        return this.current1.geometryType === 'linestring' && this.current2.geometryType === 'linestring';
-      },
-
-      intersects() {
-        if (this.current2 instanceof Array)
-          return false;
-
-        if (!this.isAngular())
-          return false;
-
-        const line1 = this.current1.points;
-        const line2 = this.current2.points;
-        const intersection = calculateIntersection(line1, line2);
-        return intersection && intersection.intersects;
-      },
-
       getReadableName(ann) {
         if (ann instanceof Array) {
           return ann[0].name + '-' + ann[1].name + ' intersection';
@@ -201,14 +220,6 @@
           return ann.name;
         }
       },
-
-      getAngleInputColor() {
-        return this.isAngular() ? 'secondary' : 'warning'
-      },
-
-      getDistanceInputColor() {
-        return this.intersects() ? 'secondary' : 'primary'
-      }
     }
   }
 </script>
@@ -216,14 +227,17 @@
 <template>
   <p class="input-title">Relationship between {{current1.name}} and {{getReadableName(current2)}}</p>
   <div class="input-bar-flex">
-    <q-btn @click="handleBack" id="back" label="Back" color="primary"/>
-    <q-input :disable="intersects()" v-model="maxDistance" outlined label="Max distance (m)" :bg-color="getDistanceInputColor()"/>
-    <q-input :disable="intersects()" v-model="minDistance" outlined label="Min distance (m)" :bg-color="getDistanceInputColor()"/>
-    <q-input :disable="!isAngular()" v-model="angle" outlined label="Angle" :bg-color="getAngleInputColor()"/>
-    <q-input :disable="!isAngular()" v-model="error" outlined label="Error" :bg-color="getAngleInputColor()"/>
-    <q-btn @click="handleNext" id="next" label="Next" color="primary"/>
+    <q-btn @click="handleBack" label="Back" color="primary"/>
+    <q-input v-bind="distanceProps" class="property-input" v-model="maxDistance" outlined label="Max distance (m)"/>
+    <q-input v-bind="distanceProps" class="property-input" v-model="minDistance" outlined label="Min distance (m)"/>
+    <q-input v-bind="angleProps" class="property-input" v-model="angle" outlined label="Angle"/>
+    <q-input v-bind="angleProps" class="property-input" v-model="error" outlined label="Error"/>
+    <q-btn @click="handleNext" label="Next" color="primary"/>
   </div>
 </template>
 
 <style scoped>
+  .property-input {
+    max-width: 15%;
+  }
 </style>

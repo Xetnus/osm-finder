@@ -8,7 +8,6 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@james090500/vue-tagsinput": "github:james090500/vue-tagsinput",
     "@quasar/extras": "^1.15.9",
     "konva": "^8.3.13",
     "vue": "^3.2.38",

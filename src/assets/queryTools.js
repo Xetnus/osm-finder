@@ -34,9 +34,9 @@ function createNoOverlappingQuery(annotations) {
   let identicalTypes = {};
 
   for (let i = 0; i < annotations.length; i++) {
-    let genericType = annotations[i].genericType;
-    let subtype = annotations[i].subtype;
-    let key = genericType + ' ' + subtype;
+    let category = annotations[i].category;
+    let subcategory = annotations[i].subcategory;
+    let key = category + ' ' + subcategory;
 
     if (identicalTypes[key] == undefined) {
       identicalTypes[key] = [annotations[i].name];
@@ -61,7 +61,7 @@ function createNoOverlappingQuery(annotations) {
         secondaryRemaining = primaryRemaining.slice(0);
         current2 = secondaryRemaining.pop();
       }
-      query += current1 + '.id != ' + current2 + '.id AND ';
+      query += current1 + '.osm_id != ' + current2 + '.osm_id AND ';
     }
   }
   return query;

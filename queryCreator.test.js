@@ -62,7 +62,7 @@ describe("queryCreator.js tester", () => {
   test.each(tests)('%s: %s', (name, desc, json, expectedQuery, expectedResults) => {
     const execSync = require('child_process').execSync;
 
-    const query = constructQuery(json) + '\n';
+    const query = constructQuery(json, false) + '\n';
     const resultsFile = mainDirName + '/' + name + '/' + 'actual-results.txt';
     // Stores the results directly to a file since some query results are too large to buffer
     const command = 'psql -t -d osm -U osmuser -c "' + query + '" > ' + resultsFile;

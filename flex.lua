@@ -63,6 +63,7 @@ tables.nodes = osm2pgsql.define_table({
   columns = {
     { column = 'tags', type = 'jsonb' },
     { column = 'category', type = 'text' },
+    { column = 'subcategory', type = 'text' },
     { column = 'geom', type = 'point', projection = srid, not_null = true },
 }})
 
@@ -73,6 +74,7 @@ tables.nodes = osm2pgsql.define_table({
 --   columns = {
 --     { column = 'tags', type = 'jsonb' },
 --     { column = 'category', type = 'text' },
+--     { column = 'subcategory', type = 'text' },
 --     { column = 'geom', type = 'polygon', projection = srid, not_null = true },
 --     { column = 'nodes', sql_type = 'int8[]' },
 -- }})
@@ -83,6 +85,7 @@ tables.linestrings = osm2pgsql.define_table({
   columns = {
     { column = 'tags', type = 'jsonb' },
     { column = 'category', type = 'text' },
+    { column = 'subcategory', type = 'text' },
     { column = 'geom', type = 'linestring', projection = srid, not_null = true },
 }})
 
@@ -103,21 +106,27 @@ function osm2pgsql.process_node(object)
     end
 
     local category
+    local subcategory
 
     if object.tags['building'] then
         category = 'building'
+        subcategory = object.tags['building']
     elseif object.tags['railway'] then
         category = 'railway'
+        subcategory = object.tags['railway']
     elseif object.tags['power'] then
         category = 'power'
+        subcategory = object.tags['power']
     elseif object.tags['man_made'] then
         category = 'man_made'
+        subcategory = object.tags['man_made']
     end
 
     if category then
         tables.nodes:insert({
             tags = object.tags,
             category = category,
+            subcategory = subcategory,
             geom = object:as_point()
         })
     end
@@ -130,49 +139,55 @@ function osm2pgsql.process_way(object)
 	
     if object.tags['building'] then
         if object.is_closed then
-            insertPolygonalNode(object, 'building')
+            subcategory = object.tags['building']
+            insertPolygonalNode(object, 'building', subcategory)
         end
         -- TODO: Area shape matching
     elseif highway_types[object.tags['highway']] then
         category = highway_types[object.tags['highway']]
-        insertLinestring(object, category)
+        subcategory = object.tags['highway']
+        insertLinestring(object, category, subcategory)
     elseif object.tags['railway'] then
     	category = 'railway'
+        subcategory = object.tags['railway']
 
         if object.is_closed then
-            insertPolygonalNode(object, category)
+            insertPolygonalNode(object, category, subcategory)
         else
-            insertLinestring(object, category)
+            insertLinestring(object, category, subcategory)
         end
     elseif object.tags['power'] then
     	category = 'power'
+        subcategory = object.tags['power']
 
         if object.is_closed then
-            insertPolygonalNode(object, category)
+            insertPolygonalNode(object, category, subcategory)
         else
-            insertLinestring(object, category)
+            insertLinestring(object, category, subcategory)
         end
     elseif object.tags['waterway'] then
         category = 'waterway'
+        subcategory = object.tags['waterway']
 
         -- TODO: Area shape matching
         if not object.is_closed then
-            insertLinestring(object, category)
+            insertLinestring(object, category, subcategory)
         end
     elseif object.tags['natural'] == 'coastline' then
         category = 'coastline'
 
         -- TODO: Area shape matching
         if not object.is_closed then
-            insertLinestring(object, category)
+            insertLinestring(object, category, '')
         end
     elseif object.tags['man_made'] then
     	category = 'man_made'
+        subcategory = object.tags['man_made']
 
         if object.is_closed then
-            insertPolygonalNode(object, category)
+            insertPolygonalNode(object, category, subcategory)
         else
-            insertLinestring(object, category)
+            insertLinestring(object, category, subcategory)
         end
     end
 end
@@ -181,18 +196,20 @@ end
 -- Converts a polygon (e.g. way) to a node by using the
 -- centroid as the node's point, then inserts it into
 -- the nodes table
-function insertPolygonalNode(object, category)
+function insertPolygonalNode(object, category, subcategory)
     tables.nodes:insert({
         tags = object.tags,
         category = category,
+        subcategory = subcategory,
         geom = object:as_polygon():centroid()
     })
 end
 
 -- Inserts a linestring as-is into the linestrings table
-function insertLinestring(object, category)
+function insertLinestring(object, category, subcategory)
     tables.linestrings:insert({
         category = category,
+        subcategory = subcategory,
         -- nodes = '{' .. table.concat(object.nodes, ',') .. '}',
         tags = object.tags,
         geom = object:as_linestring()
@@ -203,6 +220,7 @@ end
 -- function insertClosedShape(object, category)
     -- tables.closed_shapes:insert({
     --     category = category,
+    --     subcategory = subcategory,
 
     --     -- The way node ids are put into a format that PostgreSQL understands
     --     -- for a column of type "int8[]".

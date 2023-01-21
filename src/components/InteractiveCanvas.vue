@@ -217,8 +217,8 @@
             geometryType: 'node',
             point: [pos.x, pos.y],
             transparent: false,
-            genericType: null,
-            subtype: null,
+            category: null,
+            subcategory: null,
             tags: [],
             relations: {},
           });
@@ -268,8 +268,8 @@
           geometryType: 'linestring',
           points: this.activeLinestring,
           state: 'default',
-          genericType: null,
-          subtype: null,
+          category: null,
+          subcategory: null,
           tags: [],
           relations: {},
         });
