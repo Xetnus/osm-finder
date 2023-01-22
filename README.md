@@ -11,11 +11,6 @@ This tool is still in early development. Please feel free to report issues or cr
 
 Tested on Ubuntu 22.04.1 LTS. 
 
-Note: The default image used in this program is subject to copyright.  
-Image copyright by flickr user "willem van bergen". No modifications made.  
-https://www.flickr.com/photos/willemvanbergen/271226856/  
-https://creativecommons.org/licenses/by-sa/2.0/  
-
 ## General Usage
 The numbers below correspond to the stages in the application. By clicking the Next button, you either progress to the next stage or the next phase of the same stage.    
 1. Upload the image you want to geolocate. 
@@ -78,7 +73,7 @@ Instructions below are for Linux.
 
 2. **Optional: tune your PostgreSQL server.** https://osm2pgsql.org/doc/manual.html#tuning-the-postgresql-server
 
-3. **Download openstreetmap data for your area of interest.** To follow along with the demo, download the data for Massachusetts at https://download.geofabrik.de/north-america/us.html. Click on the .osm.bz2 download.
+3. **Download openstreetmap data for your area of interest.** To follow along with the demo, download the data for Washington state at https://download.geofabrik.de/north-america/us.html. Click on the .osm.bz2 download.
 
 4. **Download [flex.lua](https://github.com/Xetnus/osm-finder/blob/main/flex.lua)** and run the following commands (in Linux):
     - Note: you may need to move files around and change directory/file permissions appropriately to ensure that the postgres user can access `massachusetts-latest.osm.bz2` and `flex.lua`.

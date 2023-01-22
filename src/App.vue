@@ -53,7 +53,7 @@ drawingState: {
 }
  */
 
-  import defaultImage from './assets/Massachusetts turnpike.jpg';
+  import defaultImage from './assets/Washington_US.jpg';
   export default {
     data() {
       return {
