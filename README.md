@@ -31,7 +31,7 @@ This tool currently supports the following types:
 - **Nodes**: [building](https://wiki.openstreetmap.org/wiki/Key:building), [railway](https://wiki.openstreetmap.org/wiki/Key:railway), [power](https://wiki.openstreetmap.org/wiki/Key:power), [man_made](https://wiki.openstreetmap.org/wiki/Key:man_made) 
 - **Linestrings**: walkway*, roadway*, [railway](https://wiki.openstreetmap.org/wiki/Key:railway), [power](https://wiki.openstreetmap.org/wiki/Key:power), [waterway](https://wiki.openstreetmap.org/wiki/Key:waterway), [coastline](https://wiki.openstreetmap.org/wiki/Tag:natural=coastline), [man_made](https://wiki.openstreetmap.org/wiki/Key:man_made) 
 
-* Walkways and roadways are custom types unique to OSM Finder that split the [highway](https://wiki.openstreetmap.org/wiki/Key:highway) key into two categories, one meant for roads that vehicles travel on (roadway) and the other meant for the paths that pedestrians or cyclists use (walkway). 
+**\*** The walkway and roadway types split the [highway](https://wiki.openstreetmap.org/wiki/Key:highway) key into two categories, one meant for roads that vehicles travel on (roadway) and the other meant for the paths that pedestrians or cyclists use (walkway). 
 
 ### Tips
 The general rule is that the more objects you add to the network, the longer the query will take to execute, oftentimes on an exponential scale.
