@@ -111,31 +111,7 @@
     methods: {
       handleNext(event) {
         if (this.current1 && this.current2) {
-          let annName, saveName;
-          if (this.current2 instanceof Array) {
-            annName = this.current1.name;
-            saveName = this.current2[0].name + '&' + this.current2[1].name;
-          } else {
-            annName = this.current2.name;
-            saveName = this.current1.name;
-          }
-
-          // Commit these properties to the global state. 
-          const maxD = Number.isInteger(parseInt(this.maxDistance)) ? parseInt(this.maxDistance) : null;
-          const minD = Number.isInteger(parseInt(this.minDistance)) ? parseInt(this.minDistance) : null;
-          const angle = Number.isInteger(parseInt(this.angle)) ? parseInt(this.angle) : null;
-          const error = Number.isInteger(parseInt(this.error)) ? parseInt(this.error) : null;
-          const rel = {maxDistance: maxD, minDistance: minD, angle: angle, error: error};
-          let index = this.anns.findIndex((a) => a.name == annName);
-
-          this.anns[index].relations[saveName] = rel;
-
-          if (this.current2 instanceof Array) {
-            this.current1.relations[saveName] = rel;
-          } else {
-            this.current2.relations[saveName] = rel;
-          }
-
+          this.saveRelationships();
           this.relationsHistory.push([this.current1, this.current2]);
         }
 
@@ -157,6 +133,7 @@
       handleBack(event) {
         if (this.current1 && this.current2) {
           this.nextRelations.push([this.current1, this.current2]);
+          this.saveRelationships();
         }
         
         if (this.relationsHistory.length == 0) {
@@ -172,6 +149,33 @@
 
         this.fillInForm();
         this.hideAllExcept(this.current1, this.current2);
+      },
+
+      // Commit the relationships to the global state. 
+      saveRelationships() {
+        let annName, saveName;
+        if (this.current2 instanceof Array) {
+          annName = this.current1.name;
+          saveName = this.current2[0].name + '&' + this.current2[1].name;
+        } else {
+          annName = this.current2.name;
+          saveName = this.current1.name;
+        }
+
+        const maxD = Number.isInteger(parseInt(this.maxDistance)) ? parseInt(this.maxDistance) : null;
+        const minD = Number.isInteger(parseInt(this.minDistance)) ? parseInt(this.minDistance) : null;
+        const angle = Number.isInteger(parseInt(this.angle)) ? parseInt(this.angle) : null;
+        const error = Number.isInteger(parseInt(this.error)) ? parseInt(this.error) : null;
+        const rel = {maxDistance: maxD, minDistance: minD, angle: angle, error: error};
+        let index = this.anns.findIndex((a) => a.name == annName);
+
+        this.anns[index].relations[saveName] = rel;
+
+        if (this.current2 instanceof Array) {
+          this.current1.relations[saveName] = rel;
+        } else {
+          this.current2.relations[saveName] = rel;
+        }
       },
 
       fillInForm() {
