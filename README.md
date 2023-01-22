@@ -5,9 +5,7 @@
 ## Description
 One of the most prominent tools that assists in geolocating images using openstreetmap data is [Overpass Turbo](https://overpass-turbo.eu/). This requires learning and using the [Overpass Query Language](https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_QL) and restricts your geolocation abilities to only what's permitted by the query language.  
 
-This tool attempts to make it easier for researchers to find locations with a simple click-and-drag interface. No need to learn a new query language. It also adds capabilities not present in existing tools, like the ability to search by the angle between roads, power lines, and railways.
-
-This tool currently supports all [highway](https://wiki.openstreetmap.org/wiki/Key:highway), [railway](https://wiki.openstreetmap.org/wiki/Key:railway), and a couple [power line](https://wiki.openstreetmap.org/wiki/Key:power) (namely, 'line' and 'minor_line') types.
+This tool attempts to make it easier for researchers to find locations with a simple click-and-drag interface. No need to learn a new query language. It also adds capabilities not present in existing tools, like the ability to search by the angles created by line intersections. 
 
 This tool is still in early development. Please feel free to report issues or create pull requests if you find any bugs.
 
@@ -20,19 +18,25 @@ https://creativecommons.org/licenses/by-sa/2.0/
 
 ## General Usage
 The numbers below correspond to the stages in the application. By clicking the Next button, you either progress to the next stage or the next phase of the same stage.    
-1. Upload the image you want to geolocate 
-2. Draw the linestrings that make up the line network of the photo 
-3. Input the category, subcategory, and tags for each line. Multiple tags can be separated with a space: `bridge=yes surface=wood junction` 
-4. Input the max distances, min distances, angles, and angle errors for each relation 
-   - Important note: all distances and angles should be entered as if you are viewing the image from a bird's perspective, directly overhead.
+1. Upload the image you want to geolocate. 
+2. Choose the most appropriate linestring(s) and node(s) from the photograph that uniquely identify the location and draw them. 
+3. Input the category, subcategory, and tags for each line. The subcategory can be selected from the curated list or typed. Multiple tags can be separated with a space: `bridge=yes surface=wood junction`. 
+4. Input the max distances, min distances, angles, and angle errors for each relation. 
+   - Important note: all distances and angles should be entered as if the image is viewed from directly overhead. 
 5. That's it! Your query should be generated and displayed automatically. 
 
-The final step is to execute that query in a PostgreSQL backend. Once you have your list of query results, you can view the individual results in a map by replacing "YourIDHere" in the following URLs with an ID from the results: https://www.openstreetmap.org/way/YourIDHere and https://www.openstreetmap.org/node/YourIDHere for linestrings (i.e., ways) and nodes, respectively.
+The final step is to execute that query in a PostgreSQL backend. 
+
+This tool currently supports the following types:
+- **Nodes**: [building](https://wiki.openstreetmap.org/wiki/Key:building), [railway](https://wiki.openstreetmap.org/wiki/Key:railway), [power](https://wiki.openstreetmap.org/wiki/Key:power), [man_made](https://wiki.openstreetmap.org/wiki/Key:man_made) 
+- **Linestrings**: walkway*, roadway*, [railway](https://wiki.openstreetmap.org/wiki/Key:railway), [power](https://wiki.openstreetmap.org/wiki/Key:power), [waterway](https://wiki.openstreetmap.org/wiki/Key:waterway), [coastline](https://wiki.openstreetmap.org/wiki/Tag:natural=coastline), [man_made](https://wiki.openstreetmap.org/wiki/Key:man_made) 
+
+* Walkways and roadways are custom types unique to OSM Finder that split the [highway](https://wiki.openstreetmap.org/wiki/Key:highway) key into two categories, one meant for roads that vehicles travel on (roadway) and the other meant for the paths that pedestrians or cyclists use (walkway). 
 
 ### Tips
 The general rule is that the more objects you add to the network, the longer the query will take to execute, oftentimes on an exponential scale.
 
-When in doubt, it's always safer to enter larger/wider parameters than you think is needed. For instance, enter an angle of 25 ± 10° instead of 25 ± 5°. Also, if there are any additional tags you can enter (e.g. bridge=yes, tunnel=yes), you'll decrease the size of the results significantly.
+When in doubt, it's always safer to enter larger/wider parameters than you think is needed. For instance, enter an angle of 25 ± 10° instead of 25 ± 5°. Also, please utilize the tagging feature as much as possible. Any tags you enter (e.g. bridge=yes, lanes=4) will decrease the size of the results significantly.
 
 ## Detailed Usage
 Before getting into the details, let's define some terms:
@@ -112,9 +116,9 @@ Unit testing was added to detect unexpected changes in the generated PostgreSQL 
 ### Alpha
 - [x] **Start from scratch.** Because this was created during a hackathon, little emphasis was put on code quality and future maintenance. No standard JavaScript libraries were used and most of the code is inefficient in one way or another.
 - [x] **Add support for nodes.** Towers, buildings, and nodes of all types should be supported.
-- [ ] **Update flex.lua.** Include more node and linestring types. Add "downsampling" capability such that ways and relations can be queried as nodes.
+- [x] **Update flex.lua.** Include more node and linestring types. Add "downsampling" capability such that ways and relations can be queried as nodes.
 - [ ] **Revamp UI.** Give the bottom input bar a more modern and functional appearance.
-### Beta
+### Bet
 - [ ] **Add support for shapes.** Many roads, buildings, structures, etc. have unique shapes that should be queryable using carefully crafted PostgreSQL queries.
 ### Future
 - [ ] **Host a public website.** Depending on cost, integrate and host both the frontend (UI) and backend (PostgreSQL) on a public-facing website.
