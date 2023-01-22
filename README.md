@@ -76,7 +76,7 @@ Instructions below are for Linux.
 3. **Download openstreetmap data for your area of interest.** To follow along with the demo, download the data for Washington state at https://download.geofabrik.de/north-america/us.html. Click on the .osm.bz2 download.
 
 4. **Download [flex.lua](https://github.com/Xetnus/osm-finder/blob/main/flex.lua)** and run the following commands (in Linux):
-    - Note: you may need to move files around and change directory/file permissions appropriately to ensure that the postgres user can access `massachusetts-latest.osm.bz2` and `flex.lua`.
+    - Note: you may need to move files around and change directory/file permissions appropriately to ensure that the postgres user can access `washington-latest.osm.bz2` and `flex.lua`.
     - Note: if you get an error saying "peer authentication failed" when you run the last command, check out the solution at https://stackoverflow.com/a/26735105/1941353, but replace every instance of 'postgres' with 'osmuser'.
 
 ```
@@ -84,7 +84,7 @@ Instructions below are for Linux.
     sudo -u postgres createdb --encoding=UTF8 --owner=osmuser osm 
     sudo -u postgres psql osm --command='CREATE EXTENSION postgis;' 
     sudo -u postgres psql osm --command='CREATE EXTENSION hstore;' 
-    osm2pgsql -d osm -U osmuser -c massachusetts-latest.osm.bz2 -S flex.lua -O flex 
+    osm2pgsql -d osm -U osmuser -c washington-latest.osm.bz2 -S flex.lua -O flex 
 ```
 
 5. **Open the interative query terminal** by running: `psql -d osm -U osmuser` 
