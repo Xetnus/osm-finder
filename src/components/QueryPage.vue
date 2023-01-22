@@ -15,7 +15,7 @@ import {constructQuery} from '../assets/queryCreator.js'
         this.$emit('programStageChange', this.programStage - 1);
       },
       copy() {
-        let content = document.getElementById('content').innerHTML;
+        let content = document.getElementById('content').innerText;
         navigator.clipboard.writeText(content).then(function() {
           // Success!
         }, function(err) {
