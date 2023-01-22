@@ -118,7 +118,7 @@ Unit testing was added to detect unexpected changes in the generated PostgreSQL 
 - [x] **Add support for nodes.** Towers, buildings, and nodes of all types should be supported.
 - [x] **Update flex.lua.** Include more node and linestring types. Add "downsampling" capability such that ways and relations can be queried as nodes.
 - [ ] **Revamp UI.** Give the bottom input bar a more modern and functional appearance.
-### Bet
+### Beta
 - [ ] **Add support for shapes.** Many roads, buildings, structures, etc. have unique shapes that should be queryable using carefully crafted PostgreSQL queries.
 ### Future
 - [ ] **Host a public website.** Depending on cost, integrate and host both the frontend (UI) and backend (PostgreSQL) on a public-facing website.
