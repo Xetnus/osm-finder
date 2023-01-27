@@ -67,17 +67,18 @@ tables.nodes = osm2pgsql.define_table({
     { column = 'geom', type = 'point', projection = srid, not_null = true },
 }})
 
--- TODO: Area shape matching
--- tables.closed_shapes = osm2pgsql.define_table({
---   name = 'closed_shapes', 
---   ids = { type = 'way', id_column = 'id' },
---   columns = {
---     { column = 'tags', type = 'jsonb' },
---     { column = 'category', type = 'text' },
---     { column = 'subcategory', type = 'text' },
---     { column = 'geom', type = 'polygon', projection = srid, not_null = true },
---     { column = 'nodes', sql_type = 'int8[]' },
--- }})
+tables.closed_shapes = osm2pgsql.define_table({
+  name = 'closed_shapes', 
+  ids = { type = 'way', id_column = 'id' },
+  columns = {
+    { column = 'tags', type = 'jsonb' },
+    { column = 'category', type = 'text' },
+    { column = 'subcategory', type = 'text' },
+    { column = 'geom', type = 'linestring', projection = srid, not_null = true },
+    { column = 'center', type = 'point', projection = srid },
+    { column = 'nodes', sql_type = 'int8[]' },
+    { column = 'num_nodes', sql_type = 'int8' },
+}})
 
 tables.linestrings = osm2pgsql.define_table({
   name = 'linestrings',
@@ -98,6 +99,72 @@ end
 for _, k in ipairs(highway_walkway_types) do
     highway_types[k] = "walkway"
 end
+
+local count = 0
+
+
+-- WITH distances AS
+-- (
+-- 	SELECT id, 
+-- 	ST_Distance(ST_PointN(geom, 1), ST_PointN(geom, 2)) AS d1, 
+-- 	ST_Distance(ST_PointN(geom, 2), ST_PointN(geom, 3)) AS d2,
+-- 	ST_Distance(ST_PointN(geom, 3), ST_PointN(geom, 4)) AS d3, 
+-- 	ST_Distance(ST_PointN(geom, 4), ST_PointN(geom, 5)) AS d4, 
+-- 	ST_Distance(ST_PointN(geom, 5), ST_PointN(geom, 6)) AS d5, 
+-- 	ST_Distance(ST_PointN(geom, 6), ST_PointN(geom, 7)) AS d6, 
+-- 	ST_Distance(ST_PointN(geom, 7), ST_PointN(geom, 8)) AS d7, 
+-- 	ST_Distance(ST_PointN(geom, 8), ST_PointN(geom, 9)) AS d8
+-- 	FROM closed_shapes WHERE num_nodes = 9
+-- ),
+-- least AS
+-- (
+-- 	SELECT distances.id, LEAST(distances.d1, distances.d2, distances.d3, distances.d4, distances.d5, distances.d6, distances.d7, distances.d8) AS l, distances.d1, distances.d2, distances.d3, distances.d4, distances.d5, distances.d6, distances.d7, distances.d8
+-- 	FROM distances
+-- ),
+-- reduced AS
+-- (
+-- 	SELECT least.id, UNNEST(array[(least.d1 / least.l), (least.d2 / least.l), (least.d3 / least.l), (least.d4 / least.l), (least.d5 / least.l), (least.d6 / least.l), (least.d7 / least.l), (least.d8 / least.l)]) AS list
+-- 	FROM least
+-- ),
+-- results AS
+-- (
+-- 	SELECT reduced.id, abs(stddev_pop(reduced.list) - 2.1272501286928 + avg(reduced.list) - 3.710361111125) AS diff
+-- 	FROM reduced
+-- 	GROUP BY id
+-- 	ORDER BY diff ASC
+-- )
+-- SELECT row_number() over (), results.id, results.diff
+-- FROM results;
+
+
+
+-- WITH PERSPECTIVE SKEW
+-- 274.59 / 25.30 = 10.853359684
+-- 78.10 / 25.30 = 3.086956522
+-- 320.62 / 25.30 = 12.672727273
+-- 72.47 / 25.30 = 2.864426877
+-- 196.37 / 25.30 = 7.761660079
+-- 240.21 / 25.30 = 9.494466403
+-- 134.01 / 25.30 = 5.296837945
+-- 25.30 / 25.30 = 1
+-- 10.853359684, 3.086956522, 12.672727273, 2.864426877, 7.761660079, 9.494466403, 5.296837945, 1
+-- mean = 6.628804347875
+-- dev = 3.9377031675282
+
+
+-- ACCOUNTING FOR PERSPECTIVE SKEW
+-- 276.72 / 45 = 6.149333333
+-- 276.72 / 45 = 6.149333333
+-- 86.09 / 45 = 1.913111111
+-- 75.18 / 45 = 1.670666667
+-- 138.01 / 45 = 3.066888889
+-- 138.01 / 45 = 3.066888889
+-- 300 / 45 = 6.666666667
+-- 45 / 45 = 1
+-- 6.149333333, 6.149333333, 1.913111111, 1.670666667, 3.066888889, 3.066888889, 6.666666667, 1
+-- mean = 3.710361111125
+-- dev = 2.1272501286928
+
 
 
 function osm2pgsql.process_node(object)
@@ -141,6 +208,16 @@ function osm2pgsql.process_way(object)
         if object.is_closed then
             subcategory = object.tags['building']
             insertPolygonalNode(object, 'building', subcategory)
+
+            tables.closed_shapes:insert({
+                tags = object.tags,
+                category = 'building',
+                subcategory = subcategory,
+                geom = object:as_linestring(),
+                center = object:as_polygon():centroid(),
+                nodes = '{' .. table.concat(object.nodes, ',') .. '}',
+                num_nodes = #object.nodes,
+            })
         end
         -- TODO: Area shape matching
     elseif highway_types[object.tags['highway']] then
@@ -210,7 +287,6 @@ function insertLinestring(object, category, subcategory)
     tables.linestrings:insert({
         category = category,
         subcategory = subcategory,
-        -- nodes = '{' .. table.concat(object.nodes, ',') .. '}',
         tags = object.tags,
         geom = object:as_linestring()
     })
