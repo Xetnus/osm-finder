@@ -71,7 +71,9 @@ function createNoOverlappingQuery(annotations) {
 function createTagsQuery(ann) {
   let query = '';
   for (var j = 0; j < ann.tags.length; j++) {
-    let tag = ann.tags[j].split('=');
+    // Splits the tag into a key and value. Also escapes single
+    // quotes so PostgreSQL doesn't get confused.
+    let tag = ann.tags[j].replaceAll("'", "''").split('=');
 
     if (tag.length == 1) {
       query += ann.name + '.tags ? \'' + tag[0] + '\' ';
