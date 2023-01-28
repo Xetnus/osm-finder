@@ -1,7 +1,7 @@
 # OSM Finder
 
 ## The UI is now accessible from anywhere on Netlify: https://osm-finder.netlify.app/
-## To see OSM Finder in action, check out my blog: https://xetnus.github.io/blog/
+## To see OSM Finder in action, check out the blog: https://xetnus.github.io/blog/
 
 ## Description
 One of the most prominent tools that assists in geolocating images using openstreetmap data is [Overpass Turbo](https://overpass-turbo.eu/). This requires learning the [Overpass Query Language](https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_QL) and restricts your geolocation abilities to only what's permitted by the query language.  
@@ -22,7 +22,7 @@ Instructions below are for Linux.
 1. **Ensure you have [PostGIS](https://postgis.net/) installed, and then install osm2pgsql version 1.7.1 or higher.** Note: in most Linux distributions, this requires building from source (as of Nov 7).  
     - To install on Windows using prebuilt binaries: https://osm2pgsql.org/doc/install.html#installing-on-windows  
     - To check for v1.7.1 support on your Linux distribution: https://osm2pgsql.org/doc/install.html#installing-on-linux  
-    - If v1.7.1 isn't available for your Linux distribution, follow Building instructions: https://github.com/openstreetmap/osm2pgsql  
+    - If v1.7.1 isn't available for your Linux distribution, follow the building instructions: https://github.com/openstreetmap/osm2pgsql#building  
 
 2. **Optional: tune your PostgreSQL server.** https://osm2pgsql.org/doc/manual.html#tuning-the-postgresql-server
 
