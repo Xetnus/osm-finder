@@ -91,7 +91,7 @@
   <div class="input-bar-flex">
     <q-btn @click="handleBack" label="Back" color="primary"/>
     <q-btn @click="handleUndo" :disabled="!annotations.length" icon="undo" label="Undo" color="secondary"/>
-    <q-btn @click="handleRedo" :disabled="!history.length" icon="redo" label="Redo" color="secondary"/>
+    <q-btn @click="handleRedo" :disabled="!history.length" icon-right="redo" label="Redo" color="secondary"/>
     <q-btn @click="handleNext" label="Next" color="primary"/>
   </div>
 

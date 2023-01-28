@@ -70,13 +70,22 @@
     },
     methods: {
       getLineConfig(line) {
-        const opacity = line.state === 'transparent' || line.state === 'transparent-but-related' ? 0.2 : 1;
-        return {stroke: 'black', strokeWidth: 5, points: Object.assign([], line.points), opacity: opacity}
+        let opacity =  1;
+        let shadowEnabled = true;
+        
+        if (line.state === 'transparent' || line.state === 'transparent-but-related') {
+          opacity = 0.3;
+          shadowEnabled = false;
+        }
+
+        return {stroke: 'black', strokeWidth: 5, points: Object.assign([], line.points), opacity: opacity, 
+                shadowEnabled: shadowEnabled, shadowBlur: 3, shadowColor: 'cyan'}
       },
 
       getNodeConfig(node) {
-        const opacity = node.state === 'transparent' ? 0.2 : 1;
-        return {fill: 'midnightblue', stroke: 'lightblue', radius: 10, strokeWidth: 3, x: node.point[0], y: node.point[1], opacity: opacity}
+        const opacity = node.state === 'transparent' ? 0.3 : 1;
+        return {fill: 'midnightblue', stroke: 'lightblue', radius: 10, strokeWidth: 3, 
+                x: node.point[0], y: node.point[1], opacity: opacity}
       },
 
       getActiveLineConfig(points) {
@@ -88,7 +97,8 @@
           return {};
         }
 
-        return {stroke: 'black', strokeWidth: 5, points: Object.assign([], points)}
+        return {stroke: 'black', strokeWidth: 5, points: Object.assign([], points),
+                shadowEnabled: true, shadowBlur: 3, shadowColor: 'cyan'}
       },
 
       getIntersectionConfig(intersection) {

@@ -119,7 +119,7 @@ drawingState: {
       </q-tooltip>
     </q-btn>
 
-    <q-btn square href="https://github.com/Xetnus/osm-finder/blob/main/README.md#general-usage" target="_blank" icon="help" size="md" color="secondary">
+    <q-btn square href="https://github.com/Xetnus/osm-finder/wiki" target="_blank" icon="help" size="md" color="secondary">
       <q-tooltip class="bg-secondary text-body2" :offset="[10, 10]" :delay="400">
         View instructions
       </q-tooltip>
