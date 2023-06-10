@@ -74,9 +74,8 @@ tables.closed_shapes = osm2pgsql.define_table({
     { column = 'tags', type = 'jsonb' },
     { column = 'category', type = 'text' },
     { column = 'subcategory', type = 'text' },
-    { column = 'geom', type = 'linestring', projection = srid, not_null = true },
+    { column = 'geom', type = 'polygon', projection = srid, not_null = true },
     { column = 'center', type = 'point', projection = srid },
-    { column = 'nodes', sql_type = 'int8[]' },
     { column = 'num_nodes', sql_type = 'int8' },
 }})
 
@@ -213,9 +212,8 @@ function osm2pgsql.process_way(object)
                 tags = object.tags,
                 category = 'building',
                 subcategory = subcategory,
-                geom = object:as_linestring(),
+                geom = object:as_polygon(),
                 center = object:as_polygon():centroid(),
-                nodes = '{' .. table.concat(object.nodes, ',') .. '}',
                 num_nodes = #object.nodes,
             })
         end

@@ -201,6 +201,160 @@
       },
 
       mousedown() {
+        let input = document.createElement('input');
+        input.type = 'file';
+
+        input.onchange = e => { 
+          let file = e.target.files[0]; 
+          let reader = new FileReader();
+          reader.onload = function(e) {
+              let content = e.target.result;
+              let lines = content.split('\n')
+
+              let interval = 1000;
+
+              // const grid = [
+              //   [0, 0, 1, 0, 0],
+              //   [0, 1, 0, 1, 0],
+              //   [1, 0, 0, 0, 1],
+              //   [1, 1, 1, 1, 1],
+              //   [0, 0, 0, 0, 0]
+              // ];
+
+              function getMaxX() {
+                return -865000
+              }
+
+              function getMaxY() {
+                return 566000
+              }
+
+              function dist2(v, w) {
+                return Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2)
+              }
+
+              function distToSegmentSquared(p, v, w) {
+                var l2 = dist2(v, w);
+                if (l2 == 0) {
+                  return dist2(p, v);
+                }
+                var t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+                t = Math.max(0, Math.min(1, t));
+
+                return dist2(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) });
+              }
+
+              // p: point whose distance to line segment will be measured
+              // v: point at one end of line segment
+              // w: point at other end of line segment
+              // https://stackoverflow.com/a/1501725/1941353
+              function distToSegment(p, v, w) {
+                return Math.sqrt(distToSegmentSquared(p, v, w));
+              }
+
+              var item = null;
+
+              // Determines binary value at given coordinates
+              function calculateI(x, y) {
+                let p = {x: x, y: y};
+
+                for (let i = 0; i < item['points'].length - 1; i++) {
+                  let segmentP1 = item['points'][i];
+                  segmentP1 = {x: segmentP1[0], y: segmentP1[1]};
+
+                  let segmentP2 = item['points'][i+1];
+                  segmentP2 = {x: segmentP2[0], y: segmentP2[1]};
+
+                  if (distToSegment(p, segmentP1, segmentP2) < interval) {
+                    return 1;
+                  }
+                }
+
+                return 0;
+                
+                // return grid[x][y];
+              }
+
+              function calculateM(p, q, maxX, maxY) {
+                let m = 0;
+
+                for (let x = 0; x > maxX; x -= interval) {
+                  for (let y = 0; y < maxY; y += interval) {
+                    m += (x**p) * (y**q) * calculateI(x, y);
+                  }
+                }
+
+                return m;
+              }
+
+              // Greek letter mu
+              function calculateMu(p, q, maxX, maxY) {
+                const centroidX = calculateM(1, 0, maxX, maxY) / calculateM(0, 0, maxX, maxY);
+                const centroidY = calculateM(0, 1, maxX, maxY) / calculateM(0, 0, maxX, maxY);
+
+                let mu = 0;
+                for (let x = 0; x > maxX; x -= interval) {
+                  for (let y = 0; y < maxY; y += interval) {
+                    mu += ((x - centroidX) ** p) * ((y - centroidY) ** q) * calculateI(x,y);
+                  }
+                }
+
+                return mu;
+              }
+
+              // Greek letter eta
+              function calculateEta(p, q) {
+                let maxX = getMaxX();
+                let maxY = getMaxY();
+                let numerator = calculateMu(p, q, maxX, maxY);
+                let denominator = calculateMu(0, 0, maxX, maxY) ** (1 + (p + q) / 2);
+                return numerator / denominator;
+              }
+
+              const euclideanDistance = (a, b) => Math.hypot(...Object.keys(a).map(k => b[k] - a[k]));
+
+              let items = [];
+              for (let i = 0; i < lines.length - 1; i++) {
+                const json = JSON.parse(lines[i]);
+                items.push({'id': json['id'], 'points': json['points']});
+              }
+
+              let moments = [];
+              for (let i = 0; i < items.length; i++) {
+                item = items[i];
+                let h1 = calculateEta(2, 0) + calculateEta(0, 2);
+                let h2 = ((calculateEta(2, 0) - calculateEta(0, 2)) ** 2) + 4 * (calculateEta(1, 1) ** 2);
+                let h3 = ((calculateEta(3, 0) - 3 * calculateEta(1, 2)) ** 2) + 3 * ((calculateEta(0, 3) - 3 * calculateEta(2, 1)) ** 2);
+                let h4 = ((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) + ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2);
+                let h5 = (calculateEta(3, 0) - 3 * calculateEta(1, 2)) * (calculateEta(3, 0) + calculateEta(1, 2)) * ((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - 3 * ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2)
+                      + ((3 * calculateEta(2, 1) - calculateEta(0, 3)) * (calculateEta(0, 3) + calculateEta(2, 1)) * (3 * ((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2)));
+                let h6 = (calculateEta(2, 0) - calculateEta(0, 2)) * (((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - 7 * ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2))
+                      + 4 * (calculateEta(1, 1) * (calculateEta(3, 0) + calculateEta(1, 2)) * (calculateEta(0, 3) + calculateEta(2, 1)));
+                let h7 = (3 * calculateEta(2, 1) - calculateEta(0, 3)) * (calculateEta(3, 0) + calculateEta(1, 2)) * (((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - 3 * ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2))
+                      + (calculateEta(3, 0) - 3 * calculateEta(1, 2)) * (calculateEta(0, 3) + calculateEta(2, 1)) * (3 * ((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2));
+
+                moments.push([item['id'], h1, h2, h3, h4, h5, h6, h7]);
+
+                // console.log(euclideanDistance([h1, h2, h3, h4, h5, h6, h7], [h1, h2, h3, h4, h5, h6, h7]));
+              }
+
+              let ordered = [];
+              for (let i = 0; i < moments.length; i++) {
+                let d = euclideanDistance([moments[13][1], moments[13][2], moments[13][3], moments[13][4], moments[13][5], moments[13][6], moments[13][7]],
+                                          [moments[i][1], moments[i][2], moments[i][3], moments[i][4], moments[i][5], moments[i][6], moments[i][7]]);
+                ordered.push(d + '-' + moments[i].join('-'));
+              }
+
+              console.log(moments[13][0])
+              ordered.sort()
+              // console.log(ordered.slice(0,15));
+              console.log(ordered);
+          }
+          reader.readAsText(file);
+        }
+        input.click();
+
+
         if (this.programStage != 2) return;
 
         const pos = this.$refs.stage.getStage().getPointerPosition();
