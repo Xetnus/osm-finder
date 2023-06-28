@@ -211,22 +211,14 @@
               let content = e.target.result;
               let lines = content.split('\n')
 
-              let interval = 1000;
-
-              // const grid = [
-              //   [0, 0, 1, 0, 0],
-              //   [0, 1, 0, 1, 0],
-              //   [1, 0, 0, 0, 1],
-              //   [1, 1, 1, 1, 1],
-              //   [0, 0, 0, 0, 0]
-              // ];
-
+              var dynamicMaxX = 0;
               function getMaxX() {
-                return -865000
+                return dynamicMaxX;
               }
 
+              var dynamicMaxY = 0;
               function getMaxY() {
-                return 566000
+                return dynamicMaxY;
               }
 
               function dist2(v, w) {
@@ -265,21 +257,19 @@
                   let segmentP2 = item['points'][i+1];
                   segmentP2 = {x: segmentP2[0], y: segmentP2[1]};
 
-                  if (distToSegment(p, segmentP1, segmentP2) < interval) {
+                  if (distToSegment(p, segmentP1, segmentP2) < 1) {
                     return 1;
                   }
                 }
 
                 return 0;
-                
-                // return grid[x][y];
               }
 
               function calculateM(p, q, maxX, maxY) {
                 let m = 0;
 
-                for (let x = 0; x > maxX; x -= interval) {
-                  for (let y = 0; y < maxY; y += interval) {
+                for (let x = 0; x < maxX; x++) {
+                  for (let y = 0; y < maxY; y++) {
                     m += (x**p) * (y**q) * calculateI(x, y);
                   }
                 }
@@ -293,8 +283,8 @@
                 const centroidY = calculateM(0, 1, maxX, maxY) / calculateM(0, 0, maxX, maxY);
 
                 let mu = 0;
-                for (let x = 0; x > maxX; x -= interval) {
-                  for (let y = 0; y < maxY; y += interval) {
+                for (let x = 0; x < maxX; x++) {
+                  for (let y = 0; y < maxY; y++) {
                     mu += ((x - centroidX) ** p) * ((y - centroidY) ** q) * calculateI(x,y);
                   }
                 }
@@ -314,10 +304,42 @@
               const euclideanDistance = (a, b) => Math.hypot(...Object.keys(a).map(k => b[k] - a[k]));
 
               let items = [];
+              
+              // let ps = [[35,276],[68,210],[31,190],[52,155],[0,132],[68,0],[260,88],[281,42],[393,98],[240,403],[183,376],[189,366],[35,276]]
+              // items.push({'id': 'user_input', 'points': ps})
+              // dynamicMaxX = 393;
+              // dynamicMaxY = 403;
+
               for (let i = 0; i < lines.length - 1; i++) {
                 const json = JSON.parse(lines[i]);
-                items.push({'id': json['id'], 'points': json['points']});
+
+                let minX = json['points'][0][0];
+                let minY = json['points'][0][1];
+                for (let p = 1; p < json['points'].length; p++) {
+                  if (json['points'][p][0] < minX)
+                    minX = json['points'][p][0];
+                  if (json['points'][p][1] < minY)
+                    minY = json['points'][p][1];
+                }
+
+                let points = [];
+                for (let p = 0; p < json['points'].length; p++) {
+                  let x = json['points'][p][0] - minX;
+                  let y = json['points'][p][1] - minY;
+
+                  if (x > dynamicMaxX)
+                    dynamicMaxX = x;
+                  if (y > dynamicMaxY)
+                    dynamicMaxY = y;
+
+                  points.push([x, y]);
+                }
+
+                items.push({'id': json['id'], 'points': points});
               }
+
+              console.log(dynamicMaxX)
+              console.log(dynamicMaxY)
 
               let moments = [];
               for (let i = 0; i < items.length; i++) {
@@ -334,20 +356,17 @@
                       + (calculateEta(3, 0) - 3 * calculateEta(1, 2)) * (calculateEta(0, 3) + calculateEta(2, 1)) * (3 * ((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2));
 
                 moments.push([item['id'], h1, h2, h3, h4, h5, h6, h7]);
-
-                // console.log(euclideanDistance([h1, h2, h3, h4, h5, h6, h7], [h1, h2, h3, h4, h5, h6, h7]));
               }
 
               let ordered = [];
               for (let i = 0; i < moments.length; i++) {
-                let d = euclideanDistance([moments[13][1], moments[13][2], moments[13][3], moments[13][4], moments[13][5], moments[13][6], moments[13][7]],
+                let d = euclideanDistance([moments[0][1], moments[0][2], moments[0][3], moments[0][4], moments[0][5], moments[0][6], moments[0][7]],
                                           [moments[i][1], moments[i][2], moments[i][3], moments[i][4], moments[i][5], moments[i][6], moments[i][7]]);
                 ordered.push(d + '-' + moments[i].join('-'));
               }
 
-              console.log(moments[13][0])
+              console.log(moments[0][0])
               ordered.sort()
-              // console.log(ordered.slice(0,15));
               console.log(ordered);
           }
           reader.readAsText(file);

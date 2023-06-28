@@ -1,3 +1,9 @@
+-- Shape comparison options
+-- 0: disabled
+-- 1: enabled (all algorithms)
+-- 2: only Hu Moments
+shape_comparison = 1
+
 local highway_roadway_types = {
     'motorway',
     'motorway_link',
@@ -75,8 +81,14 @@ tables.closed_shapes = osm2pgsql.define_table({
     { column = 'category', type = 'text' },
     { column = 'subcategory', type = 'text' },
     { column = 'geom', type = 'polygon', projection = srid, not_null = true },
-    { column = 'center', type = 'point', projection = srid },
-    { column = 'num_nodes', sql_type = 'int8' },
+    -- { column = 'num_nodes', sql_type = 'int8' },
+    { column = 'hu1', sql_type = 'real' },
+    { column = 'hu2', sql_type = 'real' },
+    { column = 'hu3', sql_type = 'real' },
+    { column = 'hu4', sql_type = 'real' },
+    { column = 'hu5', sql_type = 'real' },
+    { column = 'hu6', sql_type = 'real' },
+    { column = 'hu7', sql_type = 'real' },
 }})
 
 tables.linestrings = osm2pgsql.define_table({
@@ -99,74 +111,16 @@ for _, k in ipairs(highway_walkway_types) do
     highway_types[k] = "walkway"
 end
 
-local count = 0
-
-
--- WITH distances AS
--- (
--- 	SELECT id, 
--- 	ST_Distance(ST_PointN(geom, 1), ST_PointN(geom, 2)) AS d1, 
--- 	ST_Distance(ST_PointN(geom, 2), ST_PointN(geom, 3)) AS d2,
--- 	ST_Distance(ST_PointN(geom, 3), ST_PointN(geom, 4)) AS d3, 
--- 	ST_Distance(ST_PointN(geom, 4), ST_PointN(geom, 5)) AS d4, 
--- 	ST_Distance(ST_PointN(geom, 5), ST_PointN(geom, 6)) AS d5, 
--- 	ST_Distance(ST_PointN(geom, 6), ST_PointN(geom, 7)) AS d6, 
--- 	ST_Distance(ST_PointN(geom, 7), ST_PointN(geom, 8)) AS d7, 
--- 	ST_Distance(ST_PointN(geom, 8), ST_PointN(geom, 9)) AS d8
--- 	FROM closed_shapes WHERE num_nodes = 9
--- ),
--- least AS
--- (
--- 	SELECT distances.id, LEAST(distances.d1, distances.d2, distances.d3, distances.d4, distances.d5, distances.d6, distances.d7, distances.d8) AS l, distances.d1, distances.d2, distances.d3, distances.d4, distances.d5, distances.d6, distances.d7, distances.d8
--- 	FROM distances
--- ),
--- reduced AS
--- (
--- 	SELECT least.id, UNNEST(array[(least.d1 / least.l), (least.d2 / least.l), (least.d3 / least.l), (least.d4 / least.l), (least.d5 / least.l), (least.d6 / least.l), (least.d7 / least.l), (least.d8 / least.l)]) AS list
--- 	FROM least
--- ),
--- results AS
--- (
--- 	SELECT reduced.id, abs(stddev_pop(reduced.list) - 2.1272501286928 + avg(reduced.list) - 3.710361111125) AS diff
--- 	FROM reduced
--- 	GROUP BY id
--- 	ORDER BY diff ASC
--- )
--- SELECT row_number() over (), results.id, results.diff
--- FROM results;
-
-
-
--- WITH PERSPECTIVE SKEW
--- 274.59 / 25.30 = 10.853359684
--- 78.10 / 25.30 = 3.086956522
--- 320.62 / 25.30 = 12.672727273
--- 72.47 / 25.30 = 2.864426877
--- 196.37 / 25.30 = 7.761660079
--- 240.21 / 25.30 = 9.494466403
--- 134.01 / 25.30 = 5.296837945
--- 25.30 / 25.30 = 1
--- 10.853359684, 3.086956522, 12.672727273, 2.864426877, 7.761660079, 9.494466403, 5.296837945, 1
--- mean = 6.628804347875
--- dev = 3.9377031675282
-
-
--- ACCOUNTING FOR PERSPECTIVE SKEW
--- 276.72 / 45 = 6.149333333
--- 276.72 / 45 = 6.149333333
--- 86.09 / 45 = 1.913111111
--- 75.18 / 45 = 1.670666667
--- 138.01 / 45 = 3.066888889
--- 138.01 / 45 = 3.066888889
--- 300 / 45 = 6.666666667
--- 45 / 45 = 1
--- 6.149333333, 6.149333333, 1.913111111, 1.670666667, 3.066888889, 3.066888889, 6.666666667, 1
--- mean = 3.710361111125
--- dev = 2.1272501286928
-
-
+node_list = {}
 
 function osm2pgsql.process_node(object)
+    -- Store a list of each node's latitude and longitude
+    if shape_comparison ~= 0 then
+        local longitude, latitude, same1, same2 = object:get_bbox()
+        local location = { x = longitude, y = latitude }
+        node_list[object.id] = location
+    end
+
     if clean_tags(object.tags) then
         return
     end
@@ -203,21 +157,19 @@ function osm2pgsql.process_way(object)
         return
     end
 	
-    if object.tags['building'] then
-        if object.is_closed then
-            subcategory = object.tags['building']
-            insertPolygonalNode(object, 'building', subcategory)
+    local category
+    local subcategory
 
-            tables.closed_shapes:insert({
-                tags = object.tags,
-                category = 'building',
-                subcategory = subcategory,
-                geom = object:as_polygon(),
-                center = object:as_polygon():centroid(),
-                num_nodes = #object.nodes,
-            })
+    if object.tags['building'] then
+        category = 'building'
+        if object.is_closed then
+            subcategory = object.tags[category]
+            insertPolygonalNode(object, category, subcategory)
+
+            if shape_comparison == 1 or shape_comparison == 2 then
+                insertHuMoments(object, category, subcategory)
+            end
         end
-        -- TODO: Area shape matching
     elseif highway_types[object.tags['highway']] then
         category = highway_types[object.tags['highway']]
         subcategory = object.tags['highway']
@@ -288,6 +240,134 @@ function insertLinestring(object, category, subcategory)
         tags = object.tags,
         geom = object:as_linestring()
     })
+end
+
+----------------------------------------------------------------
+-- Functions to calculate Hu Moments
+-- Based on explanation found here:
+-- https://www.kaggle.com/code/keizerzilla/four-shapes-using-hu-moments-99-98-acc-0-02-std
+----------------------------------------------------------------
+
+function insertHuMoments(object, category, subcategory)
+    local coords = {}
+    local count = 0
+    for _, node_id in ipairs(object.nodes) do
+        coords[count] = node_list[node_id]
+        count = count + 1
+    end
+
+    -- require("shape_comparison")
+    -- print(calculate_eta(52))
+
+    local h1 = calculateEta(coords, 2, 0) + calculateEta(coords, 0, 2)
+    local h2 = ((calculateEta(coords, 2, 0) - calculateEta(coords, 0, 2)) ^ 2) + 4 * (calculateEta(coords, 1, 1) ^ 2)
+    local h3 = ((calculateEta(coords, 3, 0) - 3 * calculateEta(coords, 1, 2)) ^ 2) + 3 * ((calculateEta(coords, 0, 3) - 3 * calculateEta(coords, 2, 1)) ^ 2)
+    local h4 = ((calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) ^ 2) + ((calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) ^ 2)
+    local h5 = (calculateEta(coords, 3, 0) - 3 * calculateEta(coords, 1, 2)) * (calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) * ((calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) ^ 2) - 3 * ((calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) ^ 2)
+            + ((3 * calculateEta(coords, 2, 1) - calculateEta(coords, 0, 3)) * (calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) * (3 * ((calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) ^ 2) - ((calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) ^ 2)))
+    local h6 = (calculateEta(coords, 2, 0) - calculateEta(coords, 0, 2)) * (((calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) ^ 2) - 7 * ((calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) ^ 2))
+            + 4 * (calculateEta(coords, 1, 1) * (calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) * (calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)))
+    local h7 = (3 * calculateEta(coords, 2, 1) - calculateEta(coords, 0, 3)) * (calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) * (((calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) ^ 2) - 3 * ((calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) ^ 2))
+            + (calculateEta(coords, 3, 0) - 3 * calculateEta(coords, 1, 2)) * (calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) * (3 * ((calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) ^ 2) - ((calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) ^ 2))
+
+    tables.closed_shapes:insert({
+        tags = object.tags,
+        category = category,
+        subcategory = subcategory,
+        geom = object:as_polygon(),
+        hu1 = h1,
+        hu2 = h2,
+        hu3 = h3,
+        hu4 = h4,
+        hu5 = h5,
+        hu6 = h6,
+        hu7 = h7,
+        -- num_nodes = #object.nodes,
+    })
+end
+
+function dist2(v, w)
+    return ((v.x - w.x) ^ 2) + ((v.y - w.y) ^ 2)
+end
+
+function distToSegmentSquared(p, v, w)
+    local l2 = dist2(v, w)
+    if l2 == 0 then
+        return dist2(p, v)
+    end
+    local t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2
+
+    -- The next if statement implements this JS code:
+    -- t = Math.max(0, Math.min(1, t))
+    if t < 1 then
+        if t < 0 then
+            t = 0
+        end
+    else
+        t = 1
+    end
+
+    return dist2(p, { x = v.x + t * (w.x - v.x), y = v.y + t * (w.y - v.y) })
+end
+
+-- Determines shortest distance between a point and line segment
+-- p: point whose distance to line segment will be measured
+-- v: point at one end of line segment
+-- w: point at other end of line segment
+-- Translated from this answer https://stackoverflow.com/a/1501725/1941353
+function distToSegment(p, v, w)
+    return math.sqrt(distToSegmentSquared(p, v, w));
+end
+
+function calculateI(nodes, x, y)
+    local p = { ["x"] = x, ["y"] = y }
+
+    local node_count = 0
+    for _ in pairs(nodes) do node_count = node_count + 1 end
+
+    for i = 0, node_count - 2 do
+        local segment_p1 = { ["x"] = nodes[i].x, ["y"] = nodes[i].y }
+        local segment_p2 = { ["x"] = nodes[i + 1].x, ["y"] = nodes[i + 1].y }
+        if distToSegment(p, segment_p1, segment_p2) < 1 then
+            return 1
+        end
+    end
+
+    return 0
+end
+
+function calculateM(nodes, p, q, max_x, max_y)
+    local m = 0
+    for x = 0, max_x do
+        for y = 0, max_y do
+            m = m + ((x ^ p) * (y ^ q) * calculateI(nodes, x, y))
+        end
+    end
+    return m
+end
+
+-- Greek letter mu
+function calculateMu(nodes, p, q, max_x, max_y)
+    local centroid_x = calculateM(nodes, 1, 0, max_x, max_y) / calculateM(nodes, 0, 0, max_x, max_y)
+    local centroid_y = calculateM(nodes, 0, 1, max_x, max_y) / calculateM(nodes, 0, 0, max_x, max_y)
+
+    local mu = 0
+    for x = 0, max_x do
+        for y = 0, max_y do
+            mu = mu + ((x - centroid_x) ^ p) * ((y - centroid_y) ^ q) * calculateI(nodes, x, y)
+        end
+    end
+
+    return mu
+end
+
+-- Greek letter eta
+function calculateEta(nodes, p, q)
+    local max_x = 30
+    local max_y = 30
+    local numerator = calculateMu(nodes, p, q, max_x, max_y)
+    local denominator = calculateMu(nodes, 0, 0, max_x, max_y) ^ (1 + (p + q) / 2)
+    return numerator / denominator
 end
 
 -- TODO: Area shape matching
