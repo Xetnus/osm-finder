@@ -232,10 +232,10 @@
   <p class="input-title">Relationship between {{current1.name}} and {{getReadableName(current2)}}</p>
   <div class="input-bar-flex">
     <q-btn @click="handleBack" label="Back" color="primary"/>
-    <q-input v-bind="distanceProps" class="property-input" v-model="maxDistance" outlined label="Max distance (m)"/>
-    <q-input v-bind="distanceProps" class="property-input" v-model="minDistance" outlined label="Min distance (m)"/>
-    <q-input v-bind="angleProps" class="property-input" v-model="angle" outlined label="Angle"/>
-    <q-input v-bind="angleProps" class="property-input" v-model="error" outlined label="Error"/>
+    <q-input v-bind="distanceProps" class="property-input" v-model.number="maxDistance" type="number" outlined label="Max distance (m)"/>
+    <q-input v-bind="distanceProps" class="property-input" v-model.number="minDistance" type="number" outlined label="Min distance (m)"/>
+    <q-input v-bind="angleProps" class="property-input" v-model.number="angle" type="number" outlined label="Angle"/>
+    <q-input v-bind="angleProps" class="property-input" v-model.number="error" type="number" outlined label="Angle Error"/>
     <q-btn @click="handleNext" label="Next" color="primary"/>
   </div>
 </template>

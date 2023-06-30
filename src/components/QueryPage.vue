@@ -33,8 +33,10 @@ import {constructQuery} from '../assets/queryCreator.js'
   <q-dialog v-model="queryVisible" full-width persistent transition-show="rotate" transition-hide="rotate">
     <q-card>
       <q-card-actions align="right">
+        <h5>Run this query in your PostgreSQL terminal.</h5>
+        <q-space/>
         <q-toggle
-          class="q-mr-lg"
+          class="q-mr-lg toggle"
           v-model="displayUrls"
           checked-icon="check"
           color="green"
@@ -48,8 +50,9 @@ import {constructQuery} from '../assets/queryCreator.js'
         <q-btn flat icon="close" @click="back()" padding="15px 10px" color="primary">
           <q-tooltip>Close</q-tooltip>
         </q-btn>
-
       </q-card-actions>
+
+      <q-separator/>
 
       <q-card-section class="q-pt-none">
         <div>
@@ -63,5 +66,13 @@ import {constructQuery} from '../assets/queryCreator.js'
 <style scoped>
   div {
     color: black;
+  }
+
+  h5 {
+    user-select: none;
+  }
+
+  .toggle {
+    user-select: none;
   }
 </style>

@@ -36,3 +36,13 @@ body {
   margin-bottom: 0.4em;
 }
 
+/* Removes the arrows on input[type=number] elements */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0; 
+}
+
+input[type=number] {
+  -moz-appearance:textfield; /* Firefox */
+}

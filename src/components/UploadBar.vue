@@ -55,7 +55,11 @@
 
 <template>
   <div class="input-bar-flex">
-    <q-btn @click="upload" size="lg" icon="upload" label="Upload Photo" color="primary"/>
+    <q-btn @click="upload" size="lg" icon="upload" label="Upload Photo" color="primary">
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Click here or drag and drop to upload an image.
+      </q-tooltip>
+    </q-btn>
     <q-btn @click="handleNext" size="lg" label="Next" color="primary"/>
 
     <q-dialog v-model="dialogVisible">
