@@ -81,7 +81,7 @@
 
       getActiveLineConfig(points) {
         // If the user cancels the linestring drawing operation, reset active variables
-        if (!this.drawingState.drawingLinestring) {
+        if (!this.drawingState === 'linestring') {
           this.activeLinestring = [];
           this.activeIntersections = [];
           this.isMouseDown = false;
@@ -285,7 +285,7 @@
                 let mu = 0;
                 for (let x = 0; x < maxX; x++) {
                   for (let y = 0; y < maxY; y++) {
-                    mu += ((x - centroidX) ** p) * ((y - centroidY) ** q) * calculateI(x,y);
+                    mu += ((x - centroidX) ** p) * ((y - centroidY) ** q) * calculateI(x, y);
                   }
                 }
 
@@ -344,16 +344,119 @@
               let moments = [];
               for (let i = 0; i < items.length; i++) {
                 item = items[i];
-                let h1 = calculateEta(2, 0) + calculateEta(0, 2);
-                let h2 = ((calculateEta(2, 0) - calculateEta(0, 2)) ** 2) + 4 * (calculateEta(1, 1) ** 2);
-                let h3 = ((calculateEta(3, 0) - 3 * calculateEta(1, 2)) ** 2) + 3 * ((calculateEta(0, 3) - 3 * calculateEta(2, 1)) ** 2);
-                let h4 = ((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) + ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2);
-                let h5 = (calculateEta(3, 0) - 3 * calculateEta(1, 2)) * (calculateEta(3, 0) + calculateEta(1, 2)) * ((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - 3 * ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2)
-                      + ((3 * calculateEta(2, 1) - calculateEta(0, 3)) * (calculateEta(0, 3) + calculateEta(2, 1)) * (3 * ((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2)));
-                let h6 = (calculateEta(2, 0) - calculateEta(0, 2)) * (((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - 7 * ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2))
-                      + 4 * (calculateEta(1, 1) * (calculateEta(3, 0) + calculateEta(1, 2)) * (calculateEta(0, 3) + calculateEta(2, 1)));
-                let h7 = (3 * calculateEta(2, 1) - calculateEta(0, 3)) * (calculateEta(3, 0) + calculateEta(1, 2)) * (((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - 3 * ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2))
-                      + (calculateEta(3, 0) - 3 * calculateEta(1, 2)) * (calculateEta(0, 3) + calculateEta(2, 1)) * (3 * ((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2));
+
+                let eta20 = calculateEta(centroidX, centroidY, muDenominator, 2, 0);
+                let eta02 = calculateEta(centroidX, centroidY, muDenominator, 0, 2);
+                let eta11 = calculateEta(centroidX, centroidY, muDenominator, 1, 1);
+                let eta30 = calculateEta(centroidX, centroidY, muDenominator, 3, 0);
+                let eta12 = calculateEta(centroidX, centroidY, muDenominator, 1, 2);
+                let eta03 = calculateEta(centroidX, centroidY, muDenominator, 0, 3);
+                let eta21 = calculateEta(centroidX, centroidY, muDenominator, 2, 1);
+
+                let h1 = eta20 + eta02;
+
+                let h2 = pow(
+                            (eta20 - eta02)
+                            , 2
+                        ) + 
+                        4 * pow(
+                            eta11
+                            , 2
+                        );
+
+                let h3 = pow(
+                            (eta30 - 3 * eta12)
+                            , 2
+                        ) + 
+                        3 * pow(
+                            (eta03 - 3 * eta21)
+                            , 2
+                        );
+
+                let h4 = pow(
+                            (eta30 + eta12)
+                            , 2
+                        ) + 
+                        pow(
+                            (eta03 + eta21)
+                            , 2
+                        );
+
+                let h5 = (eta30 - 3 * eta12) * 
+                        (eta30 + eta12) * 
+                        (
+                            pow(
+                                (eta30 + eta12)
+                                , 2
+                            ) - 
+                            3 * pow(
+                                (eta03 + eta21)
+                                , 2
+                            )
+                        ) +
+                        (3 * eta21 - eta03) * 
+                        (eta03 + eta21) * 
+                        (
+                            3 * pow(
+                                (eta30 + eta12)
+                                , 2
+                            ) - 
+                            pow(
+                                (eta03 + eta21)
+                                , 2
+                            )
+                        );
+
+                let h6 = (eta20 - eta02) * 
+                        (
+                            pow(
+                                (eta30 + eta12)
+                                , 2
+                            ) - 
+                            7 * pow(
+                                (eta03 + eta21)
+                                , 2
+                            )
+                        ) +
+                        4 * eta11 * 
+                        (eta30 + eta12) * 
+                        (eta03 + eta21);
+
+                let h7 = (3 * eta21 - eta03) * 
+                        (eta30 + eta12) * 
+                        (
+                            pow(
+                                (eta30 + eta12)
+                                , 2
+                            ) - 
+                            3 * pow(
+                                (eta03 + eta21)
+                                , 2
+                            )
+                        ) +
+                        (eta30 - 3 * eta12) * 
+                        (eta03 + eta21) * 
+                        (
+                            3 * pow(
+                                (eta30 + eta12)
+                                , 2
+                            ) - 
+                            pow(
+                                (eta03 + eta21)
+                                , 2
+                            )
+                        );
+
+                // let h1 = calculateEta(2, 0) + calculateEta(0, 2);
+                // let h2 = ((calculateEta(2, 0) - calculateEta(0, 2)) ** 2) + 4 * (calculateEta(1, 1) ** 2);
+                // let h3 = ((calculateEta(3, 0) - 3 * calculateEta(1, 2)) ** 2) + 3 * ((calculateEta(0, 3) - 3 * calculateEta(2, 1)) ** 2);
+                // let h4 = ((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) + ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2);
+                // let h5 = (calculateEta(3, 0) - 3 * calculateEta(1, 2)) * (calculateEta(3, 0) + calculateEta(1, 2)) * (((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - 3 * ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2))
+                //       + ((3 * calculateEta(2, 1) - calculateEta(0, 3)) * (calculateEta(0, 3) + calculateEta(2, 1)) * (3 * ((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2)));
+                // let h6 = (calculateEta(2, 0) - calculateEta(0, 2)) * (((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - 7 * ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2))
+                //       + 4 * (calculateEta(1, 1) * (calculateEta(3, 0) + calculateEta(1, 2)) * (calculateEta(0, 3) + calculateEta(2, 1)));
+                // let h7 = (3 * calculateEta(2, 1) - calculateEta(0, 3)) * (calculateEta(3, 0) + calculateEta(1, 2)) * (((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - 3 * ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2))
+                //       + (calculateEta(3, 0) - 3 * calculateEta(1, 2)) * (calculateEta(0, 3) + calculateEta(2, 1)) * (3 * ((calculateEta(3, 0) + calculateEta(1, 2)) ** 2) - ((calculateEta(0, 3) + calculateEta(2, 1)) ** 2));
 
                 moments.push([item['id'], h1, h2, h3, h4, h5, h6, h7]);
               }
@@ -371,17 +474,19 @@
           }
           reader.readAsText(file);
         }
-        input.click();
+        // input.click();
 
-
-        if (this.programStage != 2) return;
 
         const pos = this.$refs.stage.getStage().getPointerPosition();
+        if (this.programStage != 2 || !pos) return;
 
-        if (pos && this.drawingState.drawingLinestring) {
+        if (this.drawingState === 'linestring') {
           this.isMouseDown = true;
           this.activeLinestring = [pos.x, pos.y];
-        } else if (pos && this.drawingState.drawingNode) {
+        } else if (this.drawingState === 'shapeLine') {
+          this.isMouseDown = true;
+          this.activeLinestring = [pos.x, pos.y];
+        } else if (this.drawingState === 'node') {
           const count = this.annotations.filter(a => a.geometryType == 'node').length + 1;
 
           let annotations = this.annotations;
@@ -399,7 +504,7 @@
 
           // Lets the program know we aren't drawing anymore
           let state = this.drawingState;
-          state.drawingNode = false;
+          state = false;
           this.$emit('drawingStateChange', state);
         }
       },
@@ -455,7 +560,7 @@
 
         // Lets the program know we aren't drawing anymore
         let state = this.drawingState;
-        state.drawingLinestring = false;
+        state = false;
         this.$emit('drawingStateChange', state);
       },
 

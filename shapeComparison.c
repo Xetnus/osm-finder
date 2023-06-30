@@ -101,6 +101,7 @@ static double calculateEta(int numNodes, double nodes[][2], double centroidX, do
 ***************/
 static int l_calculateHuMoments(lua_State *L) {
     if (!lua_isnumber(L, 1) || !lua_istable(L, 2)) {
+        printf("Incorrect arguments provided.\n");
         return 0;
     }
 

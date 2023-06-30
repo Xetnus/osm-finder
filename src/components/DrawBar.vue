@@ -5,6 +5,7 @@
     data() {
       return {
         history: [],
+        drawingShape: false,
         warningVisible: false,
       }
     },
@@ -13,7 +14,7 @@
         let icon = 'north_east'
         let color = 'primary';
 
-        if (this.drawingState.drawingLinestring) {
+        if (this.drawingState === 'linestring') {
           icon = 'cancel';
           color = 'negative';
         }
@@ -25,7 +26,19 @@
         let icon = 'radio_button_checked'
         let color = 'primary';
 
-        if (this.drawingState.drawingNode) {
+        if (this.drawingState === 'node') {
+          icon = 'cancel';
+          color = 'negative';
+        }
+
+        return {'icon': icon, 'color': color};
+      },
+
+      shapeLineProps() {
+        let icon = 'line_start_circle'
+        let color = 'primary';
+
+        if (this.drawingState === 'shapeLine') {
           icon = 'cancel';
           color = 'negative';
         }
@@ -50,14 +63,23 @@
       },
       toggleLinestring(event) {
         let state = this.drawingState;
-        state['drawingLinestring'] = !state['drawingLinestring'];
-        state['drawingNode'] = false;
+        state = (!state ? 'linestring' : false);
         this.$emit('drawingStateChange', state);
       },
       toggleNode(event) {
         let state = this.drawingState;
-        state['drawingNode'] = !state['drawingNode'];
-        state['drawingLinestring'] = false;
+        state = (!state ? 'node' : false);
+        this.$emit('drawingStateChange', state);
+      },
+      toggleShape(event) {
+        let state = this.drawingState;
+        state = false;
+        this.drawingShape = !this.drawingShape;
+        this.$emit('drawingStateChange', state);
+      },
+      toggleShapeLine(event) {
+        let state = this.drawingState;
+        state = (!state ? 'shapeLine' : false);
         this.$emit('drawingStateChange', state);
       },
       handleUndo(event) {
@@ -75,7 +97,7 @@
 </script>
 
 <template>
-  <div class="input-bar-flex">
+  <div v-if="!drawingShape" class="input-bar-flex">
     <q-btn class="q-py-md" @click="toggleLinestring" label="Linestring" v-bind="linestringProps">
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
         Click and drag to draw a line.
@@ -84,6 +106,24 @@
     <q-btn class="q-py-md" @click="toggleNode" label="Node" v-bind="nodeProps">
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
         Click once on the canvas to place a node.
+      </q-tooltip>
+    </q-btn>
+    <q-btn class="q-py-md" @click="toggleShape" label="Shape" icon="pentagon" color="primary">
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Draw the outline of a shape.
+      </q-tooltip>
+    </q-btn>
+  </div>
+
+  <div v-else class="input-bar-flex">
+    <q-btn class="q-py-md" @click="toggleShapeLine" label="Line" v-bind="shapeLineProps">
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Click to drop points around the outline of the shape.
+      </q-tooltip>
+    </q-btn>
+    <q-btn class="q-py-md" @click="toggleShape" label="Done" icon="done" color="primary">
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Shape completed.
       </q-tooltip>
     </q-btn>
   </div>
