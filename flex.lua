@@ -249,26 +249,137 @@ end
 ----------------------------------------------------------------
 
 function insertHuMoments(object, category, subcategory)
-    local coords = {}
     local count = 0
+    local nodes = {}
     for _, node_id in ipairs(object.nodes) do
-        coords[count] = node_list[node_id]
+        nodes[count] = node_list[node_id]
         count = count + 1
     end
 
-    -- require("shape_comparison")
-    -- print(calculate_eta(52))
+    -- require("shapeComparison")
+    -- local h1, h2, h3, h4, h5, h6, h7 = calculateHuMoments(nodes)
 
-    local h1 = calculateEta(coords, 2, 0) + calculateEta(coords, 0, 2)
-    local h2 = ((calculateEta(coords, 2, 0) - calculateEta(coords, 0, 2)) ^ 2) + 4 * (calculateEta(coords, 1, 1) ^ 2)
-    local h3 = ((calculateEta(coords, 3, 0) - 3 * calculateEta(coords, 1, 2)) ^ 2) + 3 * ((calculateEta(coords, 0, 3) - 3 * calculateEta(coords, 2, 1)) ^ 2)
-    local h4 = ((calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) ^ 2) + ((calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) ^ 2)
-    local h5 = (calculateEta(coords, 3, 0) - 3 * calculateEta(coords, 1, 2)) * (calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) * ((calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) ^ 2) - 3 * ((calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) ^ 2)
-            + ((3 * calculateEta(coords, 2, 1) - calculateEta(coords, 0, 3)) * (calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) * (3 * ((calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) ^ 2) - ((calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) ^ 2)))
-    local h6 = (calculateEta(coords, 2, 0) - calculateEta(coords, 0, 2)) * (((calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) ^ 2) - 7 * ((calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) ^ 2))
-            + 4 * (calculateEta(coords, 1, 1) * (calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) * (calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)))
-    local h7 = (3 * calculateEta(coords, 2, 1) - calculateEta(coords, 0, 3)) * (calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) * (((calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) ^ 2) - 3 * ((calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) ^ 2))
-            + (calculateEta(coords, 3, 0) - 3 * calculateEta(coords, 1, 2)) * (calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) * (3 * ((calculateEta(coords, 3, 0) + calculateEta(coords, 1, 2)) ^ 2) - ((calculateEta(coords, 0, 3) + calculateEta(coords, 2, 1)) ^ 2))
+
+
+    local h1 = 0
+    local h2 = 0
+    local h3 = 0
+    local h4 = 0
+    local h5 = 0
+    local h6 = 0
+    local h7 = 0
+    local mDenominator = calculateM(nodes, 0, 0, 30, 30)
+
+    local centroidX = 0
+    local centroidY = 0
+    centroidX = calculateM(nodes, 1, 0, 30, 30) / mDenominator
+    centroidY = calculateM(nodes, 0, 1, 30, 30) / mDenominator
+
+    local muDenominator = calculateMu(nodes, centroidX, centroidY, 0, 0, 30, 30)
+
+
+    local eta20 = calculateEta(nodes, centroidX, centroidY, muDenominator, 2, 0)
+    local eta02 = calculateEta(nodes, centroidX, centroidY, muDenominator, 0, 2)
+    local eta11 = calculateEta(nodes, centroidX, centroidY, muDenominator, 1, 1)
+    local eta30 = calculateEta(nodes, centroidX, centroidY, muDenominator, 3, 0)
+    local eta12 = calculateEta(nodes, centroidX, centroidY, muDenominator, 1, 2)
+    local eta03 = calculateEta(nodes, centroidX, centroidY, muDenominator, 0, 3)
+    local eta21 = calculateEta(nodes, centroidX, centroidY, muDenominator, 2, 1)
+
+    h1 = eta20 + eta02
+
+    h2 = math.pow(
+                (eta20 - eta02)
+                , 2
+            ) + 
+            4 * math.pow(
+                eta11
+                , 2
+            )
+
+    h3 = math.pow(
+                (eta30 - 3 * eta12)
+                , 2
+            ) + 
+            3 * math.pow(
+                (eta03 - 3 * eta21)
+                , 2
+            )
+
+    h4 = math.pow(
+                (eta30 + eta12)
+                , 2
+            ) + 
+            math.pow(
+                (eta03 + eta21)
+                , 2
+            )
+
+    h5 =    (eta30 - 3 * eta12) * 
+            (eta30 + eta12) * 
+            (
+                math.pow(
+                    (eta30 + eta12)
+                    , 2
+                ) - 
+                3 * math.pow(
+                    (eta03 + eta21)
+                    , 2
+                )
+            ) +
+            (3 * eta21 - eta03) * 
+            (eta03 + eta21) * 
+            (
+                3 * math.pow(
+                    (eta30 + eta12)
+                    , 2
+                ) - 
+                math.pow(
+                    (eta03 + eta21)
+                    , 2
+                )
+            )
+
+    h6 =    (eta20 - eta02) * 
+            (
+                math.pow(
+                    (eta30 + eta12)
+                    , 2
+                ) - 
+                7 * math.pow(
+                    (eta03 + eta21)
+                    , 2
+                )
+            ) +
+            4 * eta11 * 
+            (eta30 + eta12) * 
+            (eta03 + eta21)
+
+    h7 =    (3 * eta21 - eta03) * 
+            (eta30 + eta12) * 
+            (
+                math.pow(
+                    (eta30 + eta12)
+                    , 2
+                ) - 
+                3 * math.pow(
+                    (eta03 + eta21)
+                    , 2
+                )
+            ) +
+            (eta30 - 3 * eta12) * 
+            (eta03 + eta21) * 
+            (
+                3 * math.pow(
+                    (eta30 + eta12)
+                    , 2
+                ) - 
+                math.pow(
+                    (eta03 + eta21)
+                    , 2
+                )
+            )
+
 
     tables.closed_shapes:insert({
         tags = object.tags,
@@ -347,14 +458,11 @@ function calculateM(nodes, p, q, max_x, max_y)
 end
 
 -- Greek letter mu
-function calculateMu(nodes, p, q, max_x, max_y)
-    local centroid_x = calculateM(nodes, 1, 0, max_x, max_y) / calculateM(nodes, 0, 0, max_x, max_y)
-    local centroid_y = calculateM(nodes, 0, 1, max_x, max_y) / calculateM(nodes, 0, 0, max_x, max_y)
-
+function calculateMu(nodes, centroidX, centroidY, p, q, max_x, max_y)
     local mu = 0
     for x = 0, max_x do
         for y = 0, max_y do
-            mu = mu + ((x - centroid_x) ^ p) * ((y - centroid_y) ^ q) * calculateI(nodes, x, y)
+            mu = mu + ((x - centroidX) ^ p) * ((y - centroidY) ^ q) * calculateI(nodes, x, y)
         end
     end
 
@@ -362,11 +470,11 @@ function calculateMu(nodes, p, q, max_x, max_y)
 end
 
 -- Greek letter eta
-function calculateEta(nodes, p, q)
+function calculateEta(nodes, centroidX, centroidY, muDenominator, p, q)
     local max_x = 30
     local max_y = 30
-    local numerator = calculateMu(nodes, p, q, max_x, max_y)
-    local denominator = calculateMu(nodes, 0, 0, max_x, max_y) ^ (1 + (p + q) / 2)
+    local numerator = calculateMu(nodes, centroidX, centroidY, p, q, max_x, max_y)
+    local denominator = muDenominator ^ (1 + (p + q) / 2)
     return numerator / denominator
 end
 
