@@ -1,5 +1,5 @@
 import {calculateIntersection} from './generalTools.js'
-import {calculateBounds, createTagsQuery, createMaxDistanceQuery, createMinDistanceQuery, createNoOverlappingQuery} from './queryTools.js'
+import {calculateBounds, createTagsQuery, createMaxDistanceQuery, createMinDistanceQuery, createNoOverlappingQuery, calculateHuMoments} from './queryTools.js'
 
 // Example Query for Disjoint
 /*
@@ -633,14 +633,19 @@ function constructQuery(annotations, displayUrls = true) {
 
   let nodes = [];
   let lines = [];
+  let shapes = [];
 
   for (let i = 0; i < annotations.length; i++) { 
     if (annotations[i].geometryType == 'linestring') {
       lines.push(annotations[i]);
     } else if (annotations[i].geometryType == 'node') {
       nodes.push(annotations[i]);
+    } else if (annotations[i].geometryType == 'shape') {
+      shapes.push(annotations[i]);
     }
   }
+
+  console.log(calculateHuMoments(shapes[0].points));
 
   // If at least two of the lines intersect, then call constructIntersectingQuery
   for (let i = 0; i < lines.length; i++) { 
