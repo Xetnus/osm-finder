@@ -19,7 +19,7 @@
         allCategoryOptions: {
           'node': ['Building', 'Railway', 'Power', 'Man Made'],
           'linestring': ['Walkway', 'Roadway', 'Railway', 'Power', 'Waterway', 'Coastline', 'Man Made'],
-          // 'area': ['Any', 'Building', 'Waterway', 'Coastline'],
+          'shape': ['Any', 'Building'/*, 'Waterway', 'Coastline'*/],
         },
         currentCategory: null,
         currentCategoryOptions: null,
