@@ -122,7 +122,7 @@ function calculateBounds(angle, error) {
   return {lower: lowerBounds, upper: upperBounds};
 }
 
-function calculateHuMoments(nodes) {
+function calculateHuMoments(shapeNodes) {
   let maxX = 30;
   let maxY = 30;
 
@@ -198,6 +198,8 @@ function calculateHuMoments(nodes) {
     return numerator / denominator;
   }
 
+  let nodes = shapeNodes.slice();
+
   let maxCoords = [nodes[0][0], nodes[0][1]];
   let minCoords = [nodes[0][0], nodes[0][1]];
   for(let i = 0; i < nodes.length; i++) {
@@ -222,6 +224,7 @@ function calculateHuMoments(nodes) {
   let scale = Math.min(xRatio, yRatio);
 
   for(let i = 0; i < nodes.length; i++) {
+    console.log(shapeNodes[i][0], shapeNodes[i][1]);
     nodes[i][0] -= minCoords[0];
     nodes[i][1] -= minCoords[1];
 
@@ -261,8 +264,8 @@ function calculateHuMoments(nodes) {
                 (eta30 - 3 * eta12)
                 , 2
             ) + 
-            3 * Math.pow(
-                (eta03 - 3 * eta21)
+            Math.pow(
+                (3 * eta21 - eta03)
                 , 2
             );
 
@@ -271,7 +274,7 @@ function calculateHuMoments(nodes) {
                 , 2
             ) + 
             Math.pow(
-                (eta03 + eta21)
+                (eta21 + eta03)
                 , 2
             );
 
@@ -283,19 +286,19 @@ function calculateHuMoments(nodes) {
                     , 2
                 ) - 
                 3 * Math.pow(
-                    (eta03 + eta21)
+                    (eta21 + eta03)
                     , 2
                 )
             ) +
             (3 * eta21 - eta03) * 
-            (eta03 + eta21) * 
+            (eta21 + eta03) * 
             (
                 3 * Math.pow(
                     (eta30 + eta12)
                     , 2
                 ) - 
                 Math.pow(
-                    (eta03 + eta21)
+                    (eta21 + eta03)
                     , 2
                 )
             );
@@ -306,14 +309,14 @@ function calculateHuMoments(nodes) {
                     (eta30 + eta12)
                     , 2
                 ) - 
-                7 * Math.pow(
-                    (eta03 + eta21)
+                Math.pow(
+                    (eta21 + eta03)
                     , 2
                 )
             ) +
             4 * eta11 * 
             (eta30 + eta12) * 
-            (eta03 + eta21);
+            (eta21 + eta03);
 
     h7 = (3 * eta21 - eta03) * 
             (eta30 + eta12) * 
@@ -323,19 +326,19 @@ function calculateHuMoments(nodes) {
                     , 2
                 ) - 
                 3 * Math.pow(
-                    (eta03 + eta21)
+                    (eta21 + eta03)
                     , 2
                 )
-            ) +
+            ) -
             (eta30 - 3 * eta12) * 
-            (eta03 + eta21) * 
+            (eta21 + eta03) * 
             (
                 3 * Math.pow(
                     (eta30 + eta12)
                     , 2
                 ) - 
                 Math.pow(
-                    (eta03 + eta21)
+                    (eta21 + eta03)
                     , 2
                 )
             );

@@ -245,7 +245,7 @@ end
 ----------------------------------------------------------------
 -- Functions to calculate Hu Moments
 -- Based on explanation found here:
--- https://www.kaggle.com/code/keizerzilla/four-shapes-using-hu-moments-99-98-acc-0-02-std
+-- https://en.wikipedia.org/wiki/Image_moment
 ----------------------------------------------------------------
 
 function insertHuMoments(object, category, subcategory)

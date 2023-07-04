@@ -645,7 +645,9 @@ function constructQuery(annotations, displayUrls = true) {
     }
   }
 
-  console.log(calculateHuMoments(shapes[0].points));
+  let moments = calculateHuMoments(shapes[0].points);
+  console.log(moments);
+  return "SELECT id, sqrt(pow(hu1 - " + moments[0] + ", 2) + pow(hu2 - " + moments[1] + ", 2) + pow(hu3 - " + moments[2] + ", 2) + pow(hu4 - " + moments[3] + ", 2) + pow(hu5 - " + moments[4] + ", 2) + pow(hu6 - " + moments[5] + ", 2) + pow(hu7 - " + moments[6] + ", 2)) as distance FROM closed_shapes ORDER BY distance ASC;";
 
   // If at least two of the lines intersect, then call constructIntersectingQuery
   for (let i = 0; i < lines.length; i++) { 

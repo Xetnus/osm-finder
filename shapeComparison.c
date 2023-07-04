@@ -96,7 +96,7 @@ static double calculateEta(int numNodes, double nodes[][2], double centroidX, do
 
 /***************
  Function to calculate Hu Moments based on explanation found here:
- https://www.kaggle.com/code/keizerzilla/four-shapes-using-hu-moments-99-98-acc-0-02-std
+ https://towardsdatascience.com/introduction-to-the-invariant-moment-and-its-application-to-the-feature-extraction-ee991f39ec
  Liberties were taken to optimize the algorithm for C
 ***************/
 static int l_calculateHuMoments(lua_State *L) {
@@ -168,7 +168,6 @@ static int l_calculateHuMoments(lua_State *L) {
 
         double muDenominator = calculateMu(count, nodes, centroidX, centroidY, 0, 0);
 
-
         double eta20 = calculateEta(count, nodes, centroidX, centroidY, muDenominator, 2, 0);
         double eta02 = calculateEta(count, nodes, centroidX, centroidY, muDenominator, 0, 2);
         double eta11 = calculateEta(count, nodes, centroidX, centroidY, muDenominator, 1, 1);
@@ -179,7 +178,7 @@ static int l_calculateHuMoments(lua_State *L) {
 
         h1 = eta20 + eta02;
 
-        h2 = pow(
+        h2 =    pow(
                     (eta20 - eta02)
                     , 2
                 ) + 
@@ -188,21 +187,21 @@ static int l_calculateHuMoments(lua_State *L) {
                     , 2
                 );
 
-        h3 = pow(
+        h3 =    pow(
                     (eta30 - 3 * eta12)
                     , 2
                 ) + 
-                3 * pow(
-                    (eta03 - 3 * eta21)
+                pow(
+                    (3 * eta21 - eta03)
                     , 2
                 );
 
-        h4 = pow(
+        h4 =    pow(
                     (eta30 + eta12)
                     , 2
                 ) + 
                 pow(
-                    (eta03 + eta21)
+                    (eta21 + eta03)
                     , 2
                 );
 
@@ -214,19 +213,19 @@ static int l_calculateHuMoments(lua_State *L) {
                         , 2
                     ) - 
                     3 * pow(
-                        (eta03 + eta21)
+                        (eta21 + eta03)
                         , 2
                     )
                 ) +
                 (3 * eta21 - eta03) * 
-                (eta03 + eta21) * 
+                (eta21 + eta03) * 
                 (
                     3 * pow(
                         (eta30 + eta12)
                         , 2
                     ) - 
                     pow(
-                        (eta03 + eta21)
+                        (eta21 + eta03)
                         , 2
                     )
                 );
@@ -237,14 +236,14 @@ static int l_calculateHuMoments(lua_State *L) {
                         (eta30 + eta12)
                         , 2
                     ) - 
-                    7 * pow(
-                        (eta03 + eta21)
+                    pow(
+                        (eta21 + eta03)
                         , 2
                     )
                 ) +
                 4 * eta11 * 
                 (eta30 + eta12) * 
-                (eta03 + eta21);
+                (eta21 + eta03);
 
         h7 =    (3 * eta21 - eta03) * 
                 (eta30 + eta12) * 
@@ -254,19 +253,19 @@ static int l_calculateHuMoments(lua_State *L) {
                         , 2
                     ) - 
                     3 * pow(
-                        (eta03 + eta21)
+                        (eta21 + eta03)
                         , 2
                     )
-                ) +
+                ) -
                 (eta30 - 3 * eta12) * 
-                (eta03 + eta21) * 
+                (eta21 + eta03) * 
                 (
                     3 * pow(
                         (eta30 + eta12)
                         , 2
                     ) - 
                     pow(
-                        (eta03 + eta21)
+                        (eta21 + eta03)
                         , 2
                     )
                 );
