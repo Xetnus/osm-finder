@@ -249,6 +249,10 @@ end
 ----------------------------------------------------------------
 
 function insertHuMoments(object, category, subcategory)
+    -- if object.id ~= 366611411 then
+    --     return
+    -- end
+
     local count = 0
     local nodes = {}
     for _, node_id in ipairs(object.nodes) do

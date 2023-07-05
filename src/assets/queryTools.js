@@ -122,9 +122,9 @@ function calculateBounds(angle, error) {
   return {lower: lowerBounds, upper: upperBounds};
 }
 
-function calculateHuMoments(shapeNodes) {
-  let maxX = 30;
-  let maxY = 30;
+function calculateHuMoments(nodes) {
+  let maxX = 29;
+  let maxY = 29;
 
   function dist2(v, w) {
     return Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2)
@@ -150,15 +150,51 @@ function calculateHuMoments(shapeNodes) {
     return Math.sqrt(distToSegmentSquared(p, v, w));
   }
 
+  function pDistance(x, y, x1, y1, x2, y2) {
+
+  var A = x - x1;
+  var B = y - y1;
+  var C = x2 - x1;
+  var D = y2 - y1;
+
+  var dot = A * C + B * D;
+  var len_sq = C * C + D * D;
+  var param = -1;
+  if (len_sq != 0) //in case of 0 length line
+      param = dot / len_sq;
+
+  var xx, yy;
+
+  if (param < 0) {
+    xx = x1;
+    yy = y1;
+  }
+  else if (param > 1) {
+    xx = x2;
+    yy = y2;
+  }
+  else {
+    xx = x1 + param * C;
+    yy = y1 + param * D;
+  }
+
+  var dx = x - xx;
+  var dy = y - yy;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
   // Determines binary value at given coordinates
   function calculateI(nodes, x, y) {
+    // return nodes[x][y];
+
     let p = {x: x, y: y};
 
     for (let i = 0; i < nodes.length - 1; i++) {
       let segmentP1 = {x: nodes[i][0], y: nodes[i][1]};
       let segmentP2 = {x: nodes[i + 1][0], y: nodes[i + 1][1]};
 
-      if (distToSegment(p, segmentP1, segmentP2) < 1) {
+      if (distToSegment(p, segmentP1, segmentP2) <= 0.5) {
+      // if (pDistance(x, y, segmentP1.x, segmentP1.y, segmentP2.x, segmentP2.y) <= 0.5) {
         return 1;
       }
     }
@@ -169,12 +205,17 @@ function calculateHuMoments(shapeNodes) {
   function calculateM(nodes, p, q) {
     let m = 0;
 
-    for (let x = 0; x < maxX; x++) {
-      for (let y = 0; y < maxY; y++) {
-        m += (x**p) * (y**q) * calculateI(nodes, x, y);
-      }
-    }
+    console.log();
+    let res = "";
 
+    for (let x = 0; x <= maxX; x++) {
+      for (let y = 0; y <= maxY; y++) {
+        m += (Math.pow(x, p) * Math.pow(y, q) * calculateI(nodes, x, y));
+        res += "" + calculateI(nodes, x, y) + " ";
+      }
+      // console.log(res);
+      res = "";
+    }
     return m;
   }
 
@@ -182,9 +223,9 @@ function calculateHuMoments(shapeNodes) {
   function calculateMu(nodes, centroidX, centroidY, p, q) {
     let mu = 0;
 
-    for (let x = 0; x < maxX; x++) {
-      for (let y = 0; y < maxY; y++) {
-        mu += ((x - centroidX) ** p) * ((y - centroidY) ** q) * calculateI(nodes, x, y);
+    for (let x = 0; x <= maxX; x++) {
+      for (let y = 0; y <= maxY; y++) {
+        mu += (Math.pow((x - centroidX), p) * Math.pow((y - centroidY), q) * calculateI(nodes, x, y));
       }
     }
 
@@ -193,12 +234,47 @@ function calculateHuMoments(shapeNodes) {
 
   // Greek letter eta
   function calculateEta(nodes, centroidX, centroidY, muDenominator, p, q) {
-    let denominator = muDenominator ** (1 + (p + q) / 2);
+    let denominator = Math.pow(muDenominator, (1 + (p + q) / 2));
     let numerator = calculateMu(nodes, centroidX, centroidY, p, q);
     return numerator / denominator;
   }
 
-  let nodes = shapeNodes.slice();
+
+
+  // nodes = [];
+  // nodes = nodes.concat(["0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
+  // nodes = nodes.concat(["1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0".split(" ")]);
+
+
+
 
   let maxCoords = [nodes[0][0], nodes[0][1]];
   let minCoords = [nodes[0][0], nodes[0][1]];
@@ -224,7 +300,7 @@ function calculateHuMoments(shapeNodes) {
   let scale = Math.min(xRatio, yRatio);
 
   for(let i = 0; i < nodes.length; i++) {
-    console.log(shapeNodes[i][0], shapeNodes[i][1]);
+    // console.log(nodes[i][0], nodes[i][1]);
     nodes[i][0] -= minCoords[0];
     nodes[i][1] -= minCoords[1];
 
@@ -239,7 +315,8 @@ function calculateHuMoments(shapeNodes) {
     const centroidX = calculateM(nodes, 1, 0) / mDenominator;
     const centroidY = calculateM(nodes, 0, 1) / mDenominator;
 
-    let muDenominator = calculateMu(nodes, centroidX, centroidY, 0, 0);
+    // let muDenominator = calculateMu(nodes, centroidX, centroidY, 0, 0);
+    let muDenominator = mDenominator;
 
     let eta20 = calculateEta(nodes, centroidX, centroidY, muDenominator, 2, 0);
     let eta02 = calculateEta(nodes, centroidX, centroidY, muDenominator, 0, 2);
@@ -248,6 +325,19 @@ function calculateHuMoments(shapeNodes) {
     let eta12 = calculateEta(nodes, centroidX, centroidY, muDenominator, 1, 2);
     let eta03 = calculateEta(nodes, centroidX, centroidY, muDenominator, 0, 3);
     let eta21 = calculateEta(nodes, centroidX, centroidY, muDenominator, 2, 1);
+
+    // console.log("centroidX " + centroidX);
+    // console.log("centroidY " + centroidY);
+    // console.log("mDenom " + mDenominator);
+    // console.log("muDenom " + muDenominator);
+
+    // console.log("eta20 " + eta20);
+    // console.log("eta02 " + eta02);
+    // console.log("eta11 " + eta11);
+    // console.log("eta30 " + eta30);
+    // console.log("eta12 " + eta12);
+    // console.log("eta03 " + eta03);
+    // console.log("eta21 " + eta21);
 
     h1 = eta20 + eta02;
 

@@ -15,8 +15,8 @@
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
 
-int maxX = 30;
-int maxY = 30;
+int maxX = 29;
+int maxY = 29;
 
 static double dist2(double v[], double w[]) {
     return pow(v[0] - w[0], 2) + pow(v[1] - w[1], 2);
@@ -30,7 +30,6 @@ static double distToSegmentSquared(double p[], double v[], double w[]) {
 
     double t = ((p[0] - v[0]) * (w[0] - v[0]) + (p[1] - v[1]) * (w[1] - v[1])) / l2;
     t = max(0, min(1, t));
-
 
     double new_w[] = { (v[0] + t * (w[0] - v[0])), (v[1] + t * (w[1] - v[1])) };
     return dist2(p, new_w);
@@ -47,14 +46,47 @@ static double distToSegment(double p[], double v[], double w[]) {
 }
 
 // Determines binary value at given coordinates
-static int calculateI(int numNodes, double nodes[][2], double x, double y) {
-    double p[] = {x, y};
+static int calculateI(int numNodes, double nodes[][2], int x, int y) {
+    // double newNodes[][30] = 
+    // {{0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    // {1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0},
+    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
+    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
+    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
+    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
+    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
+    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
+    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
+    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
+    // {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0}};
+    // return newNodes[(int)x][(int)y];
+
+    double p[] = {(double) x, (double) y};
 
     for (int i = 0; i < numNodes - 1; i++) {
         double segmentP1[] = {nodes[i][0], nodes[i][1]};
         double segmentP2[] = {nodes[i + 1][0], nodes[i + 1][1]};
 
-        if (distToSegment(p, segmentP1, segmentP2) < 1) {
+        if (distToSegment(p, segmentP1, segmentP2) <= 0.5) {
             return 1;
         }
     }
@@ -65,8 +97,8 @@ static int calculateI(int numNodes, double nodes[][2], double x, double y) {
 static int calculateM(int numNodes, double nodes[][2], int p, int q) {
     int m = 0;
 
-    for (double x = 0; x < maxX; x++) {
-        for (double y = 0; y < maxY; y++) {
+    for (int x = 0; x <= maxX; x++) {
+        for (int y = 0; y <= maxY; y++) {
             m += (pow(x, p) * pow(y, q) * calculateI(numNodes, nodes, x, y));
         }
     }
@@ -78,10 +110,13 @@ static int calculateM(int numNodes, double nodes[][2], int p, int q) {
 static double calculateMu(int numNodes, double nodes[][2], double centroidX, double centroidY, int p, int q) {
     double mu = 0;
 
-    for (double x = 0; x < maxX; x++) {
-        for (double y = 0; y < maxY; y++) {
-            mu += pow((x - centroidX), p) * pow((y - centroidY), q) * calculateI(numNodes, nodes, x, y);
+    // printf("\n");
+    for (int x = 0; x <= maxX; x++) {
+        for (int y = 0; y <= maxY; y++) {
+            mu += (pow((x - centroidX), p) * pow((y - centroidY), q) * calculateI(numNodes, nodes, x, y));
+            // printf("%d ", calculateI(numNodes, nodes, x, y));
         }
+        // printf("\n");
     }
 
     return mu;
@@ -89,14 +124,14 @@ static double calculateMu(int numNodes, double nodes[][2], double centroidX, dou
 
 // Greek letter eta
 static double calculateEta(int numNodes, double nodes[][2], double centroidX, double centroidY, double muDenominator, int p, int q) {
-    double denominator = pow(muDenominator, (1 + (p + q) / 2));
+    double denominator = pow(muDenominator, (double) (1.0 + (p + q) / 2.0));
     double numerator = calculateMu(numNodes, nodes, centroidX, centroidY, p, q);
     return (numerator / denominator);
 }
 
 /***************
  Function to calculate Hu Moments based on explanation found here:
- https://towardsdatascience.com/introduction-to-the-invariant-moment-and-its-application-to-the-feature-extraction-ee991f39ec
+ https://en.wikipedia.org/wiki/Image_moment
  Liberties were taken to optimize the algorithm for C
 ***************/
 static int l_calculateHuMoments(lua_State *L) {
@@ -159,14 +194,14 @@ static int l_calculateHuMoments(lua_State *L) {
     }
 
     double h1 = 0, h2 = 0, h3 = 0, h4 = 0, h5 = 0, h6 = 0, h7 = 0;
-    double mDenominator = calculateM(count, nodes, 0, 0);
+    const double mDenominator = calculateM(count, nodes, 0, 0);
 
     if (mDenominator != 0) { // mDenominator = 0 if and only if grid is completely empty
-        double centroidX = 0, centroidY = 0;
-        centroidX = (double) calculateM(count, nodes, 1, 0) / mDenominator;
-        centroidY = (double) calculateM(count, nodes, 0, 1) / mDenominator;
+        const double centroidX = calculateM(count, nodes, 1, 0) / mDenominator;
+        const double centroidY = calculateM(count, nodes, 0, 1) / mDenominator;
 
-        double muDenominator = calculateMu(count, nodes, centroidX, centroidY, 0, 0);
+        // double muDenominator = calculateMu(count, nodes, centroidX, centroidY, 0, 0);
+        const double muDenominator = mDenominator;
 
         double eta20 = calculateEta(count, nodes, centroidX, centroidY, muDenominator, 2, 0);
         double eta02 = calculateEta(count, nodes, centroidX, centroidY, muDenominator, 0, 2);
@@ -175,6 +210,19 @@ static int l_calculateHuMoments(lua_State *L) {
         double eta12 = calculateEta(count, nodes, centroidX, centroidY, muDenominator, 1, 2);
         double eta03 = calculateEta(count, nodes, centroidX, centroidY, muDenominator, 0, 3);
         double eta21 = calculateEta(count, nodes, centroidX, centroidY, muDenominator, 2, 1);
+
+        // printf("centroidX %13.7f\n", centroidX);
+        // printf("centroidY %13.7f\n", centroidY);
+        // printf("muDenom %13.7f\n", muDenominator);
+        // printf("mDenom %13.7f\n", mDenominator);
+
+        // printf("eta20 %13.7f\n", eta20);
+        // printf("eta02 %13.7f\n", eta02);
+        // printf("eta11 %13.7f\n", eta11);
+        // printf("eta30 %13.7f\n", eta30);
+        // printf("eta12 %13.7f\n", eta12);
+        // printf("eta03 %13.7f\n", eta03);
+        // printf("eta21 %13.7f\n", eta21);
 
         h1 = eta20 + eta02;
 
