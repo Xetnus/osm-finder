@@ -229,8 +229,8 @@
 </script>
 
 <template>
-  <p class="input-title">Relationship between {{current1.name}} and {{getReadableName(current2)}}</p>
-  <div class="input-bar-flex">
+  <p v-if="anns.length > 1" class="input-title">Relationship between {{current1.name}} and {{getReadableName(current2)}}</p>
+  <div v-if="anns.length > 1" class="input-bar-flex">
     <q-btn @click="handleBack" label="Back" color="primary"/>
     <q-input v-bind="distanceProps" class="property-input" v-model.number="maxDistance" type="number" outlined label="Max distance (m)"/>
     <q-input v-bind="distanceProps" class="property-input" v-model.number="minDistance" type="number" outlined label="Min distance (m)"/>

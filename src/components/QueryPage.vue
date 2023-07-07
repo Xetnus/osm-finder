@@ -23,7 +23,8 @@ import {constructQuery} from '../assets/queryCreator.js'
         });
       },
       getQuery(urls) {
-        return constructQuery(this.annotations, urls);
+        let deepCopy = JSON.parse(JSON.stringify(this.annotations));
+        return constructQuery(deepCopy, urls);
       }
     }
   }

@@ -3,10 +3,12 @@ Thanks vbarbarosh!
 https://stackoverflow.com/a/38977789/1941353
 */
 function calculateIntersection(line1, line2) {
-  if (line1.length != 4 || line2.length != 4)
+  if (line1.length != 2 || line2.length != 2)
     return;
-  const [x1, y1, x2, y2] = line1;
-  const [x3, y3, x4, y4] = line2;
+  const [x1, y1] = line1[0];
+  const [x2, y2] = line1[1];
+  const [x3, y3] = line2[0];
+  const [x4, y4] = line2[1];
   let ua, ub, denom = (y4 - y3)*(x2 - x1) - (x4 - x3)*(y2 - y1);
   if (denom == 0) {
       return null;

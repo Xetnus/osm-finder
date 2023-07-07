@@ -10,6 +10,7 @@
   "dependencies": {
     "@quasar/extras": "^1.15.9",
     "konva": "^8.3.13",
+    "polygon-clipping": "^0.15.3",
     "vue": "^3.2.38",
     "vue-konva": "^3.0.1"
   },

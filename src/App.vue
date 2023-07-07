@@ -30,7 +30,7 @@ annotations: [
   1:
     name: 'node1'
     geometryType: 'node'
-    point
+    points
     state // either transparent, transparent-but-related, or default
     category
     subcategory

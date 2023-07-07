@@ -9,49 +9,31 @@
         warningVisible: false,
       }
     },
-    computed: {
-      linestringProps() {
-        let icon = 'north_east'
-        let color = 'primary';
-
-        if (this.drawingState === 'linestring') {
-          icon = 'cancel';
-          color = 'negative';
-        }
-
-        return {'icon': icon, 'color': color};
-      },
-
-      nodeProps() {
-        let icon = 'radio_button_checked'
-        let color = 'primary';
-
-        if (this.drawingState === 'node') {
-          icon = 'cancel';
-          color = 'negative';
-        }
-
-        return {'icon': icon, 'color': color};
-      },
-
-      shapeLineProps() {
-        let icon = 'line_start_circle'
-        let color = 'primary';
-
-        if (this.drawingState === 'shapeLine') {
-          icon = 'cancel';
-          color = 'negative';
-        }
-
-        return {'icon': icon, 'color': color};
-      }
-    },
     methods: {
+      getProps(type) {
+        let primaryIconMap = {
+          'linestring': 'north_east',
+          'node': 'radio_button_checked',
+          'rectangle': 'rectangle',
+          'circle': 'circle',
+          'polygon': 'polyline',
+        }
+
+        let icon = primaryIconMap[type];
+        let color = 'primary';
+
+        if (this.drawingState === type) {
+          icon = 'cancel';
+          color = 'negative';
+        }
+
+        return {'icon': icon, 'color': color};
+      },
       handleNext(event) {
-        if (this.annotations.length > 1) {
+        if (this.annotations.length > 0) {
           this.$emit('next')
         } else {
-          // Displays warning if fewer than 2 items have been drawn
+          // Displays warning if no items have been drawn
           this.warningVisible = true;
           setTimeout(() => {
             this.warningVisible = false;
@@ -61,25 +43,15 @@
       handleBack(event) {
         this.$emit('back')
       },
-      toggleLinestring(event) {
+      toggleDrawingButton(buttonName) {
         let state = this.drawingState;
-        state = (!state ? 'linestring' : false);
-        this.$emit('drawingStateChange', state);
-      },
-      toggleNode(event) {
-        let state = this.drawingState;
-        state = (!state ? 'node' : false);
+        state = (state !== buttonName ? buttonName : false);
         this.$emit('drawingStateChange', state);
       },
       toggleShape(event) {
         let state = this.drawingState;
         state = false;
         this.drawingShape = !this.drawingShape;
-        this.$emit('drawingStateChange', state);
-      },
-      toggleShapeLine(event) {
-        let state = this.drawingState;
-        state = (!state ? 'shapeLine' : false);
         this.$emit('drawingStateChange', state);
       },
       handleUndo(event) {
@@ -98,12 +70,12 @@
 
 <template>
   <div v-if="!drawingShape" class="input-bar-flex">
-    <q-btn class="q-py-md" @click="toggleLinestring" label="Linestring" v-bind="linestringProps">
+    <q-btn class="q-py-md" @click="toggleDrawingButton('linestring')" label="Linestring" v-bind="getProps('linestring')">
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
         Click and drag to draw a line.
       </q-tooltip>
     </q-btn>
-    <q-btn class="q-py-md" @click="toggleNode" label="Node" v-bind="nodeProps">
+    <q-btn class="q-py-md" @click="toggleDrawingButton('node')" label="Node" v-bind="getProps('node')">
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
         Click once on the canvas to place a node.
       </q-tooltip>
@@ -116,7 +88,17 @@
   </div>
 
   <div v-else class="input-bar-flex">
-    <q-btn class="q-py-md" @click="toggleShapeLine" label="Line" v-bind="shapeLineProps">
+    <q-btn class="q-py-md" @click="toggleDrawingButton('rectangle')" label="Rectangle" v-bind="getProps('rectangle')">
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Click twice to draw a rectangle.
+      </q-tooltip>
+    </q-btn>
+    <q-btn class="q-py-md" @click="toggleDrawingButton('circle')" label="Circle" v-bind="getProps('circle')">
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Click once at the center of the circle and click again on its radius.
+      </q-tooltip>
+    </q-btn>
+    <q-btn class="q-py-md" @click="toggleDrawingButton('polygon')" label="Polygon" v-bind="getProps('polygon')">
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
         Click to drop points around the outline of the shape.
       </q-tooltip>
@@ -138,7 +120,7 @@
   <q-dialog v-model="warningVisible" seamless position="top">
     <q-card class="bg-warning text-black">
       <q-card-section id="card-section" class="row items-center no-wrap">
-        <div id="warning-msg">Draw at least two linestrings, nodes, or a combination of both.</div>
+        <div id="warning-msg">Place at least one object.</div>
         <q-btn flat round icon="close" v-close-popup />
       </q-card-section>
     </q-card>

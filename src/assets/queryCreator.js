@@ -1,6 +1,37 @@
 import {calculateIntersection} from './generalTools.js'
 import {calculateBounds, createTagsQuery, createMaxDistanceQuery, createMinDistanceQuery, createNoOverlappingQuery, calculateHuMoments} from './queryTools.js'
 
+
+function constructSingleObjectQuery(annotations, displayUrls) {
+  let moments = calculateHuMoments(annotations[0].points);
+  console.log(moments);
+  return "SELECT id, sqrt(pow(hu1 - " + moments[0] + ", 2) + pow(hu2 - " + moments[1] + ", 2) + pow(hu3 - " + moments[2] + ", 2) + pow(hu4 - " + moments[3] + ", 2) + pow(hu5 - " + moments[4] + ", 2) + pow(hu6 - " + moments[5] + ", 2) + pow(hu7 - " + moments[6] + ", 2)) as distance FROM closed_shapes ORDER BY distance ASC;";
+
+  let query = 'SELECT\n';
+  if (displayUrls) {
+    query += '  replace(replace(' + annotations[0].name + ".osm_type, 'N', 'www.openstreetmap.org/node/'), 'W', 'www.openstreetmap.org/way/')";
+    query += ' || ' + annotations[0].name + '.osm_id AS ' + annotations[0].name + '_url\n';
+  } else {
+    query += '  ' + annotations[0].name + '.osm_id AS ' + annotations[0].name + '_id, ';
+    query += annotations[0].name + '.osm_type AS ' + annotations[0].name + '_type\n';
+  }
+
+  query += 'FROM ';
+  query += annotations[0].geometryType + 's AS ' + annotations[0].name;
+
+  query += 'WHERE ';
+  // Filters results by category and subcategory
+  let category = annotations[0].category;
+  let subcategory = annotations[0].subcategory;
+  let subcategoryString = (subcategory == '' ? '' : annotations[0].name + '.subcategory = \'' + subcategory + '\' AND ');
+  query += annotations[0].name + '.category = \'' + category + '\' AND ' + subcategoryString;
+
+  // Adds any additional tags entered by the user to the WHERE
+  if (annotations[0].tags.length != 0) {
+    query += createTagsQuery(annotations[0]);
+  }
+}
+
 // Example Query for Disjoint
 /*
 SELECT line1.id, line2.id
@@ -635,6 +666,10 @@ function constructQuery(annotations, displayUrls = true) {
   let lines = [];
   let shapes = [];
 
+  if (annotations.length == 1) {
+    return constructSingleObjectQuery(annotations, displayUrls);
+  }
+
   for (let i = 0; i < annotations.length; i++) { 
     if (annotations[i].geometryType == 'linestring') {
       lines.push(annotations[i]);
@@ -645,9 +680,6 @@ function constructQuery(annotations, displayUrls = true) {
     }
   }
 
-  let moments = calculateHuMoments(shapes[0].points);
-  console.log(moments);
-  return "SELECT id, sqrt(pow(hu1 - " + moments[0] + ", 2) + pow(hu2 - " + moments[1] + ", 2) + pow(hu3 - " + moments[2] + ", 2) + pow(hu4 - " + moments[3] + ", 2) + pow(hu5 - " + moments[4] + ", 2) + pow(hu6 - " + moments[5] + ", 2) + pow(hu7 - " + moments[6] + ", 2)) as distance FROM closed_shapes ORDER BY distance ASC;";
 
   // If at least two of the lines intersect, then call constructIntersectingQuery
   for (let i = 0; i < lines.length; i++) { 
