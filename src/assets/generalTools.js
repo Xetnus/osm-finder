@@ -24,6 +24,23 @@ function calculateIntersection(line1, line2) {
   };
 }
 
+// Thanks Andrii! https://stackoverflow.com/a/33670691/1941353
+function calculatePolygonArea(vertices) {
+    var total = 0;
+
+    for (var i = 0, l = vertices.length; i < l; i++) {
+      var addX = vertices[i][0];
+      var addY = vertices[i == vertices.length - 1 ? 0 : i + 1][1];
+      var subX = vertices[i == vertices.length - 1 ? 0 : i + 1][0];
+      var subY = vertices[i][1];
+
+      total += (addX * addY * 0.5);
+      total -= (subX * subY * 0.5);
+    }
+
+    return Math.abs(total);
+}
+
 function getLineLength(x1, y1, x2, y2) {
   return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 }
@@ -65,4 +82,4 @@ function getUniquePairs(list) {
   return pairs;
 }
 
-export {calculateIntersection, getLineLength, getPointAtDistance, debounce, getUniquePairs}
+export {calculateIntersection, calculatePolygonArea, getLineLength, getPointAtDistance, debounce, getUniquePairs}

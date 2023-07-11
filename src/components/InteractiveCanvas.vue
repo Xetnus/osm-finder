@@ -1,5 +1,5 @@
 <script>
-import {calculateIntersection, getLineLength, getPointAtDistance, debounce, getUniquePairs} from '../assets/generalTools.js'
+import {calculateIntersection, calculatePolygonArea, getLineLength, getPointAtDistance, debounce, getUniquePairs} from '../assets/generalTools.js'
 import PolygonClipping from 'polygon-clipping';
 
   export default {
@@ -83,9 +83,7 @@ import PolygonClipping from 'polygon-clipping';
         this.activeIntersections = [];
         this.activeJoints = [];
 
-        let state = this.drawingState;
-        state = false;
-        this.$emit('drawingStateChange', state);
+        this.$emit('drawingStateChange', 'none');
       },
 
       getLineConfig(line) {
@@ -114,7 +112,7 @@ import PolygonClipping from 'polygon-clipping';
 
       getActiveLineConfig(points) {
         // If the user cancels the drawing operation, reset active variables
-        if (this.drawingState === false) {
+        if (this.drawingState === 'none') {
           this.activeLine = [];
           this.activeIntersections = [];
           return {};
@@ -125,7 +123,7 @@ import PolygonClipping from 'polygon-clipping';
 
       getActiveCircleConfig(points) {
         // If the user cancels the drawing operation, reset active variables
-        if (this.drawingState === false) {
+        if (this.drawingState === 'none') {
           this.activeCircle = [];
           return {};
         }
@@ -138,7 +136,7 @@ import PolygonClipping from 'polygon-clipping';
 
       getActiveRectangleConfig(cornerPoints) {
         // If the user cancels the drawing operation, reset active variables
-        if (this.drawingState === false) {
+        if (this.drawingState === 'none') {
           this.activeRectangle = [];
           return {};
         }
@@ -157,7 +155,7 @@ import PolygonClipping from 'polygon-clipping';
 
       getActivePolygonConfig(points) {
         // If the user cancels the drawing operation, reset active variables
-        if (this.drawingState === false) {
+        if (this.drawingState === 'none') {
           this.activePolygon = [];
           this.activeJoints = [];
           return {};
@@ -187,7 +185,7 @@ import PolygonClipping from 'polygon-clipping';
         // Finds the longest segment of line1, assuming the line is split at the intersection
         const temp1_len1 = getLineLength(intersection.x, intersection.y, line1[0], line1[1]);
         const temp2_len1 = getLineLength(intersection.x, intersection.y, line1[2], line1[3]);
-        let line1_x = 2; 
+        let line1_x = 2;
         let line1_y = 3;
         let len1 = temp2_len1;
 
@@ -302,19 +300,48 @@ import PolygonClipping from 'polygon-clipping';
               && (point1[1] - point2[1] < 4 && point1[1] - point2[1] > -4));
       },
 
+      clip(newShapePoints) {
+        if (this.activeShape.length > 0) {
+          let mode = this.drawingState.substring(0, 3);
+          let results = [];
+          if (mode === 'add') {
+            results = PolygonClipping.union([this.activeShape], [newShapePoints]);
+          } else if (mode === 'sub') {
+            results = PolygonClipping.difference([this.activeShape], [newShapePoints]);
+          }
+
+          // Checks that both arrays have the same [x, y] coordinates as elements
+          const checkArrayEquality = (a1, a2) => a1.length === a2.length &&
+              [...a1].every((o1) => a2.some(o2 => o2[0] == o1[0] && o2[1] == o1[1]));
+
+          // In the event that two or more geometries were returned with the clipping operation,
+          // keep the one that exactly matches the original geometry (i.e., the newly drawn geometry
+          // didn't overlap with the original geometry, leaving the original geometry unmodified) or
+          // that has the highest area (i.e., the subtractive clipping operation resulted in 2+ 
+          // geometries and we decided to only keep the geometry with the highest polygonal area).
+          let newShape = [];
+          let maxArea = 0;
+          for (let i = 0; i < results.length; i++) {
+            let r = results[i][0];
+            if (checkArrayEquality(r, this.activeShape)) {
+              newShape = r;
+              break;
+            } else if (calculatePolygonArea(r) > maxArea) {
+              maxArea = calculatePolygonArea(r);
+              newShape = r;
+            }
+          }
+          this.activeShape = newShape;
+        } else {
+          this.activeShape = this.activePolygon;
+        }
+      },
+
       mousedown() {
         const pos = this.$refs.stage.getStage().getPointerPosition();
         if (this.programStage != 2 || !pos) return;
 
-        if (this.drawingState === 'linestring') {
-          if (this.activeLine.length > 0) {
-            this.activeLine[1] = [pos.x, pos.y];
-            this.pushAnnotation('linestring', this.activeLine);
-            this.emitStopDrawing();
-          } else {
-            this.activeLine = [[pos.x, pos.y]];
-          }
-        } else if (this.drawingState === 'polygon') {
+        if (this.drawingState.endsWith('polygon')) {
           this.activeLine = [[pos.x, pos.y]];
           this.activePolygon.push([pos.x, pos.y]);
           this.activeJoints.push({
@@ -332,59 +359,23 @@ import PolygonClipping from 'polygon-clipping';
             // Closes the shape if the user clicks on the first point in the shape
             if (this.withinClickThreshold([firstX, firstY], [pos.x, pos.y])) {
               this.activePolygon.push([firstX, firstY]);
-
-              if (this.activeShape.length > 0) {
-                this.activeShape = PolygonClipping.union([this.activeShape], [this.activePolygon])[0][0];
-              } else {
-                this.activeShape = this.activePolygon;
-              }
+              this.clip(this.activePolygon);
               // this.pushAnnotation('shape', this.activeShape);
               // this.activeShape = [];
               this.emitStopDrawing();
             }
           }
-        } else if (this.drawingState === 'circle') {
+        } else if (this.drawingState.endsWith('circle')) {
           if (this.activeCircle.length == 0) {
             this.activeCircle = [[pos.x, pos.y]];
-          } else {
-            let circle = [];
-
-            // Splits the circle into discrete line segments
-            let centerX = this.activeCircle[0][0];
-            let centerY = this.activeCircle[0][1];
-            let radius = getLineLength(pos.x, pos.y, centerX, centerY)
-            let numPoints = Math.ceil(2 * Math.PI * radius / 10);
-            let step = 2 * Math.PI / numPoints;
-            for (let a = 0, i = 0; i < numPoints; i++, a += step)
-            {
-              let x = centerX + radius * Math.cos(a);
-              let y = centerY + radius * Math.sin(a);
-              circle.push([x, y]);
-            }
-            circle.push(circle[0]); // completes the loop
-
-            if (this.activeShape.length > 0) {
-              this.activeShape = PolygonClipping.union([this.activeShape], [[circle]])[0][0];
-            } else {
-              this.activeShape = circle;
-            }
-            this.emitStopDrawing();
           }
-        } else if (this.drawingState === 'rectangle') {
+        } else if (this.drawingState.endsWith('rectangle')) {
           if (this.activeRectangle.length == 0) {
             this.activeRectangle = [[pos.x, pos.y]];
-          } else {
-            let firstX = this.activeRectangle[0][0];
-            let firstY = this.activeRectangle[0][1];
-
-            let rect = [[firstX, firstY], [firstX, pos.y], [pos.x, pos.y], [pos.x, firstY], [firstX, firstY]];
-
-            if (this.activeShape.length > 0) {
-              this.activeShape = PolygonClipping.union([this.activeShape], [[rect]])[0][0];
-            } else {
-              this.activeShape = rect;
-            }
-            this.emitStopDrawing();
+          }
+        } else if (this.drawingState === 'linestring') {
+          if (this.activeLine.length == 0) {
+            this.activeLine = [[pos.x, pos.y]];
           }
         } else if (this.drawingState === 'node') {
           this.pushAnnotation('node', [[pos.x, pos.y]]);
@@ -418,7 +409,7 @@ import PolygonClipping from 'polygon-clipping';
                 });
               }
             }
-          } else if (this.drawingState === 'polygon') {
+          } else if (this.drawingState.endsWith('polygon')) {
             if (this.activePolygon.length == 0) return;
 
             let firstX = this.activePolygon[0][0];
@@ -435,10 +426,10 @@ import PolygonClipping from 'polygon-clipping';
                 x: this.activePolygon[i][0], y: this.activePolygon[i][1]
               });
             }
-          } else if (this.drawingState === 'circle') {
+          } else if (this.drawingState.endsWith('circle')) {
             if (this.activeCircle.length == 0) return;
             this.activeCircle[1] = [pos.x, pos.y];
-          } else if (this.drawingState === 'rectangle') {
+          } else if (this.drawingState.endsWith('rectangle')) {
             if (this.activeRectangle.length == 0) return;
             this.activeRectangle[1] = [pos.x, pos.y];
           }
@@ -447,16 +438,67 @@ import PolygonClipping from 'polygon-clipping';
 
       // Handles click and drag for creating linestrings
       mouseup() {
-        if (this.programStage != 2 || this.activeLine.length == 0) return;
-        if (this.drawingState !== 'linestring') return;
+        if (this.programStage != 2) return;
+        if (this.activeLine.length == 0  && this.activeCircle.length == 0 && this.activeRectangle == 0) return;
 
         const pos = this.$refs.stage.getStage().getPointerPosition();
         if (pos) {
-          let firstX = this.activeLine[0][0];
-          let firstY = this.activeLine[0][1];
-          // Ignores small, accidental mouse movements
-          if (!this.withinClickThreshold([firstX, firstY], [pos.x, pos.y])) {
+          if (this.drawingState === 'linestring') {
+            let firstX = this.activeLine[0][0];
+            let firstY = this.activeLine[0][1];
+
+            // Ignores small, accidental mouse movements
+            if (this.withinClickThreshold([firstX, firstY], [pos.x, pos.y])) {
+              this.activeLine = [];
+              return;
+            }
+
             this.pushAnnotation('linestring', this.activeLine);
+            this.emitStopDrawing();
+          } else if (this.drawingState.endsWith('rectangle')) {
+            let firstX = this.activeRectangle[0][0];
+            let firstY = this.activeRectangle[0][1];
+
+            let rect = [[firstX, firstY], [firstX, pos.y], [pos.x, pos.y], [pos.x, firstY], [firstX, firstY]];
+
+            if (this.withinClickThreshold([firstX, firstY], [pos.x, pos.y])) {
+              this.activeRectangle = [];
+              return;
+            }
+
+            if (this.activeShape.length > 0) {
+              this.clip([rect]);
+            } else {
+              this.activeShape = rect;
+            }
+            this.emitStopDrawing();
+          } else if (this.drawingState.endsWith('circle')) {
+            let centerX = this.activeCircle[0][0];
+            let centerY = this.activeCircle[0][1];
+
+            if (this.withinClickThreshold([centerX, centerY], [pos.x, pos.y])) {
+              this.activeCircle = [];
+              return;
+            }
+
+            // Splits the circle into discrete line segments
+            let circle = [];
+            let radius = getLineLength(pos.x, pos.y, centerX, centerY)
+            let numPoints = Math.ceil(2 * Math.PI * radius / 10);
+            let step = 2 * Math.PI / numPoints;
+            for (let a = 0, i = 0; i < numPoints; i++, a += step)
+            {
+              let x = centerX + radius * Math.cos(a);
+              let y = centerY + radius * Math.sin(a);
+              circle.push([x, y]);
+            }
+            circle.push(circle[0]); // completes the loop
+
+            if (this.activeShape.length > 0) {
+              this.clip([circle]);
+            } else {
+              this.activeShape = circle;
+            }
             this.emitStopDrawing();
           }
         }

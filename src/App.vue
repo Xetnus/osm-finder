@@ -60,7 +60,7 @@ drawingState: {
         image: null,        // Currently rendered image in the canvas
         programStage: 1,    // Stage of the program (upload, drawing, details, etc.)
         annotations: [],    // Data of the drawn annotations (e.g., lines, nodes)
-        drawingState: false,     // Keeps the active state of the user's drawing input
+        drawingState: 'none',     // Keeps the active state of the user's drawing input
       }
     },
     created() {

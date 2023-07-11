@@ -7,9 +7,13 @@
         history: [],
         drawingShape: false,
         warningVisible: false,
+        mode: true,
       }
     },
     methods: {
+      getModeText(value = this.mode) {
+        return value ? 'add' : 'sub';
+      },
       getProps(type) {
         let primaryIconMap = {
           'linestring': 'north_east',
@@ -22,7 +26,7 @@
         let icon = primaryIconMap[type];
         let color = 'primary';
 
-        if (this.drawingState === type) {
+        if (this.drawingState.endsWith(type)) {
           icon = 'cancel';
           color = 'negative';
         }
@@ -43,16 +47,31 @@
       handleBack(event) {
         this.$emit('back')
       },
+      toggleShapeDrawingButton(buttonName) {
+        let state = this.drawingState;
+        state = (!state.endsWith(buttonName) ? (this.getModeText() + '_' + buttonName) : 'none');
+        this.$emit('drawingStateChange', state);
+      },
       toggleDrawingButton(buttonName) {
         let state = this.drawingState;
-        state = (state !== buttonName ? buttonName : false);
+        state = (state !== buttonName ? buttonName : 'none');
         this.$emit('drawingStateChange', state);
       },
       toggleShape(event) {
-        let state = this.drawingState;
-        state = false;
         this.drawingShape = !this.drawingShape;
-        this.$emit('drawingStateChange', state);
+        this.$emit('drawingStateChange', 'none');
+      },
+      toggleModeButton(value, event) {
+        if (this.drawingState !== 'none') {
+          let state = this.drawingState;
+          if (state.includes('_')) {
+            state = this.getModeText(value) + state.substring(3);
+          } else {
+            state = this.getModeText(value) + '_' + state;
+          }
+
+          this.$emit('drawingStateChange', state);
+        }
       },
       handleUndo(event) {
         let anns = this.annotations;
@@ -82,25 +101,30 @@
     </q-btn>
     <q-btn class="q-py-md" @click="toggleShape" label="Shape" icon="pentagon" color="primary">
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
-        Draw the outline of a shape.
+        Draw the outline of a uniquely shaped map item.
       </q-tooltip>
     </q-btn>
   </div>
 
   <div v-else class="input-bar-flex">
-    <q-btn class="q-py-md" @click="toggleDrawingButton('rectangle')" label="Rectangle" v-bind="getProps('rectangle')">
+    <q-toggle @update:model-value="toggleModeButton" v-model="mode" size="lg" checked-icon="add" color="blue" unchecked-icon="remove">
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
-        Click twice to draw a rectangle.
+        Toggle between additive or subtractive mode.
+      </q-tooltip>
+    </q-toggle>
+    <q-btn class="q-py-md" @click="toggleShapeDrawingButton('rectangle')" label="Rectangle" v-bind="getProps('rectangle')">
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Click and drag to draw a rectangle.
       </q-tooltip>
     </q-btn>
-    <q-btn class="q-py-md" @click="toggleDrawingButton('circle')" label="Circle" v-bind="getProps('circle')">
+    <q-btn class="q-py-md" @click="toggleShapeDrawingButton('circle')" label="Circle" v-bind="getProps('circle')">
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
-        Click once at the center of the circle and click again on its radius.
+        Click and drag to draw a circle.
       </q-tooltip>
     </q-btn>
-    <q-btn class="q-py-md" @click="toggleDrawingButton('polygon')" label="Polygon" v-bind="getProps('polygon')">
+    <q-btn class="q-py-md" @click="toggleShapeDrawingButton('polygon')" label="Polygon" v-bind="getProps('polygon')">
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
-        Click to drop points around the outline of the shape.
+        Click to drop points around the outline of the polygonal shape.
       </q-tooltip>
     </q-btn>
     <q-btn class="q-py-md" @click="toggleShape" label="Done" icon="done" color="primary">
