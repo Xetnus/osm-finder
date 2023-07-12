@@ -8,7 +8,7 @@
 <script>
   export default {
     props: ['programStage', 'annotations', 'drawingState'],
-    emits: ['upload', 'programStageChange', 'annotationsChange', 'drawingStateChange'],
+    emits: ['upload', 'programStageChange', 'annotationsChange', 'drawingStateChange', 'warn'],
     data() {
       return {
         propertiesHistory: -1,
@@ -36,6 +36,9 @@
       },
       relationsHistoryChange(history) {
         this.relationsHistory = history;
+      },
+      displayWarning(warning) {
+        this.$emit('warn', warning);
       }
     },
   }
@@ -47,7 +50,7 @@
       @next="next" @upload="upload"/>
 
     <DrawBar v-if="programStage == 2" 
-      @next="next" @back="back" @drawingStateChange="drawingStateChange" @annotationsChange="annotationsChange"
+      @next="next" @back="back" @drawingStateChange="drawingStateChange" @annotationsChange="annotationsChange" @warn="displayWarning"
       :drawingState="drawingState" :annotations="annotations"/>
 
     <PropertiesBar v-if="programStage == 3" 

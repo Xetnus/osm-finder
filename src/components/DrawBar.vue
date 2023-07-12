@@ -1,19 +1,15 @@
 <script>
   export default {
     props: ['drawingState', 'annotations'],
-    emits: ['next', 'back', 'drawingStateChange', 'annotationsChange'],
+    emits: ['next', 'back', 'drawingStateChange', 'annotationsChange', 'warn'],
     data() {
       return {
         history: [],
         drawingShape: false,
-        warningVisible: false,
-        mode: true,
+        mode: 'add',
       }
     },
     methods: {
-      getModeText(value = this.mode) {
-        return value ? 'add' : 'sub';
-      },
       getProps(type) {
         let primaryIconMap = {
           'linestring': 'north_east',
@@ -35,21 +31,17 @@
       },
       handleNext(event) {
         if (this.annotations.length > 0) {
-          this.$emit('next')
+          this.$emit('next');
         } else {
-          // Displays warning if no items have been drawn
-          this.warningVisible = true;
-          setTimeout(() => {
-            this.warningVisible = false;
-          }, 5000);
+          this.$emit('warn', 'Place at least one object.');
         }
       },
       handleBack(event) {
-        this.$emit('back')
+        this.$emit('back');
       },
       toggleShapeDrawingButton(buttonName) {
         let state = this.drawingState;
-        state = (!state.endsWith(buttonName) ? (this.getModeText() + '_' + buttonName) : 'none');
+        state = (!state.endsWith(buttonName) ? (this.mode + '_' + buttonName) : 'none');
         this.$emit('drawingStateChange', state);
       },
       toggleDrawingButton(buttonName) {
@@ -58,6 +50,13 @@
         this.$emit('drawingStateChange', state);
       },
       toggleShape(event) {
+        let ann = this.annotations[this.annotations.length - 1];
+        if (ann && ann.geometryType === 'shape' && !ann.completed) {
+          let anns = this.annotations;
+          anns[this.annotations.length - 1].completed = true;
+          this.$emit('annotationsChange', anns);
+        }
+
         this.drawingShape = !this.drawingShape;
         this.$emit('drawingStateChange', 'none');
       },
@@ -65,9 +64,9 @@
         if (this.drawingState !== 'none') {
           let state = this.drawingState;
           if (state.includes('_')) {
-            state = this.getModeText(value) + state.substring(3);
+            state = this.mode + state.substring(3);
           } else {
-            state = this.getModeText(value) + '_' + state;
+            state = this.mode + '_' + state;
           }
 
           this.$emit('drawingStateChange', state);
@@ -75,12 +74,34 @@
       },
       handleUndo(event) {
         let anns = this.annotations;
-        this.history.push(anns.pop());
+        let ann = this.annotations.pop();
+        this.history.push(Object.assign({}, ann));
+
+        if (ann.geometryType === 'shape') {
+          if (ann.history.length > 1) {
+            ann.history.pop();
+            ann.points = ann.history[ann.history.length - 1];
+            anns.push(ann);
+          }
+        }
+
         this.$emit('annotationsChange', anns);
       },
       handleRedo(event) {
         let anns = this.annotations;
-        anns.push(this.history.pop());
+        let ann = this.history.pop();
+
+        if (ann.geometryType === 'shape') {
+          if(anns.length > 0 && ann.name === anns[anns.length - 1].name) {
+            anns[anns.length - 1].history.push(ann.points);
+            anns[anns.length - 1].points = ann.points;
+          } else {
+            anns.push(ann);
+          }
+        } else {
+          anns.push(ann);
+        }
+
         this.$emit('annotationsChange', anns);
       },
     }
@@ -107,9 +128,10 @@
   </div>
 
   <div v-else class="input-bar-flex">
-    <q-toggle @update:model-value="toggleModeButton" v-model="mode" size="lg" checked-icon="add" color="blue" unchecked-icon="remove">
+    <q-toggle v-model="mode" true-value="add" false-value="sub" @update:model-value="toggleModeButton" 
+      size="xl"  checked-icon="add" unchecked-icon="remove" color="secondary" keep-color>
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
-        Toggle between additive or subtractive mode.
+        Toggle between subtractive or additive mode.
       </q-tooltip>
     </q-toggle>
     <q-btn class="q-py-md" @click="toggleShapeDrawingButton('rectangle')" label="Rectangle" v-bind="getProps('rectangle')">
@@ -140,38 +162,10 @@
     <q-btn @click="handleRedo" :disabled="!history.length" icon-right="redo" label="Redo" color="secondary"/>
     <q-btn @click="handleNext" label="Next" color="primary"/>
   </div>
-
-  <q-dialog v-model="warningVisible" seamless position="top">
-    <q-card class="bg-warning text-black">
-      <q-card-section id="card-section" class="row items-center no-wrap">
-        <div id="warning-msg">Place at least one object.</div>
-        <q-btn flat round icon="close" v-close-popup />
-      </q-card-section>
-    </q-card>
-  </q-dialog>
 </template>
 
 <style scoped>
-  p {
-    font-size: 16px;
-    padding-top: 5px;
-    text-align: center;
-  }
-
-  #card-section {
-    padding: 0.5em 1em 0 1em;
-  }
-
-  #warning-msg {
-    padding: 0;
-  }
-
   .input-bar-flex {
     gap: 10px;
-  }
-
-  button.active {
-    background-color: green;
-    box-shadow: 0 0 5px 1px black;
   }
 </style>

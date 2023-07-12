@@ -4,7 +4,7 @@ import PolygonClipping from 'polygon-clipping';
 
   export default {
     props: ['image', 'programStage', 'annotations', 'drawingState'],
-    emits: ['annotationsChange', 'drawingStateChange'],
+    emits: ['annotationsChange', 'drawingStateChange', 'warn'],
     data() {
       return {
         stageConfig: {
@@ -15,7 +15,6 @@ import PolygonClipping from 'polygon-clipping';
         activeCircle: [],                // [[x1, y1], [x2, y2]] for circle currently being drawn
         activeRectangle: [],             // [[x1, y1], [x2, y2]] for rectangle currently being drawn
         activePolygon: [],               // [[x1, y1], [x2, y2], ...] for polygon currently being drawn
-        activeShape: [],                 // [[x1, y1], [x2, y2], ...] for shape currently being drawn
         activeIntersections: [],         // Array of arrays for any intersections on the line being drawn
         activeJoints: [],                // Array of arrays for any joints that connect lines of a shape
       };
@@ -75,15 +74,16 @@ import PolygonClipping from 'polygon-clipping';
     },
     methods: {
       // Lets the program know we aren't drawing anymore
-      emitStopDrawing() {
+      resetActiveVariables() {
         // Resets temporary variables
         this.activeLine = [];
         this.activeCircle = [];
         this.activeRectangle = [];
         this.activeIntersections = [];
         this.activeJoints = [];
+        this.activePolygon = [];
 
-        this.$emit('drawingStateChange', 'none');
+        // this.$emit('drawingStateChange', 'none');
       },
 
       getLineConfig(line) {
@@ -101,7 +101,8 @@ import PolygonClipping from 'polygon-clipping';
 
       getShapeConfig(shape) {
         return {closed: true, stroke: 'black', fill: 'blue', lineJoin: 'round', 
-                opacity: 0.7, strokeWidth: 5, points: shape.points.flat(1)}
+                dashEnabled: !shape.completed, dash: [30, 10], opacity: 0.7, strokeWidth: 5, 
+                points: shape.points.flat(1)}
       },
 
       getNodeConfig(node) {
@@ -113,8 +114,7 @@ import PolygonClipping from 'polygon-clipping';
       getActiveLineConfig(points) {
         // If the user cancels the drawing operation, reset active variables
         if (this.drawingState === 'none') {
-          this.activeLine = [];
-          this.activeIntersections = [];
+          this.resetActiveVariables();
           return {};
         }
 
@@ -124,20 +124,20 @@ import PolygonClipping from 'polygon-clipping';
       getActiveCircleConfig(points) {
         // If the user cancels the drawing operation, reset active variables
         if (this.drawingState === 'none') {
-          this.activeCircle = [];
+          this.resetActiveVariables();
           return {};
         }
 
         let radius = getLineLength(...points.flat(1));
 
-        return {stroke: 'blue', strokeWidth: 4, fill: 'cyan', opacity: 0.2, 
+        return {stroke: 'black', strokeWidth: 4, fill: 'cyan', opacity: 0.2, 
                 x: points[0][0], y: points[0][1], radius: radius}
       },
 
       getActiveRectangleConfig(cornerPoints) {
         // If the user cancels the drawing operation, reset active variables
         if (this.drawingState === 'none') {
-          this.activeRectangle = [];
+          this.resetActiveVariables();
           return {};
         }
 
@@ -149,15 +149,14 @@ import PolygonClipping from 'polygon-clipping';
                       [cornerPoints[0][0], cornerPoints[0][1]]
                     ];
 
-        return {stroke: 'blue', strokeWidth: 4, fill: 'cyan', opacity: 0.2, closed: true,
+        return {stroke: 'black', strokeWidth: 4, fill: 'cyan', opacity: 0.2, closed: true,
                 points: points.flat(1)} 
       },
 
       getActivePolygonConfig(points) {
         // If the user cancels the drawing operation, reset active variables
         if (this.drawingState === 'none') {
-          this.activePolygon = [];
-          this.activeJoints = [];
+          this.resetActiveVariables();
           return {};
         }
 
@@ -166,7 +165,7 @@ import PolygonClipping from 'polygon-clipping';
 
       getActiveShapeConfig(shape) {
         return {closed: true, stroke: 'black', fill: 'blue', lineJoin: 'round', 
-                opacity: 0.7, strokeWidth: 5, points: shape.flat(1)}
+                opacity: 0.7, strokeWidth: 5, points: shape.flat(1), dashEnabled: true, dash: [30, 10]}
       },
 
       getIntersectionConfig(intersection) {
@@ -281,8 +280,7 @@ import PolygonClipping from 'polygon-clipping';
       pushAnnotation(geometryType, points) {
         const count = this.annotations.filter(a => a.geometryType == geometryType).length + 1;
 
-        let annotations = this.annotations;
-        annotations.push({
+        let annotation = {
           name: geometryType + count,
           geometryType: geometryType,
           points: points,
@@ -291,50 +289,76 @@ import PolygonClipping from 'polygon-clipping';
           subcategory: null,
           tags: [],
           relations: {},
-        });
-        this.$emit('annotationsChange', annotations);
+        }
+
+        let anns = this.annotations;
+        if (geometryType === 'shape') {
+          let previous = anns[anns.length - 1];
+          if (previous && previous.geometryType === 'shape' && !previous.completed) {
+            if (points.length == 0) {
+              // If the shape has been subtracted away into nothing, then remove the annotation
+              anns.pop();
+            } else {
+              // Update the existing, non-completed shape with the current points
+              anns[anns.length - 1].history.push(points);
+              anns[anns.length - 1].points = points;
+            }
+          } else {
+            annotation['history'] = [points];
+            anns.push(annotation);
+          }
+        } else {
+          anns.push(annotation);
+        }
+        this.$emit('annotationsChange', anns);
       },
 
       withinClickThreshold(point1, point2) {
-        return ((point1[0] - point2[0] < 4 && point1[0] - point2[0] > -4) 
-              && (point1[1] - point2[1] < 4 && point1[1] - point2[1] > -4));
+        return ((point1[0] - point2[0] < 4 && point1[0] - point2[0] > -6) 
+              && (point1[1] - point2[1] < 4 && point1[1] - point2[1] > -6));
       },
 
       clip(newShapePoints) {
-        if (this.activeShape.length > 0) {
+        let shape = [];
+        let activeShape = this.annotations[this.annotations.length - 1];
+
+        if (activeShape && activeShape.geometryType == 'shape' && !activeShape.completed) {
           let mode = this.drawingState.substring(0, 3);
           let results = [];
           if (mode === 'add') {
-            results = PolygonClipping.union([this.activeShape], [newShapePoints]);
+            results = PolygonClipping.union([activeShape.points], [newShapePoints]);
           } else if (mode === 'sub') {
-            results = PolygonClipping.difference([this.activeShape], [newShapePoints]);
+            results = PolygonClipping.difference([activeShape.points], [newShapePoints]);
           }
 
-          // Checks that both arrays have the same [x, y] coordinates as elements
+          // Checks that both arrays have the same [x, y] coordinates as elements.
+          // Due to an inconsistency in the PolygonClipping library, the coordinates
+          // may not be exactly the same, so we account for some margin of error.
           const checkArrayEquality = (a1, a2) => a1.length === a2.length &&
-              [...a1].every((o1) => a2.some(o2 => o2[0] == o1[0] && o2[1] == o1[1]));
+              a1.every((o1) => a2.some(o2 => Math.abs(o2[0] - o1[0]) < 0.00001 && Math.abs(o2[1] - o1[1]) < 0.00001));
 
           // In the event that two or more geometries were returned with the clipping operation,
           // keep the one that exactly matches the original geometry (i.e., the newly drawn geometry
           // didn't overlap with the original geometry, leaving the original geometry unmodified) or
           // that has the highest area (i.e., the subtractive clipping operation resulted in 2+ 
           // geometries and we decided to only keep the geometry with the highest polygonal area).
-          let newShape = [];
           let maxArea = 0;
           for (let i = 0; i < results.length; i++) {
             let r = results[i][0];
-            if (checkArrayEquality(r, this.activeShape)) {
-              newShape = r;
+            if (checkArrayEquality(r, activeShape.points)) {
+              this.$emit('warn', 'All subshapes should intersect.');
+              shape = r;
               break;
             } else if (calculatePolygonArea(r) > maxArea) {
               maxArea = calculatePolygonArea(r);
-              newShape = r;
+              shape = r;
             }
           }
-          this.activeShape = newShape;
         } else {
-          this.activeShape = this.activePolygon;
+          shape = newShapePoints[0];
         }
+
+        this.pushAnnotation('shape', shape);
       },
 
       mousedown() {
@@ -350,19 +374,14 @@ import PolygonClipping from 'polygon-clipping';
           });
           
           if (this.activePolygon.length > 1) {
-            // let previousPoints = this.annotations[this.annotations.length - 1].points[1];
-            // this.pushAnnotation('activeShape', [previousPoints, [pos.x, pos.y]]);
-
             let firstX = this.activePolygon[0][0];
             let firstY = this.activePolygon[0][1];
 
             // Closes the shape if the user clicks on the first point in the shape
             if (this.withinClickThreshold([firstX, firstY], [pos.x, pos.y])) {
               this.activePolygon.push([firstX, firstY]);
-              this.clip(this.activePolygon);
-              // this.pushAnnotation('shape', this.activeShape);
-              // this.activeShape = [];
-              this.emitStopDrawing();
+              this.clip([this.activePolygon]);
+              this.resetActiveVariables();
             }
           }
         } else if (this.drawingState.endsWith('circle')) {
@@ -379,7 +398,7 @@ import PolygonClipping from 'polygon-clipping';
           }
         } else if (this.drawingState === 'node') {
           this.pushAnnotation('node', [[pos.x, pos.y]]);
-          this.emitStopDrawing();
+          this.resetActiveVariables();
         }
       },
 
@@ -454,7 +473,7 @@ import PolygonClipping from 'polygon-clipping';
             }
 
             this.pushAnnotation('linestring', this.activeLine);
-            this.emitStopDrawing();
+            this.resetActiveVariables();
           } else if (this.drawingState.endsWith('rectangle')) {
             let firstX = this.activeRectangle[0][0];
             let firstY = this.activeRectangle[0][1];
@@ -466,12 +485,8 @@ import PolygonClipping from 'polygon-clipping';
               return;
             }
 
-            if (this.activeShape.length > 0) {
-              this.clip([rect]);
-            } else {
-              this.activeShape = rect;
-            }
-            this.emitStopDrawing();
+            this.clip([rect]);
+            this.resetActiveVariables();
           } else if (this.drawingState.endsWith('circle')) {
             let centerX = this.activeCircle[0][0];
             let centerY = this.activeCircle[0][1];
@@ -494,12 +509,8 @@ import PolygonClipping from 'polygon-clipping';
             }
             circle.push(circle[0]); // completes the loop
 
-            if (this.activeShape.length > 0) {
-              this.clip([circle]);
-            } else {
-              this.activeShape = circle;
-            }
-            this.emitStopDrawing();
+            this.clip([circle]);
+            this.resetActiveVariables();
           }
         }
       },
@@ -545,12 +556,12 @@ import PolygonClipping from 'polygon-clipping';
       <v-line v-for="shape in getAnnotationsOfType('shape')" :config="getShapeConfig(shape)"/>
       <!-- <v-line v-for="activeShape in getAnnotationsOfType('activeShape')" :config="getActiveShapeConfig(activeShape)"/> -->
       <v-circle v-for="node in getAnnotationsOfType('node')" :config="getNodeConfig(node)"/>
+      <!-- <v-line v-for="index in activeShape.length" :key="index" :config="getActiveShapeConfig(index - 1)"/> -->
+      <!-- <v-line v-if="activeShape.length > 1" :config="getActiveShapeConfig(activeShape)"/> -->
       <v-line v-if="activeLine.length == 2" :config="getActiveLineConfig(activeLine)"/>
       <v-line v-if="activeRectangle.length == 2" :config="getActiveRectangleConfig(activeRectangle)"/>
       <v-circle v-if="activeCircle.length == 2" :config="getActiveCircleConfig(activeCircle)"/>
       <v-line v-if="activePolygon.length > 1" :config="getActivePolygonConfig(activePolygon)"/>
-      <!-- <v-line v-for="index in activeShape.length" :key="index" :config="getActiveShapeConfig(index - 1)"/> -->
-      <v-line v-if="activeShape.length > 1" :config="getActiveShapeConfig(activeShape)"/>
       <v-circle v-for="intersection in intersections" :config="getIntersectionConfig(intersection)"/>
       <v-circle v-for="config in activeIntersections" :config="config"/>
       <v-circle v-for="config in activeJoints" :config="config"/>
