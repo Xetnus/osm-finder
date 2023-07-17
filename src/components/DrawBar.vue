@@ -1,4 +1,5 @@
 <script>
+  import {clipPolygons} from '../assets/generalTools.js'
   export default {
     props: ['drawingState', 'annotations'],
     emits: ['next', 'back', 'drawingStateChange', 'annotationsChange', 'warn'],
@@ -31,6 +32,8 @@
       },
       handleNext(event) {
         if (this.annotations.length > 0) {
+          if (this.drawingShape) this.toggleShape();
+          this.$emit('drawingStateChange', 'none');
           this.$emit('next');
         } else {
           this.$emit('warn', 'Place at least one object.');
@@ -93,8 +96,9 @@
 
         if (ann.geometryType === 'shape') {
           if(anns.length > 0 && ann.name === anns[anns.length - 1].name) {
-            anns[anns.length - 1].history.push(ann.points);
-            anns[anns.length - 1].points = ann.points;
+            let results = clipPolygons(anns[anns.length - 1].points, ann.points, 'add');
+            anns[anns.length - 1].history.push(results.points);
+            anns[anns.length - 1].points = results.points;
           } else {
             anns.push(ann);
           }
@@ -129,7 +133,7 @@
 
   <div v-else class="input-bar-flex">
     <q-toggle v-model="mode" true-value="add" false-value="sub" @update:model-value="toggleModeButton" 
-      size="xl"  checked-icon="add" unchecked-icon="remove" color="secondary" keep-color>
+      size="l" checked-icon="add" unchecked-icon="remove" color="secondary" keep-color>
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
         Toggle between subtractive or additive mode.
       </q-tooltip>
@@ -139,9 +143,9 @@
         Click and drag to draw a rectangle.
       </q-tooltip>
     </q-btn>
-    <q-btn class="q-py-md" @click="toggleShapeDrawingButton('circle')" label="Circle" v-bind="getProps('circle')">
+    <q-btn class="q-py-md" @click="toggleShapeDrawingButton('circle')" label="Circle*" v-bind="getProps('circle')">
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
-        Click and drag to draw a circle.
+        Click and drag to draw a circle. Warning: does not work well with Hu moments.
       </q-tooltip>
     </q-btn>
     <q-btn class="q-py-md" @click="toggleShapeDrawingButton('polygon')" label="Polygon" v-bind="getProps('polygon')">
@@ -149,9 +153,9 @@
         Click to drop points around the outline of the polygonal shape.
       </q-tooltip>
     </q-btn>
-    <q-btn class="q-py-md" @click="toggleShape" label="Done" icon="done" color="primary">
+    <q-btn class="q-py-md" @click="toggleShape" label="Done" icon="done" color="secondary">
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
-        Shape completed.
+        Click to complete the shape.
       </q-tooltip>
     </q-btn>
   </div>

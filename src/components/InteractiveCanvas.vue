@@ -1,6 +1,7 @@
 <script>
-import {calculateIntersection, calculatePolygonArea, getLineLength, getPointAtDistance, debounce, getUniquePairs} from '../assets/generalTools.js'
-import PolygonClipping from 'polygon-clipping';
+import {calculateIntersection, calculatePolygonCentroid,
+        getLineLength, getPointAtDistance, getUniquePairs, 
+        debounce, clipPolygons} from '../assets/generalTools.js'
 
   export default {
     props: ['image', 'programStage', 'annotations', 'drawingState'],
@@ -73,17 +74,14 @@ import PolygonClipping from 'polygon-clipping';
       }
     },
     methods: {
-      // Lets the program know we aren't drawing anymore
+      // Resets temporary variables
       resetActiveVariables() {
-        // Resets temporary variables
         this.activeLine = [];
         this.activeCircle = [];
         this.activeRectangle = [];
         this.activeIntersections = [];
         this.activeJoints = [];
         this.activePolygon = [];
-
-        // this.$emit('drawingStateChange', 'none');
       },
 
       getLineConfig(line) {
@@ -100,8 +98,14 @@ import PolygonClipping from 'polygon-clipping';
       },
 
       getShapeConfig(shape) {
-        return {closed: true, stroke: 'black', fill: 'blue', lineJoin: 'round', 
-                dashEnabled: !shape.completed, dash: [30, 10], opacity: 0.7, strokeWidth: 5, 
+        let opacity =  0.7;
+
+        if (shape.state === 'transparent' || shape.state === 'transparent-but-related') {
+          opacity = 0.2;
+        }
+
+        return {closed: true, stroke: 'black', fill: 'blue', lineJoin: 'round', opacity: opacity,
+                dashEnabled: !shape.completed, dash: [15, 15], strokeWidth: 5, 
                 points: shape.points.flat(1)}
       },
 
@@ -182,29 +186,25 @@ import PolygonClipping from 'polygon-clipping';
         if (!intersection) return {};
 
         // Finds the longest segment of line1, assuming the line is split at the intersection
-        const temp1_len1 = getLineLength(intersection.x, intersection.y, line1[0], line1[1]);
-        const temp2_len1 = getLineLength(intersection.x, intersection.y, line1[2], line1[3]);
-        let line1_x = 2;
-        let line1_y = 3;
-        let len1 = temp2_len1;
+        const temp1Len1 = getLineLength(intersection.x, intersection.y, line1[0][0], line1[0][1]);
+        const temp2Len1 = getLineLength(intersection.x, intersection.y, line1[1][0], line1[1][1]);
+        let line1Seg = 1;
+        let len1 = temp2Len1;
 
-        if (temp1_len1 > temp2_len1) {
-          line1_x = 0;
-          line1_y = 1;
-          len1 = temp1_len1;
+        if (temp1Len1 > temp2Len1) {
+          line1Seg = 0;
+          len1 = temp1Len1;
         }
 
         // Finds the longest segment of line2, assuming the line is split at the intersection
-        const temp1_len2 = getLineLength(intersection.x, intersection.y, line2[0], line2[1]);
-        const temp2_len2 = getLineLength(intersection.x, intersection.y, line2[2], line2[3]);
-        let line2_x = 2; 
-        let line2_y = 3;
-        let len2 = temp2_len2;
+        const temp1Len2 = getLineLength(intersection.x, intersection.y, line2[0][0], line2[0][1]);
+        const temp2Len2 = getLineLength(intersection.x, intersection.y, line2[1][0], line2[1][1]);
+        let line2Seg = 1;
+        let len2 = temp2Len2;
 
-        if (temp1_len2 > temp2_len2) {
-          line2_x = 0;
-          line2_y = 1;
-          len2 = temp1_len2;
+        if (temp1Len2 > temp2Len2) {
+          line2Seg = 0;
+          len2 = temp1Len2;
         }
 
         // Determines the shortest segment between each line's longest segment
@@ -212,12 +212,12 @@ import PolygonClipping from 'polygon-clipping';
 
         // Determines where the angle path intersects the lines
         const point1 = [intersection.x, intersection.y];
-        const line1d = getPointAtDistance(point1, [line1[line1_x], line1[line1_y]], minLen / 3);
-        const line2d = getPointAtDistance(point1, [line2[line2_x], line2[line2_y]], minLen / 3);
+        const line1d = getPointAtDistance(point1, [line1[line1Seg][0], line1[line1Seg][1]], minLen / 3);
+        const line2d = getPointAtDistance(point1, [line2[line2Seg][0], line2[line2Seg][1]], minLen / 3);
 
         // Determines the 'height' of the angle path
-        const line1_control = getPointAtDistance(point1, [line1[line1_x], line1[line1_y]], minLen / 2);
-        const line2_control = getPointAtDistance(point1, [line2[line2_x], line2[line2_y]], minLen / 2);
+        const line1_control = getPointAtDistance(point1, [line1[line1Seg][0], line1[line1Seg][1]], minLen / 2);
+        const line2_control = getPointAtDistance(point1, [line2[line2Seg][0], line2[line2Seg][1]], minLen / 2);
         const controlX = line2_control.x + (line1_control.x - line2_control.x) / 2;
         const controlY = line2_control.y + (line1_control.y - line2_control.y) / 2;
 
@@ -241,15 +241,22 @@ import PolygonClipping from 'polygon-clipping';
           return this.calculateAngleConfig(intersection.first.points, intersection.second.points);
         } else if (pseudoStates.includes(intersection.first.state) && pseudoStates.includes(intersection.second.state)) {
           const visibleNodes = this.annotations.filter(ann => ann.state === 'default' && ann.geometryType === 'node');
-          if (visibleNodes.length != 1) return {};
-          const node = visibleNodes[0];
+          const visibleShapes = this.annotations.filter(ann => ann.state === 'default' && ann.geometryType === 'shape');
+
+          let pseudoLine = [[0, 0], [0, 0]];
+          if (visibleNodes.length == 1) {
+            const node = visibleNodes[0];
+            pseudoLine = [[intersection.x, intersection.y], [node.points[0][0], node.points[0][1]]];
+          } else if (visibleShapes.length == 1) {
+            const centroid = calculatePolygonCentroid(visibleShapes[0].points);
+            pseudoLine = [[intersection.x, intersection.y], [centroid.x, centroid.y]];
+          }
 
           let mainLine = intersection.first.points;
           if (intersection.second.state === 'default') {
             mainLine = intersection.second.points;
           }
 
-          const pseudoLine = [intersection.x, intersection.y, node.point[0], node.point[1]];
           return this.calculateAngleConfig(pseudoLine, mainLine);
         } else {
           return {};
@@ -260,10 +267,17 @@ import PolygonClipping from 'polygon-clipping';
         if (intersection.first.state === 'transparent' || intersection.second.state === 'transparent') return {};
 
         const visibleNodes = this.annotations.filter(ann => ann.state === 'default' && ann.geometryType === 'node');
-        if (visibleNodes.length != 1) return {};
-        const node = visibleNodes[0];
+        const visibleShapes = this.annotations.filter(ann => ann.state === 'default' && ann.geometryType === 'shape');
 
-        const pseudoLine = [intersection.x, intersection.y, node.point[0], node.point[1]];
+        let pseudoLine = [0, 0, 0, 0];
+        if (visibleNodes.length == 1) {
+          const node = visibleNodes[0];
+          pseudoLine = [intersection.x, intersection.y, node.points[0][0], node.points[0][1]];
+        } else if (visibleShapes.length == 1) {
+          const centroid = calculatePolygonCentroid(visibleShapes[0].points);
+          pseudoLine = [intersection.x, intersection.y, centroid.x, centroid.y];
+        }
+
         return {stroke: 'black', strokeWidth: 3, dash: [11, 4], points: pseudoLine}
       },
 
@@ -314,8 +328,8 @@ import PolygonClipping from 'polygon-clipping';
       },
 
       withinClickThreshold(point1, point2) {
-        return ((point1[0] - point2[0] < 4 && point1[0] - point2[0] > -6) 
-              && (point1[1] - point2[1] < 4 && point1[1] - point2[1] > -6));
+        return ((point1[0] - point2[0] < 6 && point1[0] - point2[0] > -6) 
+              && (point1[1] - point2[1] < 6 && point1[1] - point2[1] > -6));
       },
 
       clip(newShapePoints) {
@@ -324,36 +338,11 @@ import PolygonClipping from 'polygon-clipping';
 
         if (activeShape && activeShape.geometryType == 'shape' && !activeShape.completed) {
           let mode = this.drawingState.substring(0, 3);
-          let results = [];
-          if (mode === 'add') {
-            results = PolygonClipping.union([activeShape.points], [newShapePoints]);
-          } else if (mode === 'sub') {
-            results = PolygonClipping.difference([activeShape.points], [newShapePoints]);
+          let results = clipPolygons(activeShape.points, newShapePoints, mode);
+          if (results.warn) {
+            this.$emit('warn', 'All subshapes should cross at a boundary. To create a new shape, complete the current one by clicking done.');
           }
-
-          // Checks that both arrays have the same [x, y] coordinates as elements.
-          // Due to an inconsistency in the PolygonClipping library, the coordinates
-          // may not be exactly the same, so we account for some margin of error.
-          const checkArrayEquality = (a1, a2) => a1.length === a2.length &&
-              a1.every((o1) => a2.some(o2 => Math.abs(o2[0] - o1[0]) < 0.00001 && Math.abs(o2[1] - o1[1]) < 0.00001));
-
-          // In the event that two or more geometries were returned with the clipping operation,
-          // keep the one that exactly matches the original geometry (i.e., the newly drawn geometry
-          // didn't overlap with the original geometry, leaving the original geometry unmodified) or
-          // that has the highest area (i.e., the subtractive clipping operation resulted in 2+ 
-          // geometries and we decided to only keep the geometry with the highest polygonal area).
-          let maxArea = 0;
-          for (let i = 0; i < results.length; i++) {
-            let r = results[i][0];
-            if (checkArrayEquality(r, activeShape.points)) {
-              this.$emit('warn', 'All subshapes should intersect.');
-              shape = r;
-              break;
-            } else if (calculatePolygonArea(r) > maxArea) {
-              maxArea = calculatePolygonArea(r);
-              shape = r;
-            }
-          }
+          shape = results.points;
         } else {
           shape = newShapePoints[0];
         }
@@ -499,7 +488,7 @@ import PolygonClipping from 'polygon-clipping';
             // Splits the circle into discrete line segments
             let circle = [];
             let radius = getLineLength(pos.x, pos.y, centerX, centerY)
-            let numPoints = Math.ceil(2 * Math.PI * radius / 10);
+            let numPoints = Math.ceil(2 * Math.PI * radius / 13);
             let step = 2 * Math.PI / numPoints;
             for (let a = 0, i = 0; i < numPoints; i++, a += step)
             {
@@ -513,6 +502,23 @@ import PolygonClipping from 'polygon-clipping';
             this.resetActiveVariables();
           }
         }
+
+        let tracker = 0;
+        let offset = 0;
+
+        // Animates the outline of all "active" shapes
+        const anim = new Konva.Animation((frame) => {
+          if (tracker > 125) {
+            offset = offset == 0 ? 15 : 0;
+            let shapes = this.$refs.shapes;
+            for (let i = 0; shapes && i < shapes.length; i++) {
+              shapes[i].getNode().setAttr('dashOffset', offset);
+            }
+            tracker = 0;
+          }
+          tracker += frame.timeDiff;
+        }, this.$refs.layer.getStage());
+        anim.start();
       },
       
       resize() {
@@ -553,11 +559,8 @@ import PolygonClipping from 'polygon-clipping';
         <v-shape v-for="intersection in intersections" :config="getAngleConfig(intersection)" __useStrictMode/>
       </div>
       <v-line v-for="line in getAnnotationsOfType('linestring')" :config="getLineConfig(line)"/>
-      <v-line v-for="shape in getAnnotationsOfType('shape')" :config="getShapeConfig(shape)"/>
-      <!-- <v-line v-for="activeShape in getAnnotationsOfType('activeShape')" :config="getActiveShapeConfig(activeShape)"/> -->
+      <v-line ref="shapes" v-for="shape in getAnnotationsOfType('shape')" :config="getShapeConfig(shape)"/>
       <v-circle v-for="node in getAnnotationsOfType('node')" :config="getNodeConfig(node)"/>
-      <!-- <v-line v-for="index in activeShape.length" :key="index" :config="getActiveShapeConfig(index - 1)"/> -->
-      <!-- <v-line v-if="activeShape.length > 1" :config="getActiveShapeConfig(activeShape)"/> -->
       <v-line v-if="activeLine.length == 2" :config="getActiveLineConfig(activeLine)"/>
       <v-line v-if="activeRectangle.length == 2" :config="getActiveRectangleConfig(activeRectangle)"/>
       <v-circle v-if="activeCircle.length == 2" :config="getActiveCircleConfig(activeCircle)"/>

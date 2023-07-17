@@ -150,43 +150,8 @@ function calculateHuMoments(nodes) {
     return Math.sqrt(distToSegmentSquared(p, v, w));
   }
 
-  function pDistance(x, y, x1, y1, x2, y2) {
-
-  var A = x - x1;
-  var B = y - y1;
-  var C = x2 - x1;
-  var D = y2 - y1;
-
-  var dot = A * C + B * D;
-  var len_sq = C * C + D * D;
-  var param = -1;
-  if (len_sq != 0) //in case of 0 length line
-      param = dot / len_sq;
-
-  var xx, yy;
-
-  if (param < 0) {
-    xx = x1;
-    yy = y1;
-  }
-  else if (param > 1) {
-    xx = x2;
-    yy = y2;
-  }
-  else {
-    xx = x1 + param * C;
-    yy = y1 + param * D;
-  }
-
-  var dx = x - xx;
-  var dy = y - yy;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
   // Determines binary value at given coordinates
   function calculateI(nodes, x, y) {
-    // return nodes[x][y];
-
     let p = {x: x, y: y};
 
     for (let i = 0; i < nodes.length - 1; i++) {
@@ -194,7 +159,6 @@ function calculateHuMoments(nodes) {
       let segmentP2 = {x: nodes[i + 1][0], y: nodes[i + 1][1]};
 
       if (distToSegment(p, segmentP1, segmentP2) <= 0.5) {
-      // if (pDistance(x, y, segmentP1.x, segmentP1.y, segmentP2.x, segmentP2.y) <= 0.5) {
         return 1;
       }
     }
@@ -213,7 +177,6 @@ function calculateHuMoments(nodes) {
         m += (Math.pow(x, p) * Math.pow(y, q) * calculateI(nodes, x, y));
         res += "" + calculateI(nodes, x, y) + " ";
       }
-      // console.log(res);
       res = "";
     }
     return m;
@@ -239,43 +202,6 @@ function calculateHuMoments(nodes) {
     return numerator / denominator;
   }
 
-
-
-  // nodes = [];
-  // nodes = nodes.concat(["0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0".split(" ")]);
-  // nodes = nodes.concat(["1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0".split(" ")]);
-
-
-
-
   let maxCoords = [nodes[0][0], nodes[0][1]];
   let minCoords = [nodes[0][0], nodes[0][1]];
   for(let i = 0; i < nodes.length; i++) {
@@ -300,7 +226,6 @@ function calculateHuMoments(nodes) {
   let scale = Math.min(xRatio, yRatio);
 
   for(let i = 0; i < nodes.length; i++) {
-    // console.log(nodes[i][0], nodes[i][1]);
     nodes[i][0] -= minCoords[0];
     nodes[i][1] -= minCoords[1];
 
@@ -315,7 +240,6 @@ function calculateHuMoments(nodes) {
     const centroidX = calculateM(nodes, 1, 0) / mDenominator;
     const centroidY = calculateM(nodes, 0, 1) / mDenominator;
 
-    // let muDenominator = calculateMu(nodes, centroidX, centroidY, 0, 0);
     let muDenominator = mDenominator;
 
     let eta20 = calculateEta(nodes, centroidX, centroidY, muDenominator, 2, 0);
@@ -325,19 +249,6 @@ function calculateHuMoments(nodes) {
     let eta12 = calculateEta(nodes, centroidX, centroidY, muDenominator, 1, 2);
     let eta03 = calculateEta(nodes, centroidX, centroidY, muDenominator, 0, 3);
     let eta21 = calculateEta(nodes, centroidX, centroidY, muDenominator, 2, 1);
-
-    // console.log("centroidX " + centroidX);
-    // console.log("centroidY " + centroidY);
-    // console.log("mDenom " + mDenominator);
-    // console.log("muDenom " + muDenominator);
-
-    // console.log("eta20 " + eta20);
-    // console.log("eta02 " + eta02);
-    // console.log("eta11 " + eta11);
-    // console.log("eta30 " + eta30);
-    // console.log("eta12 " + eta12);
-    // console.log("eta03 " + eta03);
-    // console.log("eta21 " + eta21);
 
     h1 = eta20 + eta02;
 
@@ -434,7 +345,19 @@ function calculateHuMoments(nodes) {
             );
   }
 
-  return [h1, h2, h3, h4, h5, h6, h7];
+  let moments = [h1, h2, h3, h4, h5, h6, h7];
+  // Prevents moments being displayed in scientific notation
+  // Also removes any trailing 0s at the end
+  moments = moments.map((m) => { 
+    let temp = m.toFixed(20);
+    let i = temp.length - 1;
+    for (i; i >= 0; i--) {
+      if (temp.charAt(i) !== '0') break;
+    }
+    if (temp.charAt(i) === '.') i--;
+    return temp.slice(0, i + 1);
+  }); 
+  return moments;
 }
 
 export {createMaxDistanceQuery, createMinDistanceQuery, createNoOverlappingQuery, createTagsQuery, calculateBounds, calculateHuMoments}

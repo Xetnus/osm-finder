@@ -26,13 +26,14 @@
         for (let i = 0; i < uniquePairs.length; i++) {
           const intersection = calculateIntersection(uniquePairs[i].first.points, uniquePairs[i].second.points);
           if (intersection && intersection.intersects) {
-            intersections.push([uniquePairs[i].first, uniquePairs[i].second])
+            intersections.push([uniquePairs[i].first, uniquePairs[i].second]);
           }
 
           this.nextRelations.push([uniquePairs[i].first, uniquePairs[i].second]);
         }
 
         const nodes = this.anns.filter(a => a.geometryType === 'node');
+        const shapes = this.anns.filter(a => a.geometryType === 'shape');
         let disjointLines = this.anns.filter(a => a.geometryType === 'linestring');
 
         for (let i = 0; i < intersections.length; i++) {
@@ -47,6 +48,20 @@
             this.nextRelations.push([nodes[i], disjointLines[k]]);
           }
         }
+
+        // Generates relations between nodes and shapes
+        for (let i = 0; i < nodes.length; i++) {
+          for (let k = 0; k < shapes.length; k++) {
+            this.nextRelations.push([nodes[i], shapes[k]]);
+          }
+        }
+
+        // Generates relations between disjoint lines and shapes
+        for (let i = 0; i < disjointLines.length; i++) {
+          for (let k = 0; k < shapes.length; k++) {
+            this.nextRelations.push([disjointLines[i], shapes[k]]);
+          }
+        }
         
         // Generates relations between nodes and intersections
         for (let i = 0; i < nodes.length; i++) {
@@ -58,10 +73,26 @@
           }
         }
 
+        // Generates relations between shapes and intersections
+        for (let i = 0; i < shapes.length; i++) {
+          for (let k = 0; k < intersections.length; k++) {
+            this.nextRelations.push([
+              shapes[i],
+              [intersections[k][0], intersections[k][1]]
+            ]);
+          }
+        }
+
         // Generates relations between each node
         const nodePairs = getUniquePairs(nodes);
         for (let i = 0; i < nodePairs.length; i++) {
           this.nextRelations.push([nodePairs[i].first, nodePairs[i].second]);
+        }
+
+        // Generates relations between each shape
+        const shapePairs = getUniquePairs(shapes);
+        for (let i = 0; i < shapePairs.length; i++) {
+          this.nextRelations.push([shapePairs[i].first, shapePairs[i].second]);
         }
 
         this.handleNext();

@@ -86,7 +86,13 @@ drawingState: {
         }
       },
       programStageChange(programStage) {
-        this.programStage = programStage;
+        if (this.annotations.length == 1 && this.programStage == 5 && programStage < this.programStage) {
+          this.programStage = 3;
+        } else if (this.annotations.length == 1 && this.programStage == 3 && programStage > this.programStage){
+          this.programStage = 5;
+        } else {
+          this.programStage = programStage;
+        }
       },
       drawingStateChange(drawingState) {
         this.drawingState = drawingState;

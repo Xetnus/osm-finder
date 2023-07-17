@@ -16,13 +16,8 @@
         currentIndex: -1,
         anns: JSON.parse(JSON.stringify(this.annotations)),
 
-        allCategoryOptions: {
-          'node': ['Building', 'Railway', 'Power', 'Man Made'],
-          'linestring': ['Walkway', 'Roadway', 'Railway', 'Power', 'Waterway', 'Coastline', 'Man Made'],
-          'shape': ['Any', 'Building'/*, 'Waterway', 'Coastline'*/],
-        },
+        categoryOptions: Object.keys(json).map((k) => this.cleanText(k)),
         currentCategory: null,
-        currentCategoryOptions: null,
 
         defaultSubcategory: 'Any',
         allSubcategoryOptions: ['Any'],
@@ -97,8 +92,7 @@
           this.tags = [];
         }
 
-        this.currentCategoryOptions = this.allCategoryOptions[this.currentAnn.geometryType];
-        const cat = this.currentAnn.category ? this.currentAnn.category : this.currentCategoryOptions[0];
+        const cat = this.currentAnn.category ? this.currentAnn.category : this.categoryOptions[0];
         this.currentCategory = this.cleanText(cat);
 
         this.categoryChanged(this.currentCategory);
@@ -147,7 +141,9 @@
         if (json[unclean]) {
           let cleanedOptions = [];
           for (let i = 0; i < json[unclean].length; i++) {
-            let clean = this.cleanText(json[unclean][i]);
+            let split = json[unclean][i].split("=");
+            let subcategory =  split.length == 2 ? split[1] : split[0]; 
+            let clean = this.cleanText(subcategory);
             cleanedOptions.push(clean);
           }
           this.allSubcategoryOptions = [this.defaultSubcategory].concat(cleanedOptions);
@@ -265,7 +261,7 @@
     <q-select
       class="category-select" outlined label="Category"
       bg-color="secondary" label-color="white" input-style="color: white" popup-content-style="color: black"
-      v-model="currentCategory" :options="currentCategoryOptions"
+      v-model="currentCategory" :options="categoryOptions"
       @update:model-value="categoryChanged">
     </q-select>
 
@@ -316,10 +312,6 @@
 </template>
 
 <style scoped>
-  .button-wrapper {
-    padding-bottom: auto;
-  }
-
   .category-select {
     width: 100%;
     max-width: 140px;
