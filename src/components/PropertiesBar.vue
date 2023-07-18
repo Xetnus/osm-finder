@@ -16,7 +16,7 @@
         currentIndex: -1,
         anns: JSON.parse(JSON.stringify(this.annotations)),
 
-        categoryOptions: Object.keys(json).map((k) => this.cleanText(k)),
+        categoryOptions: Object.keys(json).map((k) => this.cleanText(k)).sort(),
         currentCategory: null,
 
         defaultSubcategory: 'Any',
@@ -146,6 +146,7 @@
             let clean = this.cleanText(subcategory);
             cleanedOptions.push(clean);
           }
+          cleanedOptions = cleanedOptions.sort();
           this.allSubcategoryOptions = [this.defaultSubcategory].concat(cleanedOptions);
         } else {
           this.allSubcategoryOptions = [this.defaultSubcategory];
