@@ -18,6 +18,7 @@ import {calculateIntersection, calculatePolygonCentroid,
         activePolygon: [],               // [[x1, y1], [x2, y2], ...] for polygon currently being drawn
         activeIntersections: [],         // Array of arrays for any intersections on the line being drawn
         activeJoints: [],                // Array of arrays for any joints that connect lines of a shape
+        anim: new Konva.Animation(),
       };
     },
     created() {
@@ -105,7 +106,7 @@ import {calculateIntersection, calculatePolygonCentroid,
         }
 
         return {closed: true, stroke: 'black', fill: 'blue', lineJoin: 'round', opacity: opacity,
-                dashEnabled: !shape.completed, dash: [15, 15], strokeWidth: 5, 
+                dashEnabled: !shape.completed, dash: [15, 15], strokeWidth: 3, 
                 points: shape.points.flat(1)}
       },
 
@@ -122,7 +123,7 @@ import {calculateIntersection, calculatePolygonCentroid,
           return {};
         }
 
-        return {stroke: 'black', strokeWidth: 5, points: points.flat(1)}
+        return {stroke: 'black', strokeWidth: 3, points: points.flat(1)}
       },
 
       getActiveCircleConfig(points) {
@@ -134,7 +135,7 @@ import {calculateIntersection, calculatePolygonCentroid,
 
         let radius = getLineLength(...points.flat(1));
 
-        return {stroke: 'black', strokeWidth: 4, fill: 'cyan', opacity: 0.2, 
+        return {stroke: 'black', strokeWidth: 3, fill: 'cyan', opacity: 0.2, 
                 x: points[0][0], y: points[0][1], radius: radius}
       },
 
@@ -153,7 +154,7 @@ import {calculateIntersection, calculatePolygonCentroid,
                       [cornerPoints[0][0], cornerPoints[0][1]]
                     ];
 
-        return {stroke: 'black', strokeWidth: 4, fill: 'cyan', opacity: 0.2, closed: true,
+        return {stroke: 'black', strokeWidth: 3, fill: 'cyan', opacity: 0.2, closed: true,
                 points: points.flat(1)} 
       },
 
@@ -164,12 +165,12 @@ import {calculateIntersection, calculatePolygonCentroid,
           return {};
         }
 
-        return {stroke: 'black', strokeWidth: 4, points: points.flat(1)} 
+        return {stroke: 'black', strokeWidth: 3, points: points.flat(1)} 
       },
 
       getActiveShapeConfig(shape) {
         return {closed: true, stroke: 'black', fill: 'blue', lineJoin: 'round', 
-                opacity: 0.7, strokeWidth: 5, points: shape.flat(1), dashEnabled: true, dash: [30, 10]}
+                opacity: 0.7, strokeWidth: 3, points: shape.flat(1), dashEnabled: true, dash: [30, 10]}
       },
 
       getIntersectionConfig(intersection) {
@@ -488,7 +489,7 @@ import {calculateIntersection, calculatePolygonCentroid,
             // Splits the circle into discrete line segments
             let circle = [];
             let radius = getLineLength(pos.x, pos.y, centerX, centerY)
-            let numPoints = Math.ceil(2 * Math.PI * radius / 13);
+            let numPoints = Math.ceil(2 * Math.PI * radius / 10);
             let step = 2 * Math.PI / numPoints;
             for (let a = 0, i = 0; i < numPoints; i++, a += step)
             {
@@ -507,18 +508,18 @@ import {calculateIntersection, calculatePolygonCentroid,
         let offset = 0;
 
         // Animates the outline of all "active" shapes
-        const anim = new Konva.Animation((frame) => {
-          if (tracker > 125) {
+        this.anim.stop();
+        this.anim = new Konva.Animation((frame) => {
+          if (frame.time - tracker > 200) {
             offset = offset == 0 ? 15 : 0;
             let shapes = this.$refs.shapes;
             for (let i = 0; shapes && i < shapes.length; i++) {
               shapes[i].getNode().setAttr('dashOffset', offset);
             }
-            tracker = 0;
+            tracker = frame.time;
           }
-          tracker += frame.timeDiff;
         }, this.$refs.layer.getStage());
-        anim.start();
+        this.anim.start();
       },
       
       resize() {

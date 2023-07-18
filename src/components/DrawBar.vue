@@ -143,9 +143,9 @@
         Click and drag to draw a rectangle.
       </q-tooltip>
     </q-btn>
-    <q-btn class="q-py-md" @click="toggleShapeDrawingButton('circle')" label="Circle*" v-bind="getProps('circle')">
+    <q-btn class="q-py-md" @click="toggleShapeDrawingButton('circle')" label="Circle" v-bind="getProps('circle')">
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
-        Click and drag to draw a circle. Warning: does not work well with Hu moments.
+        Click and drag to draw a circle.
       </q-tooltip>
     </q-btn>
     <q-btn class="q-py-md" @click="toggleShapeDrawingButton('polygon')" label="Polygon" v-bind="getProps('polygon')">
