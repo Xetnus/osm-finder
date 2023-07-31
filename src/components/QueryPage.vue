@@ -10,8 +10,17 @@ import {constructQuery} from '../assets/queryCreator.js'
         displayUrls: true,
       }
     },
+    mounted() {
+      window.addEventListener('keydown', this.keyDownListener);
+    },
     methods: {
+      keyDownListener(event) {
+        if (event.key === 'ArrowLeft' || event.key === 'Escape') {
+          this.back();
+        }
+      },
       back() {
+        window.removeEventListener('keydown', this.keyDownListener);
         this.$emit('programStageChange', this.programStage - 1);
       },
       copy() {

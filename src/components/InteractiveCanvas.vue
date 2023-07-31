@@ -160,7 +160,7 @@ import {calculateIntersection, calculatePolygonCentroid,
 
       getActivePolygonConfig(points) {
         // If the user cancels the drawing operation, reset active variables
-        if (this.drawingState === 'none') {
+        if (!this.drawingState.endsWith('polygon')) {
           this.resetActiveVariables();
           return {};
         }

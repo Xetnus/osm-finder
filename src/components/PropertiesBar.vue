@@ -24,6 +24,9 @@
         currentSubcategory: this.defaultSubcategory,
         currentSubcategoryOptions: this.allSubcategoryOptions,
 
+        minArea: '',
+        maxArea: '',
+
         allTagOptions: ['Google', 'Facebook', 'Twitter', 'Apple', 'Oracle'],
         currentTagOptions: this.allTagOptions,
         tags: [],
@@ -31,12 +34,33 @@
         subcategoryText: null,
       }
     },
+    mounted() {
+      window.addEventListener('keydown', this.keyDownListener);
+    },
     computed: {
       currentAnn() {
         return this.anns[this.currentIndex];
       },
     },
     methods: {
+      keyDownListener(event) {
+        if (event.key === 'Tab') {
+          let val = this.tagText;
+          if (val && val.trim().length > 0) {
+            let trimmed = val.trim();
+            if (!this.tags.includes(trimmed)) {
+              this.tags.push(trimmed);
+            }
+            this.tagText = null;
+            this.$.refs.tagsSelect.updateInputValue('');
+            event.preventDefault();
+          }
+        } else if (event.key === 'ArrowRight') {
+          this.handleNext();
+        } else if (event.key === 'ArrowLeft') {
+          this.handleBack();
+        }
+      },
       handleNext(event) {
         if (this.currentIndex >= 0) {
           // Commit these properties to the global state
@@ -44,6 +68,7 @@
         }
 
         if (this.currentIndex >= this.anns.length - 1) {
+          window.removeEventListener('keydown', this.keyDownListener);
           this.$emit('annotationsChange', this.anns);
           this.$emit('propertiesHistoryChange', this.currentIndex + 1);
           this.$emit('next');
@@ -60,6 +85,7 @@
         }
 
         if (this.currentIndex == 0) {
+          window.removeEventListener('keydown', this.keyDownListener);
           this.showAll();
           this.$emit('propertiesHistoryChange', -1);
           this.$emit('back');
@@ -78,6 +104,8 @@
 
         this.currentAnn.category = this.uncleanText(this.currentCategory);
         this.currentAnn.subcategory = this.uncleanText(this.currentSubcategory);
+        this.currentAnn.minArea = this.minArea;
+        this.currentAnn.maxArea = this.maxArea;
       },
 
       // Initializes the inputs to the defaults or, if data has already been stored
@@ -99,6 +127,9 @@
         if (this.currentAnn.subcategory) {
           this.currentSubcategory = this.cleanText(this.currentAnn.subcategory);
         }
+
+        this.minArea = this.currentAnn.minArea ? this.currentAnn.minArea : '';
+        this.maxArea = this.currentAnn.maxArea ? this.currentAnn.maxArea : '';
       },
 
       hideAllButOne(hide) {
@@ -155,23 +186,9 @@
         this.currentSubcategory = this.defaultSubcategory;
       },
 
-      // Checks for tag breaks (spaces, commas, semicolons) and creates a
-      // new tag if a break is detected
+      // Updates tag input value
       setTagSelection (val) {
         this.tagText = val;
-
-        let breaks = [' ', ',', ';'];
-
-        if (val && val.trim().length > 0) {
-          if (breaks.includes(val.substring(val.length - 1))) {
-            let trimmed = val.substring(0, val.length - 1).trim();
-            if (!this.tags.includes(trimmed)) {
-              this.tags.push(trimmed);
-            }
-            this.tagText = null;
-            this.$.refs.tagsSelect.updateInputValue('');
-          }
-        }
       },
       
       // If focus is removed from the select box, anything the user
@@ -279,8 +296,8 @@
         input-debounce="0"
         @filter="tagFilterFn" -->
     <q-select
-      bg-color="secondary" input-style="color: white" popup-content-style="color: black"
-      label-color="white" style="width: 400px"
+      class="tag-select" label="Tags" stack-label
+      bg-color="secondary" input-style="color: white" popup-content-style="color: black" label-color="white"
       standout
       hide-dropdown-icon
       multiple
@@ -288,14 +305,13 @@
       fill-input
       use-chips
       ref="tagsSelect"
-      label="Tags"
       v-model="tags"
       @input-value="setTagSelection"
       @focus="setTagSelection(null)"
       @blur="checkTagSelection"
     >
       <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
-        Enter OpenStreetMap tags separated by spaces.
+        A list of OpenStreetMap tags. Use the tab key to enter multiple tags. (optional)
       </q-tooltip>
       <!-- <template v-slot:no-option>
         <q-item>
@@ -306,6 +322,27 @@
       </template> -->
     </q-select>
 
+    <q-input v-show="this.currentAnn.geometryType === 'shape'" 
+      class="area-input" outlined label="Min area" stack-label
+      bg-color="secondary" label-color="white" input-style="color: white" popup-content-style="color: black"
+      v-model.number="minArea" 
+      type="number"
+    > 
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Minimum area of the shape in sq metres (optional)
+      </q-tooltip>
+    </q-input>
+
+    <q-input v-show="this.currentAnn.geometryType === 'shape'" 
+      class="area-input" outlined label="Max area" stack-label 
+      bg-color="secondary" label-color="white" input-style="color: white" popup-content-style="color: black"
+      v-model.number="maxArea" 
+      type="number"> 
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Maximum area of the shape in sq metres (optional)
+      </q-tooltip>
+    </q-input>
+
     <div>
       <q-btn @click="handleNext" label="Next" color="primary" class="q-py-md"/>
     </div>
@@ -315,11 +352,20 @@
 <style scoped>
   .category-select {
     width: 100%;
-    max-width: 140px;
+    max-width: 200px;
   }
 
   .subcategory-select {
     width: 100%;
     max-width: 200px;
+  }
+
+  .tag-select {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .area-input {
+    max-width: 100px;
   }
 </style>
