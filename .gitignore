@@ -1,6 +1,9 @@
 tests/*/actual-query.txt
 tests/*/actual-results.txt
 
+*.so
+*.osm.pbf
+
 # Logs
 logs
 *.log
