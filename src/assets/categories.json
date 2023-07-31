@@ -51,33 +51,10 @@
     "train_station",
     "college"
   ],
-  "water": [
+  "water_body": [
     "natural=water",
-    "natural=wetland",
     "natural=coastline",
-    "natural=bay",
-    "natural=spring",
-    "leisure=swimming_pool",
-    "waterway=stream",
-    "waterway=river",
-    "waterway=drain",
-    "waterway=canal",
-    "waterway=dam",
-    "waterway=weir",
-    "waterway=waterfall",
-    "waterway=rapids",
-    "waterway=artificial",
-    "waterway=drystream",
-    "waterway=tidal_channel",
-    "waterway=dock",
-    "waterway=wadi",
-    "waterway=derelict_canal",
-    "waterway=brook",
-    "waterway=riverbank",
-    "waterway=check_dam",
-    "waterway=floating_barrier",
-    "waterway=spillway",
-    "waterway=riverbed"
+    "leisure=swimming_pool"
   ],
   "railway": [
     "rail",
