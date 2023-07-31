@@ -4,7 +4,8 @@
 -- 2: only Hu Moments (https://en.wikipedia.org/wiki/Image_moment#Rotation_invariants)
 shape_comparison = 1
 
-json = require("osm-finder/json")
+-- Imports json.lua (a helper file that can read JSON)
+json = require("json")
 
 local function read_file(path)
     local open = io.open
@@ -15,7 +16,7 @@ local function read_file(path)
     return content
 end
 
-local categoriesFile = "osm-finder/src/assets/categories.json"
+local categoriesFile = "src/assets/categories.json"
 local fileContent = read_file(categoriesFile);
 if fileContent == nil then
     print("Error: Please ensure that " .. categoriesFile .. " exists.")
@@ -36,40 +37,6 @@ for category, v in pairs(json.parse(fileContent)) do
         categories[key .. "=" .. value] = category
     end
 end
-
-local highway_roadway_types = {
-    'motorway',
-    'motorway_link',
-    'trunk',
-    'trunk_link',
-    'primary',
-    'primary_link',
-    'secondary',
-    'secondary_link',
-    'tertiary',
-    'tertiary_link',
-    'unclassified',
-    'residential',
-    'track',
-    'living_street',
-    'service',
-    'road',
-    'busway',
-    'bus_guideway',
-    'raceway',
-    'escape',
-    'construction'
-}
-
-local highway_walkway_types = {
-    'footway',
-    'pedestrian',
-    'bridleway',
-    'steps',
-    'cycleway',
-    'path',
-    'sidewalk'
-}
 
 -- A list of keys that provide no geolocation value. These are removed from each element's tags.
 local delete_keys = {
@@ -151,22 +118,34 @@ tables.linestrings = osm2pgsql.define_table({
 --   },
 })
 
--- Prepares a dictionary that'll be used to quickly sort the
--- highway linestrings into the roadway or walkway category
-local highway_types = {}
-for _, k in ipairs(highway_roadway_types) do
-    highway_types[k] = "roadway"
-end
-for _, k in ipairs(highway_walkway_types) do
-    highway_types[k] = "walkway"
-end
-
 node_list = {}
 
 function osm2pgsql.process_node(object)
     -- Store a list of each node's latitude and longitude
     if shape_comparison ~= 0 then
         local longitude, latitude, same1, same2 = object:get_bbox()
+
+        -- Converts longitude and latitude from epsg4326 to epsg3857
+        local smRadius = 6378136.98
+        local smRange = smRadius * math.pi * 2.0
+        local smLonToX = smRange / 360.0
+        local smRadiansOverDegrees = math.pi / 180.0
+        local e = 2.7182818284590452353602874713527
+
+        longitude = longitude * smLonToX;
+
+        local y = latitude;
+
+        if (y > 86.0) then
+            latitude = smRange
+        elseif (y < -86.0) then
+            latitude = -smRange
+        else
+            y = y * smRadiansOverDegrees
+            y = math.log(math.tan(y) + (1.0 / math.cos(y)), e)
+            latitude = y * smRadius
+        end
+
         local location = { x = longitude, y = latitude }
         node_list[object.id] = location
     end
@@ -179,8 +158,10 @@ function osm2pgsql.process_node(object)
     local subcategory
 
     for k, v in pairs(object.tags) do
-        category = categories[k .. "=*"]
         category = categories[k .. "=" .. v]
+        if category == nil then
+            category = categories[k .. "=*"]
+        end
         subcategory = v
 
         if category ~= nil then
@@ -190,31 +171,9 @@ function osm2pgsql.process_node(object)
                 subcategory = subcategory,
                 geom = object:as_point()
             })
+            break
         end
     end
-
-    -- if object.tags['building'] then
-    --     category = 'building'
-    --     subcategory = object.tags['building']
-    -- elseif object.tags['railway'] then
-    --     category = 'railway'
-    --     subcategory = object.tags['railway']
-    -- elseif object.tags['power'] then
-    --     category = 'power'
-    --     subcategory = object.tags['power']
-    -- elseif object.tags['man_made'] then
-    --     category = 'man_made'
-    --     subcategory = object.tags['man_made']
-    -- end
-
-    -- if category ~= nil then
-    --     tables.nodes:insert({
-    --         tags = object.tags,
-    --         category = category,
-    --         subcategory = subcategory,
-    --         geom = object:as_point()
-    --     })
-    -- end
 end
 
 function osm2pgsql.process_way(object)
@@ -223,16 +182,17 @@ function osm2pgsql.process_way(object)
     end
 	
     local category
-    local subcategory
+    local subcategory 
 
     for k, v in pairs(object.tags) do
-        category = categories[k .. "=*"]
         category = categories[k .. "=" .. v]
+        if category == nil then
+            category = categories[k .. "=*"]
+        end
         subcategory = v
 
         if category ~= nil then 
             if object.is_closed then
-                subcategory = object.tags[category]
                 insertPolygonalNode(object, category, subcategory)
 
                 if shape_comparison == 1 or shape_comparison == 2 then
@@ -241,80 +201,9 @@ function osm2pgsql.process_way(object)
             end
 
             insertLinestring(object, category, subcategory)
+            break
         end
     end
-
-    -- if object.tags['building'] then
-    --     category = 'building'
-    --     if object.is_closed then
-    --         subcategory = object.tags[category]
-    --         insertPolygonalNode(object, category, subcategory)
-
-    --         if shape_comparison == 1 or shape_comparison == 2 then
-    --             insertHuMoments(object, category, subcategory)
-    --         end
-    --     end
-    -- elseif highway_types[object.tags['highway']] then
-    --     category = highway_types[object.tags['highway']]
-    --     subcategory = object.tags['highway']
-    --     insertLinestring(object, category, subcategory)
-    -- elseif object.tags['railway'] then
-    -- 	category = 'railway'
-    --     subcategory = object.tags['railway']
-
-    --     if object.is_closed then
-    --         insertPolygonalNode(object, category, subcategory)
-    --     else
-    --         insertLinestring(object, category, subcategory)
-    --     end
-    -- elseif object.tags['power'] then
-    -- 	category = 'power'
-    --     subcategory = object.tags['power']
-
-    --     if object.is_closed then
-    --         insertPolygonalNode(object, category, subcategory)
-    --     else
-    --         insertLinestring(object, category, subcategory)
-    --     end
-    -- elseif object.tags['natural'] then
-    --     category = 'natural'
-    --     subcategory = object.tags['natural']
-
-    --     if object.is_closed then
-    --         if shape_comparison == 1 or shape_comparison == 2 then
-    --             insertHuMoments(object, category, subcategory)
-    --         end
-    --     else
-    --         insertLinestring(object, category, subcategory)
-    --     end
-    -- elseif object.tags['leisure'] then
-    --     category = 'leisure'
-    --     subcategory = object.tags['leisure']
-
-    --     if object.is_closed then
-    --         if shape_comparison == 1 or shape_comparison == 2 then
-    --             insertHuMoments(object, category, subcategory)
-    --         end
-    --     else
-    --         insertLinestring(object, category, subcategory)
-    --     end
-    -- elseif object.tags['waterway'] then
-    -- 	category = 'waterway'
-    --     subcategory = object.tags['waterway']
-
-    --     if not object.is_closed then
-    --         insertLinestring(object, category, subcategory)
-    --     end
-    -- elseif object.tags['man_made'] then
-    -- 	category = 'man_made'
-    --     subcategory = object.tags['man_made']
-
-    --     if object.is_closed then
-    --         insertPolygonalNode(object, category, subcategory)
-    --     else
-    --         insertLinestring(object, category, subcategory)
-    --     end
-    -- end
 end
 
 
@@ -347,7 +236,7 @@ end
 ----------------------------------------------------------------
 
 function insertHuMoments(object, category, subcategory)
-    -- if object.id ~= 366611411 then
+    -- if object.id ~= 355536359 then
     --     return
     -- end
 
@@ -376,18 +265,3 @@ function insertHuMoments(object, category, subcategory)
         hu7 = h7,
     })
 end
-
--- TODO: Area shape matching
--- function insertClosedShape(object, category)
-    -- tables.shapes:insert({
-    --     category = category,
-    --     subcategory = subcategory,
-
-    --     -- The way node ids are put into a format that PostgreSQL understands
-    --     -- for a column of type "int8[]".
-    --     nodes = '{' .. table.concat(object.nodes, ',') .. '}',
-
-    --     tags = object.tags,
-    --     geom = object:as_polygon()
-    -- })
--- end 
