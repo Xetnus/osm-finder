@@ -47,39 +47,6 @@ static double distToSegment(double p[], double v[], double w[]) {
 
 // Determines binary value at given coordinates
 static int calculateI(int numNodes, double nodes[][2], int x, int y) {
-    // double newNodes[][30] = 
-    // {{0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    // {1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0},
-    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
-    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
-    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
-    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
-    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
-    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
-    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
-    // {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0},
-    // {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0}};
-    // return newNodes[(int)x][(int)y];
-
     double p[] = {(double) x, (double) y};
 
     for (int i = 0; i < numNodes - 1; i++) {
@@ -188,9 +155,6 @@ static int l_calculateHuMoments(lua_State *L) {
 
         nodes[i][0] *= scale;
         nodes[i][1] *= scale;
-
-        // printf("%13.7f %12.7f", nodes[i][0], nodes[i][1]);
-        // printf("\n");
     }
 
     double h1 = 0, h2 = 0, h3 = 0, h4 = 0, h5 = 0, h6 = 0, h7 = 0;
@@ -200,7 +164,6 @@ static int l_calculateHuMoments(lua_State *L) {
         const double centroidX = calculateM(count, nodes, 1, 0) / mDenominator;
         const double centroidY = calculateM(count, nodes, 0, 1) / mDenominator;
 
-        // double muDenominator = calculateMu(count, nodes, centroidX, centroidY, 0, 0);
         const double muDenominator = mDenominator;
 
         double eta20 = calculateEta(count, nodes, centroidX, centroidY, muDenominator, 2, 0);
@@ -210,19 +173,6 @@ static int l_calculateHuMoments(lua_State *L) {
         double eta12 = calculateEta(count, nodes, centroidX, centroidY, muDenominator, 1, 2);
         double eta03 = calculateEta(count, nodes, centroidX, centroidY, muDenominator, 0, 3);
         double eta21 = calculateEta(count, nodes, centroidX, centroidY, muDenominator, 2, 1);
-
-        // printf("centroidX %13.7f\n", centroidX);
-        // printf("centroidY %13.7f\n", centroidY);
-        // printf("muDenom %13.7f\n", muDenominator);
-        // printf("mDenom %13.7f\n", mDenominator);
-
-        // printf("eta20 %13.7f\n", eta20);
-        // printf("eta02 %13.7f\n", eta02);
-        // printf("eta11 %13.7f\n", eta11);
-        // printf("eta30 %13.7f\n", eta30);
-        // printf("eta12 %13.7f\n", eta12);
-        // printf("eta03 %13.7f\n", eta03);
-        // printf("eta21 %13.7f\n", eta21);
 
         h1 = eta20 + eta02;
 
@@ -318,14 +268,6 @@ static int l_calculateHuMoments(lua_State *L) {
                     )
                 );
     }
-
-    // printf("%f\n", h1);
-    // printf("%f\n", h2);
-    // printf("%f\n", h3);
-    // printf("%f\n", h4);
-    // printf("%f\n", h5);
-    // printf("%f\n", h6);
-    // printf("%f\n", h7);
 
     lua_pushnumber(L, h1);
     lua_pushnumber(L, h2);
