@@ -169,16 +169,12 @@ function calculateHuMoments(nodes) {
   function calculateM(nodes, p, q) {
     let m = 0;
 
-    console.log();
-    let res = "";
-
     for (let x = 0; x <= maxX; x++) {
       for (let y = 0; y <= maxY; y++) {
         m += (Math.pow(x, p) * Math.pow(y, q) * calculateI(nodes, x, y));
-        res += "" + calculateI(nodes, x, y) + " ";
       }
-      res = "";
     }
+
     return m;
   }
 
@@ -240,6 +236,9 @@ function calculateHuMoments(nodes) {
     const centroidX = calculateM(nodes, 1, 0) / mDenominator;
     const centroidY = calculateM(nodes, 0, 1) / mDenominator;
 
+    // Slight hack: effectively, both muDenominator and mDenominator would return the same
+    // results for the values p=0 and q=0, so instead of making a second function call,
+    // we just re-use the result.
     let muDenominator = mDenominator;
 
     let eta20 = calculateEta(nodes, centroidX, centroidY, muDenominator, 2, 0);
@@ -346,10 +345,11 @@ function calculateHuMoments(nodes) {
   }
 
   let moments = [h1, h2, h3, h4, h5, h6, h7];
+
   // Prevents moments being displayed in scientific notation
   // Also removes any trailing 0s at the end
   moments = moments.map((m) => { 
-    let temp = m.toFixed(20);
+    let temp = m.toFixed(30);
     let i = temp.length - 1;
     for (i; i >= 0; i--) {
       if (temp.charAt(i) !== '0') break;

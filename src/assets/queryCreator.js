@@ -1,4 +1,3 @@
-import { shapes } from 'konva/lib/Shape.js';
 import {calculateIntersection} from './generalTools.js'
 import {calculateBounds, createTagsQuery, createMaxDistanceQuery, createMinDistanceQuery, createNoOverlappingQuery, calculateHuMoments} from './queryTools.js'
 
@@ -21,10 +20,10 @@ filtered_shapes AS
 )
 SELECT filtered_shapes.shape1_id
 FROM filtered_shapes
-WHERE filtered_shapes.row < GREATEST((filtered_shapes.count * 0.01), 500);
+WHERE filtered_shapes.row < GREATEST((filtered_shapes.count * 0.01), 1000);
 */
 
-function constructSingleObjectQuery(annotations, displayUrls) {
+function constructSingleObjectQuery(annotations, shapes, displayUrls) {
   let query = '';
   if (annotations[0].geometryType === 'shape') {
     query += 'WITH sorted_shapes AS\n';
@@ -69,7 +68,15 @@ function constructSingleObjectQuery(annotations, displayUrls) {
   }
   query = query.slice(0, query.length - 5); // remove last AND
 
-  if (annotations[0].geometryType === 'shape') {
+  if (shapes.length > 0) {
+    // Filters by min and max areas
+    if (annotations[0].minArea) {
+      query += ' AND ST_Area(ST_Transform(' + annotations[0].name + '.geom, 4326)::geography) >= ' + annotations[0].minArea;
+    }
+    if (annotations[0].maxArea) {
+      query += ' AND ST_Area(ST_Transform(' + annotations[0].name + '.geom, 4326)::geography) <= ' + annotations[0].maxArea;
+    }
+
     query += '\n';
     query += '),\n';
     query += 'filtered_shapes AS\n';
@@ -80,7 +87,7 @@ function constructSingleObjectQuery(annotations, displayUrls) {
     query += ')\n';
     query += 'SELECT filtered_shapes.' + annotations[0].name + '_id\n';
     query += 'FROM filtered_shapes\n';
-    query += 'WHERE filtered_shapes.row < GREATEST((filtered_shapes.count * 0.01), 500)\n';
+    query += 'WHERE filtered_shapes.row < GREATEST((filtered_shapes.count * 0.01), 1000)\n';
     query += 'ORDER BY row ASC';
   }
   query += ';';
@@ -121,7 +128,7 @@ FROM filtered_shapes
 WHERE filtered_shapes.row < GREATEST((filtered_shapes.count * 0.01), 500);
 */
 
-function constructDisjointQuery(annotations, nodes, lines, shapes, displayUrls) {
+function constructDisjointQuery(annotations, lines, shapes, displayUrls) {
   let query = '';
 
   if (shapes.length > 0) {
@@ -180,6 +187,18 @@ function constructDisjointQuery(annotations, nodes, lines, shapes, displayUrls) 
   query += createNoOverlappingQuery(annotations);
   query += createMaxDistanceQuery(annotations);
   query += createMinDistanceQuery(annotations);
+  
+  for (let i = 0; i < shapes.length; i++) {
+    // Filters by min and max areas
+    if (shapes[i].minArea) {
+      query += 'ST_Area(ST_Transform(' + shapes[i].name + '.geom, 4326)::geography) >= ' + shapes[i].minArea;
+      query += ' AND ';
+    }
+    if (shapes[i].maxArea) {
+      query += 'ST_Area(ST_Transform(' + shapes[i].name + '.geom, 4326)::geography) <= ' + shapes[i].maxArea;
+      query += ' AND ';
+    }
+  }
 
   query += '\n';
 
@@ -553,6 +572,18 @@ function constructIntersectingQuery(annotations, nodes, lines, shapes, displayUr
     }
   }
 
+  for (let i = 0; i < shapes.length; i++) {
+    // Filters by min and max areas
+    if (shapes[i].minArea) {
+      query += 'ST_Area(ST_Transform(' + shapes[i].name + '.geom, 4326)::geography) >= ' + shapes[i].minArea;
+      query += ' AND ';
+    }
+    if (shapes[i].maxArea) {
+      query += 'ST_Area(ST_Transform(' + shapes[i].name + '.geom, 4326)::geography) <= ' + shapes[i].maxArea;
+      query += ' AND ';
+    }
+  }
+
   query += createNoOverlappingQuery(annotations);
 
   // Filters results early by ensuring that all of the lines that are supposed to intersect, do intersect
@@ -869,10 +900,6 @@ function constructQuery(annotations, displayUrls = true) {
   let lines = [];
   let shapes = [];
 
-  if (annotations.length == 1) {
-    return constructSingleObjectQuery(annotations, displayUrls);
-  }
-
   for (let i = 0; i < annotations.length; i++) { 
     if (annotations[i].geometryType == 'linestring') {
       lines.push(annotations[i]);
@@ -881,6 +908,10 @@ function constructQuery(annotations, displayUrls = true) {
     } else if (annotations[i].geometryType == 'shape') {
       shapes.push(annotations[i]);
     }
+  }
+
+  if (annotations.length == 1) {
+    return constructSingleObjectQuery(annotations, shapes, displayUrls);
   }
 
   // If at least two of the lines intersect, then call constructIntersectingQuery
@@ -895,7 +926,7 @@ function constructQuery(annotations, displayUrls = true) {
     }
   }
 
-  return constructDisjointQuery(annotations, nodes, lines, shapes, displayUrls);
+  return constructDisjointQuery(annotations, lines, shapes, displayUrls);
 }
 
 export {constructQuery}
