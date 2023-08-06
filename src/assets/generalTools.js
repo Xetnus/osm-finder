@@ -83,19 +83,45 @@ function calculatePolygonCentroid(points) {
   return { x:x/f + first[0], y:y/f + first[1] };
 }
 
-function clipPolygons(originalShape, newShape, mode) {
-  let results = [];
-  if (mode === 'add') {
-    results = PolygonClipping.union([originalShape], [newShape]);
-  } else if (mode === 'sub') {
-    results = PolygonClipping.difference([originalShape], [newShape]);
+/*
+Performs polygon clipping (intersections, unions, differences) on the shapes drawn by the user.
+Parameters
+  currentShapes: an array of annotated shapes that may be modified by the clipping operation
+  newShapePoints: an array of points that will be added/subtracted from the currentShapes
+  mode: clipping mode (e.g., add or sub)
+Returns
+  {
+    existingShapes: a copy of currentShapes, potentially with modified points
+    newShape: if a new shape needs to be added to the annotations, the points of the new shape
+      will be returned. Returns an empty array otherwise.
+  }
+*/
+function clipPolygons(currentShapes, newShapePoints, mode) {
+  let intersectingShapes = [];
+  // Out of all shapes, find the ones that intersect the new shape
+  for (let i = 0; i < currentShapes.length; i++) {
+    if (PolygonClipping.intersection([currentShapes[i].points], [newShapePoints]).length > 0) {
+      intersectingShapes.push(currentShapes[i]);
+    }
   }
 
-  // Checks that both arrays have the same [x, y] coordinates as elements.
-  // Due to an inconsistency in the PolygonClipping library, the coordinates
-  // may not be exactly the same, so we account for some margin of error.
-  const checkArrayEquality = (a1, a2) => a1.length === a2.length &&
-      a1.every((o1) => a2.some(o2 => Math.abs(o2[0] - o1[0]) < 0.00001 && Math.abs(o2[1] - o1[1]) < 0.00001));
+  let newShape = [];
+  if (intersectingShapes.length > 0) {
+    if (mode === 'add') {
+      let intersectingPoints = intersectingShapes.map((s) => [s.points]);
+      intersectingShapes[0].points = PolygonClipping.union([newShapePoints], ...intersectingPoints);
+      for (let i = 1; i < intersectingShapes.length; i++) {
+        intersectingShapes[i].points = [];
+      }
+    } else if (mode === 'sub') {
+      for (let i = 0; i < intersectingShapes.length; i++) {
+        let p = PolygonClipping.difference([intersectingShapes[i].points], [newShapePoints]);
+        intersectingShapes[i].points = p;
+      }
+    }
+  } else {
+    newShape = newShapePoints;
+  }
 
   // Thanks Andrii! https://stackoverflow.com/a/33670691/1941353
   const calculatePolygonArea = (vertices) => {
@@ -111,27 +137,24 @@ function clipPolygons(originalShape, newShape, mode) {
     return Math.abs(total);
   }
 
-  // In the event that two or more geometries were returned with the clipping operation,
-  // keep the one that exactly matches the original geometry (i.e., the newly drawn geometry
-  // didn't overlap with the original geometry, leaving the original geometry unmodified) or
-  // that has the highest area (i.e., the subtractive clipping operation resulted in 2+ 
-  // geometries and we decided to only keep the geometry with the highest polygonal area).
-  let maxArea = 0;
-  let shape = [];
-  let warn = false;
-  for (let i = 0; i < results.length; i++) {
-    let r = results[i][0];
-    if (checkArrayEquality(r, originalShape)) {
-      warn = true;
-      shape = r;
-      break;
-    } else if (calculatePolygonArea(r) > maxArea) {
-      maxArea = calculatePolygonArea(r);
-      shape = r;
+  // If the clipping operation resulted in a polygon being split into multiple polygons,
+  // we only want to keep the polygon with the highest area, since we don't support
+  // multipolygonal shapes at this point.
+  for (let i = 0; i < intersectingShapes.length; i++) {
+    let maxArea = 0;
+    let pointSets = intersectingShapes[i].points;
+    let newPoints = [];
+    for (let j = 0; j < pointSets.length; j++) {
+      let area = calculatePolygonArea(pointSets[j][0]);
+      if (area > maxArea) {
+        maxArea = area;
+        newPoints = pointSets[j][0];
+      }
     }
+    intersectingShapes[i].points = newPoints;
   }
 
-  return {'points': shape, 'warn': warn};
+  return {'existingShapes': intersectingShapes, 'newShape': newShape}
 }
 
 export {calculateIntersection, calculatePolygonCentroid,

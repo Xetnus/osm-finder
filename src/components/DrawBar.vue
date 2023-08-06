@@ -5,7 +5,8 @@
     emits: ['next', 'back', 'drawingStateChange', 'annotationsChange', 'warn'],
     data() {
       return {
-        history: [],
+        removedAnns: [],
+        annsLog: [],
         drawingShape: false,
         mode: 'add',
       }
@@ -13,6 +14,20 @@
     mounted() {
       document.addEventListener('keydown', this.keyDownListener);
       document.addEventListener('keyup', this.keyUpListener);
+    },
+    computed: {
+      annsRecord() {
+        if (!this.annotations || this.annotations.length == 0)
+          return [];
+
+        if (JSON.stringify(this.annsLog[this.annsLog.length - 1]) === JSON.stringify(this.annotations)) {
+          return this.annsLog;
+        }
+
+        let copy = JSON.parse(JSON.stringify(this.annotations));
+        this.annsLog.push(copy);
+        return this.annsLog;
+      }
     },
     methods: {
       keyDownListener(event) {
@@ -98,13 +113,6 @@
         this.$emit('drawingStateChange', state);
       },
       toggleShapeMenu(event) {
-        let ann = this.annotations[this.annotations.length - 1];
-        if (ann && ann.geometryType === 'shape' && !ann.completed) {
-          let anns = this.annotations;
-          anns[this.annotations.length - 1].completed = true;
-          this.$emit('annotationsChange', anns);
-        }
-
         this.drawingShape = !this.drawingShape;
         this.$emit('drawingStateChange', 'none');
       },
@@ -121,36 +129,13 @@
         }
       },
       handleUndo(event) {
-        let anns = this.annotations;
-        let ann = this.annotations.pop();
-        this.history.push(Object.assign({}, ann));
-
-        if (ann.geometryType === 'shape') {
-          if (ann.history.length > 1) {
-            ann.history.pop();
-            ann.points = ann.history[ann.history.length - 1];
-            anns.push(ann);
-          }
-        }
-
+        let record = this.annsLog;
+        this.removedAnns.push(record.pop());
+        let anns = record.length > 0 ? record[record.length - 1] : [];
         this.$emit('annotationsChange', anns);
       },
       handleRedo(event) {
-        let anns = this.annotations;
-        let ann = this.history.pop();
-
-        if (ann.geometryType === 'shape') {
-          if(anns.length > 0 && ann.name === anns[anns.length - 1].name) {
-            let results = clipPolygons(anns[anns.length - 1].points, ann.points, 'add');
-            anns[anns.length - 1].history.push(results.points);
-            anns[anns.length - 1].points = results.points;
-          } else {
-            anns.push(ann);
-          }
-        } else {
-          anns.push(ann);
-        }
-
+        let anns = this.removedAnns.pop();
         this.$emit('annotationsChange', anns);
       },
     }
@@ -209,8 +194,8 @@
 
   <div class="input-bar-flex">
     <q-btn @click="handleBack" label="Back" color="primary"/>
-    <q-btn @click="handleUndo" :disabled="!annotations.length" icon="undo" label="Undo" color="secondary"/>
-    <q-btn @click="handleRedo" :disabled="!history.length" icon-right="redo" label="Redo" color="secondary"/>
+    <q-btn @click="handleUndo" :disabled="!annsRecord.length" icon="undo" label="Undo" color="secondary"/>
+    <q-btn @click="handleRedo" :disabled="!removedAnns.length" icon-right="redo" label="Redo" color="secondary"/>
     <q-btn @click="handleNext" label="Next" color="primary"/>
   </div>
 </template>

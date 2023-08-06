@@ -125,7 +125,7 @@ filtered_shapes AS
 )
 SELECT filtered_shapes.shape1_id, filtered_shapes.shape2_id
 FROM filtered_shapes
-WHERE filtered_shapes.row < GREATEST((filtered_shapes.count * 0.01), 500);
+WHERE filtered_shapes.row < GREATEST((filtered_shapes.count * 0.01), 1000);
 */
 
 function constructDisjointQuery(annotations, lines, shapes, displayUrls) {
@@ -257,7 +257,7 @@ function constructDisjointQuery(annotations, lines, shapes, displayUrls) {
       query += 'filtered_shapes.' + annotations[i].name + '_id' + comma;
     }
     query += 'FROM filtered_shapes\n';
-    query += 'WHERE filtered_shapes.row < GREATEST((filtered_shapes.count * 0.01), 500)\n';
+    query += 'WHERE filtered_shapes.row < GREATEST((filtered_shapes.count * 0.01), 1000)\n';
     query += 'ORDER BY row ASC';
   }
 
@@ -883,7 +883,7 @@ function constructIntersectingQuery(annotations, nodes, lines, shapes, displayUr
     }
 
     query += 'FROM numbered\n';
-    query += 'WHERE numbered.row < GREATEST((numbered.count * 0.01), 500)\n';
+    query += 'WHERE numbered.row < GREATEST((numbered.count * 0.01), 1000)\n';
     query += 'ORDER BY numbered.row ASC';
   }
 

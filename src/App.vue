@@ -35,8 +35,6 @@ annotations: [
   2:
     name: 'shape1'
     geometryType: 'shape'
-    completed: true/false
-    history: [[previousPoints1], [previousPoints2], ...]
     <same as other annotations>
 
   ...
@@ -135,7 +133,7 @@ drawingState: {
   </q-bar>
 
   <section id="canvas-section">
-    <InteractiveCanvas @annotationsChange="annotationsChange" @drawingStateChange="drawingStateChange" @warn="displayWarning"
+    <InteractiveCanvas @annotationsChange="annotationsChange" @drawingStateChange="drawingStateChange"
       :programStage="programStage" :annotations="annotations" :drawingState="drawingState" :image="image"/>
   </section>
 

@@ -5,7 +5,7 @@ import {calculateIntersection, calculatePolygonCentroid,
 
   export default {
     props: ['image', 'programStage', 'annotations', 'drawingState'],
-    emits: ['annotationsChange', 'drawingStateChange', 'warn'],
+    emits: ['annotationsChange', 'drawingStateChange'],
     data() {
       return {
         stageConfig: {
@@ -106,7 +106,6 @@ import {calculateIntersection, calculatePolygonCentroid,
         }
 
         return {closed: true, stroke: 'black', fill: 'blue', lineJoin: 'round', opacity: opacity,
-                dashEnabled: !shape.completed, dash: [15, 15], strokeWidth: 3, 
                 points: shape.points.flat(1)}
       },
 
@@ -166,11 +165,6 @@ import {calculateIntersection, calculatePolygonCentroid,
         }
 
         return {stroke: 'black', strokeWidth: 3, points: points.flat(1)} 
-      },
-
-      getActiveShapeConfig(shape) {
-        return {closed: true, stroke: 'black', fill: 'blue', lineJoin: 'round', 
-                opacity: 0.7, strokeWidth: 3, points: shape.flat(1), dashEnabled: true, dash: [30, 10]}
       },
 
       getIntersectionConfig(intersection) {
@@ -307,24 +301,7 @@ import {calculateIntersection, calculatePolygonCentroid,
         }
 
         let anns = this.annotations;
-        if (geometryType === 'shape') {
-          let previous = anns[anns.length - 1];
-          if (previous && previous.geometryType === 'shape' && !previous.completed) {
-            if (points.length == 0) {
-              // If the shape has been subtracted away into nothing, then remove the annotation
-              anns.pop();
-            } else {
-              // Update the existing, non-completed shape with the current points
-              anns[anns.length - 1].history.push(points);
-              anns[anns.length - 1].points = points;
-            }
-          } else {
-            annotation['history'] = [points];
-            anns.push(annotation);
-          }
-        } else {
-          anns.push(annotation);
-        }
+        anns.push(annotation);
         this.$emit('annotationsChange', anns);
       },
 
@@ -334,21 +311,26 @@ import {calculateIntersection, calculatePolygonCentroid,
       },
 
       clip(newShapePoints) {
-        let shape = [];
-        let activeShape = this.annotations[this.annotations.length - 1];
+        let currentShapes = this.getAnnotationsOfType('shape');
+        let mode = this.drawingState.substring(0, 3);
 
-        if (activeShape && activeShape.geometryType == 'shape' && !activeShape.completed) {
-          let mode = this.drawingState.substring(0, 3);
-          let results = clipPolygons(activeShape.points, newShapePoints, mode);
-          if (results.warn) {
-            this.$emit('warn', 'All subshapes should cross at a boundary. To create a new shape, complete the current one by clicking done.');
+        let results = clipPolygons(currentShapes, newShapePoints, mode);
+
+        let anns = this.annotations;
+        for (let i = 0; i < results.existingShapes.length; i++) {
+          for (let j = 0; j < anns.length; j++) {
+            if (anns[j].name === results.existingShapes[i].name) {
+              anns[j].points = results.existingShapes[i].points;
+            }
           }
-          shape = results.points;
-        } else {
-          shape = newShapePoints[0];
         }
 
-        this.pushAnnotation('shape', shape);
+        anns = anns.filter((a) => a.points.length > 0);
+        this.$emit('annotationsChange', anns);
+
+        if (results.newShape.length > 0) {
+          this.pushAnnotation('shape', results.newShape.flat());
+        }
       },
 
       mousedown() {
@@ -363,7 +345,7 @@ import {calculateIntersection, calculatePolygonCentroid,
             radius: 4, x: pos.x, y: pos.y
           });
           
-          if (this.activePolygon.length > 1) {
+          if (this.activePolygon.length > 3) {
             let firstX = this.activePolygon[0][0];
             let firstY = this.activePolygon[0][1];
 
@@ -419,7 +401,7 @@ import {calculateIntersection, calculatePolygonCentroid,
               }
             }
           } else if (this.drawingState.endsWith('polygon')) {
-            if (this.activePolygon.length == 0) return;
+            if (this.activePolygon.length < 3) return;
 
             let firstX = this.activePolygon[0][0];
             let firstY = this.activePolygon[0][1];
@@ -503,23 +485,6 @@ import {calculateIntersection, calculatePolygonCentroid,
             this.resetActiveVariables();
           }
         }
-
-        let tracker = 0;
-        let offset = 0;
-
-        // Animates the outline of all "active" shapes
-        this.anim.stop();
-        this.anim = new Konva.Animation((frame) => {
-          if (frame.time - tracker > 200) {
-            offset = offset == 0 ? 15 : 0;
-            let shapes = this.$refs.shapes;
-            for (let i = 0; shapes && i < shapes.length; i++) {
-              shapes[i].getNode().setAttr('dashOffset', offset);
-            }
-            tracker = frame.time;
-          }
-        }, this.$refs.layer.getStage());
-        this.anim.start();
       },
       
       resize() {
