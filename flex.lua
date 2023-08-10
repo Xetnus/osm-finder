@@ -118,7 +118,21 @@ tables.linestrings = osm2pgsql.define_table({
 --   },
 })
 
+if shape_comparison ~= 0 then
+    require('shapeComparison')
+end
+
+local function store_nodes(nodes)
+    local node_count = 0
+    for k, v in pairs(nodes) do
+        node_count = node_count + 1
+    end
+
+    storeNodesBatch(node_count, nodes)
+end
+
 node_list = {}
+node_list_size = 0
 
 function osm2pgsql.process_node(object)
     -- Store a list of each node's latitude and longitude
@@ -148,6 +162,13 @@ function osm2pgsql.process_node(object)
 
         local location = { x = longitude, y = latitude }
         node_list[object.id] = location
+        node_list_size = node_list_size + 1
+
+        if node_list_size >= 500000 then
+            store_nodes(node_list)
+            node_list = {}
+            node_list_size = 0
+        end
     end
 
     if clean_tags(object.tags) then
@@ -176,7 +197,15 @@ function osm2pgsql.process_node(object)
     end
 end
 
+flag = 0
 function osm2pgsql.process_way(object)
+    -- Stores the remaining nodes that didn't quite make the last batch's count threshold
+    if shape_comparison ~= 0 and node_list_size > 0 then
+        store_nodes(node_list)
+        node_list = {}
+        node_list_size = 0
+    end
+
     if clean_tags(object.tags) then
         return
     end
@@ -241,15 +270,12 @@ function insertHuMoments(object, category, subcategory)
     -- end
 
     local count = 0
-    local nodes = {}
     for _, node_id in ipairs(object.nodes) do
-        nodes[count] = node_list[node_id]
         count = count + 1
     end
 
     -- C implementation of Hu Moments is at least 10x faster than Lua implementation
-    require("shapeComparison")
-    local h1, h2, h3, h4, h5, h6, h7 = calculateHuMoments(count, nodes)
+    local h1, h2, h3, h4, h5, h6, h7 = calculateHuMoments(count, object.nodes)
 
     tables.shapes:insert({
         tags = object.tags,
