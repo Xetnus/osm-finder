@@ -1,1 +1,0 @@
-three disjoint but directional (DBD) linestrings: three paths that don't intersect but have known angles

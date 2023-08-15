@@ -1,1 +1,0 @@
-two disjoint but directional (DBD) linestrings: two non-intersecting abandoned railways with known distances and angle
