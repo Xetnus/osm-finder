@@ -1,3 +1,5 @@
+#define _FILE_OFFSET_BITS 64
+
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h> 
@@ -96,7 +98,7 @@ void mergeSort(char** arr, int left, int right) {
 
 // Reads a line at the given index from the given file and stores it in *line.
 static int readLine(char *line, int index, FILE *dataFile) {
-    int status = fseek(dataFile, index * (LINE_WIDTH - 1), SEEK_SET);
+    int status = fseeko(dataFile, (off_t) index * (LINE_WIDTH - 1), SEEK_SET);
     if (status != 0) {
         printf("Error seeking data file.\n");
         return -1;
@@ -567,14 +569,14 @@ static int l_calculateHuMoments(lua_State *L) {
 
 int luaopen_shapeComparison(lua_State *L) {
     lua_register(
-			L,                           /* Lua state variable */
-			"calculateHuMoments",        /* func name as known in Lua */
-			l_calculateHuMoments         /* func name in this file */
-			);
+            L,                           /* Lua state variable */
+            "calculateHuMoments",        /* func name as known in Lua */
+            l_calculateHuMoments         /* func name in this file */
+            );
     lua_register(
-			L,
-			"storeNodesBatch",
+            L,
+            "storeNodesBatch",
             l_storeNodesBatch 
-			);
+            );
     return 0;
 }

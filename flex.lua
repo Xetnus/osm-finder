@@ -2,7 +2,7 @@
 -- 0: disabled
 -- 1: enabled (all algorithms)
 -- 2: only Hu Moments (https://en.wikipedia.org/wiki/Image_moment#Rotation_invariants)
-shape_comparison = 1
+shape_comparison = 0
 
 -- Imports json.lua (a helper file that can read JSON)
 json = require("json")
