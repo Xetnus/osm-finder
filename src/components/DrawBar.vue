@@ -1,5 +1,4 @@
 <script>
-  import {clipPolygons} from '../assets/generalTools.js'
   export default {
     props: ['drawingState', 'annotations'],
     emits: ['next', 'back', 'drawingStateChange', 'annotationsChange', 'warn'],
@@ -131,7 +130,7 @@
       handleUndo(event) {
         let record = this.annsLog;
         this.removedAnns.push(record.pop());
-        let anns = record.length > 0 ? record[record.length - 1] : [];
+        let anns = record.length > 0 ? JSON.parse(JSON.stringify(record[record.length - 1])) : [];
         this.$emit('annotationsChange', anns);
       },
       handleRedo(event) {
