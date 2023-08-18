@@ -3,6 +3,7 @@
 -- 1: enabled (all algorithms)
 -- 2: only Hu Moments (https://en.wikipedia.org/wiki/Image_moment#Rotation_invariants)
 shape_comparison = 0
+srid = 3857
 
 -- Imports json.lua (a helper file that can read JSON)
 json = require("json")
@@ -58,8 +59,6 @@ local delete_keys = {
 }
 
 local clean_tags = osm2pgsql.make_clean_tags_func(delete_keys)
-
-local srid = 3857
 
 local tables = {}
 
