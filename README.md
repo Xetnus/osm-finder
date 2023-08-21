@@ -23,14 +23,14 @@ Instructions moved to the [wiki](https://github.com/Xetnus/osm-finder/wiki/Insta
 Instructions moved to the [wiki](https://github.com/Xetnus/osm-finder/wiki/Installing-the-Frontend-(Website)).
 
 ### Alpha
-  :heavy_check_mark: **Start from scratch.** Because this was created during a hackathon, little emphasis was put on code quality and future maintenance. No standard JavaScript libraries were used and most of the code is inefficient in one way or another.
-  :heavy_check_mark: **Add support for nodes.** Towers, buildings, and nodes of all types should be supported.
-  :heavy_check_mark: **Update flex.lua.** Include more node and linestring types. Add "downsampling" capability such that ways can be queried as nodes.
-  :heavy_check_mark: **Revamp UI.** Give the bottom input bar a more modern and functional appearance.
+- [x] **Start from scratch.** Because this was created during a hackathon, little emphasis was put on code quality and future maintenance. No standard JavaScript libraries were used and most of the code is inefficient in one way or another.
+- [x] **Add support for nodes.** Towers, buildings, and nodes of all types should be supported.
+- [x] **Update flex.lua.** Include more node and linestring types. Add "downsampling" capability such that ways can be queried as nodes.
+- [x] **Revamp UI.** Give the bottom input bar a more modern and functional appearance.
 ### Beta
-  :black_square_button: **Improve image loader.** Find a way to reduce aliasing artifacts in images uploaded by user.
-  :heavy_minus_sign: **Add support for polygons.** Many objects have unique shapes that should be queryable using carefully crafted PostgreSQL queries.
-  - :heavy_check_mark: **Closed polygons:** buildings, structures, etc.
-  - :black_square_button: **Open polygons:** roads, coastlines, and other types of waterfronts
+- [ ] **Improve image loader.** Find a way to reduce aliasing artifacts in images uploaded by user.
+- [ ] **Add support for polygons.** Many objects have unique shapes that should be queryable using carefully crafted PostgreSQL queries.
+  - [x] **Closed polygons:** buildings, structures, etc.
+  - [ ] **Open polygons:** roads, coastlines, and other types of waterfronts
 ### Future
-  :black_square_button: **Host a public website and server.** Depending on cost, integrate and host both the frontend (UI) and backend (PostgreSQL) on a public-facing website.
+- [ ] **Host a public website and server.** Depending on cost, integrate and host both the frontend (UI) and backend (PostgreSQL) on a public-facing website.
