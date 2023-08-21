@@ -17,9 +17,11 @@ Check out the [wiki](https://github.com/Xetnus/osm-finder/wiki/Getting-Started) 
 Instructions below are for Linux. OSM Finder has been installed and tested on Ubuntu 22.04.1 LTS and Windows Subsystem for Linux - Ubuntu 22.04.2 LTS edition. Your mileage may vary on other operating systems.
 
 **I. Install and Configure PostgreSQL Backend** 
+
 Installation instructions have been moved to the [wiki](https://github.com/Xetnus/osm-finder/wiki/Installing-the-Backend-(Database)).
 
 **II. Install Web Frontend** 
+
 Installation instructions have been moved to the [wiki](https://github.com/Xetnus/osm-finder/wiki/Installing-the-Frontend-(Website)).
 
 ## Roadmap
