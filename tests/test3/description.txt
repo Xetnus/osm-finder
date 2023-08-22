@@ -1,1 +1,0 @@
-three intersecting linestrings: three highways intersecting at known angles

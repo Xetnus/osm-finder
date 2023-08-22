@@ -1,1 +1,0 @@
-two intersecting linestrings and one disjoint but directional (DBD) linestring: two highways intersecting at a known angle and one non-intersecting path with known distances and angle

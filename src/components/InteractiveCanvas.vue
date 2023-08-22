@@ -1,5 +1,7 @@
 <script>
-  import {calculateIntersection, getLineLength, getPointAtDistance, debounce, getUniquePairs} from '../assets/generalTools.js'
+import {calculateIntersection, calculatePolygonCentroid,
+        getLineLength, getPointAtDistance, getUniquePairs, 
+        debounce, clipPolygons} from '../assets/generalTools.js'
 
   export default {
     props: ['image', 'programStage', 'annotations', 'drawingState'],
@@ -10,9 +12,13 @@
           width: null,
           height: null,
         },
-        activeLinestring: [],            // [x1 y1 x2 y2] for line currently being drawn
+        activeLine: [],                  // [[x1, y1], [x2, y2]] for line currently being drawn
+        activeCircle: [],                // [[x1, y1], [x2, y2]] for circle currently being drawn
+        activeRectangle: [],             // [[x1, y1], [x2, y2]] for rectangle currently being drawn
+        activePolygon: [],               // [[x1, y1], [x2, y2], ...] for polygon currently being drawn
         activeIntersections: [],         // Array of arrays for any intersections on the line being drawn
-        isMouseDown: false,              // False if no line is being drawn, true otherwise
+        activeJoints: [],                // Array of arrays for any joints that connect lines of a shape
+        anim: new Konva.Animation(),
       };
     },
     created() {
@@ -69,6 +75,16 @@
       }
     },
     methods: {
+      // Resets temporary variables
+      resetActiveVariables() {
+        this.activeLine = [];
+        this.activeCircle = [];
+        this.activeRectangle = [];
+        this.activeIntersections = [];
+        this.activeJoints = [];
+        this.activePolygon = [];
+      },
+
       getLineConfig(line) {
         let opacity =  1;
         let shadowEnabled = true;
@@ -78,27 +94,77 @@
           shadowEnabled = false;
         }
 
-        return {stroke: 'black', strokeWidth: 5, points: Object.assign([], line.points), opacity: opacity, 
+        return {stroke: 'black', strokeWidth: 5, points: line.points.flat(1), opacity: opacity, 
                 shadowEnabled: shadowEnabled, shadowBlur: 3, shadowColor: 'cyan'}
       },
 
+      getShapeConfig(shape) {
+        let opacity =  0.7;
+
+        if (shape.state === 'transparent' || shape.state === 'transparent-but-related') {
+          opacity = 0.2;
+        }
+
+        return {closed: true, stroke: 'black', fill: 'blue', lineJoin: 'round', opacity: opacity,
+                points: shape.points.flat(1)}
+      },
+
       getNodeConfig(node) {
-        const opacity = node.state === 'transparent' ? 0.3 : 1;
-        return {fill: 'midnightblue', stroke: 'lightblue', radius: 10, strokeWidth: 3, 
-                x: node.point[0], y: node.point[1], opacity: opacity}
+        const opacity = node.state === 'transparent' ? 0.2 : 1;
+        return {fill: 'midnightblue', stroke: 'lightblue', radius: 10, strokeWidth: 3,
+                x: node.points[0][0], y: node.points[0][1], opacity: opacity}
       },
 
       getActiveLineConfig(points) {
-        // If the user cancels the linestring drawing operation, reset active variables
-        if (!this.drawingState.drawingLinestring) {
-          this.activeLinestring = [];
-          this.activeIntersections = [];
-          this.isMouseDown = false;
+        // If the user cancels the drawing operation, reset active variables
+        if (this.drawingState === 'none') {
+          this.resetActiveVariables();
           return {};
         }
 
-        return {stroke: 'black', strokeWidth: 5, points: Object.assign([], points),
-                shadowEnabled: true, shadowBlur: 3, shadowColor: 'cyan'}
+        return {stroke: 'black', strokeWidth: 3, points: points.flat(1)}
+      },
+
+      getActiveCircleConfig(points) {
+        // If the user cancels the drawing operation, reset active variables
+        if (this.drawingState === 'none') {
+          this.resetActiveVariables();
+          return {};
+        }
+
+        let radius = getLineLength(...points.flat(1));
+
+        return {stroke: 'black', strokeWidth: 3, fill: 'cyan', opacity: 0.2, 
+                x: points[0][0], y: points[0][1], radius: radius}
+      },
+
+      getActiveRectangleConfig(cornerPoints) {
+        // If the user cancels the drawing operation, reset active variables
+        if (this.drawingState === 'none') {
+          this.resetActiveVariables();
+          return {};
+        }
+
+        let points = [
+                      [cornerPoints[0][0], cornerPoints[0][1]],
+                      [cornerPoints[0][0], cornerPoints[1][1]],
+                      [cornerPoints[1][0], cornerPoints[1][1]],
+                      [cornerPoints[1][0], cornerPoints[0][1]],
+                      [cornerPoints[0][0], cornerPoints[0][1]]
+                    ];
+
+        return {stroke: 'black', strokeWidth: 3, fill: 'cyan', opacity: 0.2, closed: true,
+                points: points.flat(1)} 
+      },
+
+      getActivePolygonConfig(points) {
+        // If the user cancels the drawing operation, reset active variables
+        if (!this.drawingState.endsWith('polygon')) {
+          this.resetActiveVariables();
+          return {};
+        }
+
+        return {stroke: 'black', strokeWidth: 3, points: points.flat(1)} 
       },
 
       getIntersectionConfig(intersection) {
@@ -115,29 +181,25 @@
         if (!intersection) return {};
 
         // Finds the longest segment of line1, assuming the line is split at the intersection
-        const temp1_len1 = getLineLength(intersection.x, intersection.y, line1[0], line1[1]);
-        const temp2_len1 = getLineLength(intersection.x, intersection.y, line1[2], line1[3]);
-        let line1_x = 2; 
-        let line1_y = 3;
-        let len1 = temp2_len1;
+        const temp1Len1 = getLineLength(intersection.x, intersection.y, line1[0][0], line1[0][1]);
+        const temp2Len1 = getLineLength(intersection.x, intersection.y, line1[1][0], line1[1][1]);
+        let line1Seg = 1;
+        let len1 = temp2Len1;
 
-        if (temp1_len1 > temp2_len1) {
-          line1_x = 0;
-          line1_y = 1;
-          len1 = temp1_len1;
+        if (temp1Len1 > temp2Len1) {
+          line1Seg = 0;
+          len1 = temp1Len1;
         }
 
         // Finds the longest segment of line2, assuming the line is split at the intersection
-        const temp1_len2 = getLineLength(intersection.x, intersection.y, line2[0], line2[1]);
-        const temp2_len2 = getLineLength(intersection.x, intersection.y, line2[2], line2[3]);
-        let line2_x = 2; 
-        let line2_y = 3;
-        let len2 = temp2_len2;
+        const temp1Len2 = getLineLength(intersection.x, intersection.y, line2[0][0], line2[0][1]);
+        const temp2Len2 = getLineLength(intersection.x, intersection.y, line2[1][0], line2[1][1]);
+        let line2Seg = 1;
+        let len2 = temp2Len2;
 
-        if (temp1_len2 > temp2_len2) {
-          line2_x = 0;
-          line2_y = 1;
-          len2 = temp1_len2;
+        if (temp1Len2 > temp2Len2) {
+          line2Seg = 0;
+          len2 = temp1Len2;
         }
 
         // Determines the shortest segment between each line's longest segment
@@ -145,12 +207,12 @@
 
         // Determines where the angle path intersects the lines
         const point1 = [intersection.x, intersection.y];
-        const line1d = getPointAtDistance(point1, [line1[line1_x], line1[line1_y]], minLen / 3);
-        const line2d = getPointAtDistance(point1, [line2[line2_x], line2[line2_y]], minLen / 3);
+        const line1d = getPointAtDistance(point1, [line1[line1Seg][0], line1[line1Seg][1]], minLen / 3);
+        const line2d = getPointAtDistance(point1, [line2[line2Seg][0], line2[line2Seg][1]], minLen / 3);
 
         // Determines the 'height' of the angle path
-        const line1_control = getPointAtDistance(point1, [line1[line1_x], line1[line1_y]], minLen / 2);
-        const line2_control = getPointAtDistance(point1, [line2[line2_x], line2[line2_y]], minLen / 2);
+        const line1_control = getPointAtDistance(point1, [line1[line1Seg][0], line1[line1Seg][1]], minLen / 2);
+        const line2_control = getPointAtDistance(point1, [line2[line2Seg][0], line2[line2Seg][1]], minLen / 2);
         const controlX = line2_control.x + (line1_control.x - line2_control.x) / 2;
         const controlY = line2_control.y + (line1_control.y - line2_control.y) / 2;
 
@@ -174,15 +236,22 @@
           return this.calculateAngleConfig(intersection.first.points, intersection.second.points);
         } else if (pseudoStates.includes(intersection.first.state) && pseudoStates.includes(intersection.second.state)) {
           const visibleNodes = this.annotations.filter(ann => ann.state === 'default' && ann.geometryType === 'node');
-          if (visibleNodes.length != 1) return {};
-          const node = visibleNodes[0];
+          const visibleShapes = this.annotations.filter(ann => ann.state === 'default' && ann.geometryType === 'shape');
+
+          let pseudoLine = [[0, 0], [0, 0]];
+          if (visibleNodes.length == 1) {
+            const node = visibleNodes[0];
+            pseudoLine = [[intersection.x, intersection.y], [node.points[0][0], node.points[0][1]]];
+          } else if (visibleShapes.length == 1) {
+            const centroid = calculatePolygonCentroid(visibleShapes[0].points);
+            pseudoLine = [[intersection.x, intersection.y], [centroid.x, centroid.y]];
+          }
 
           let mainLine = intersection.first.points;
           if (intersection.second.state === 'default') {
             mainLine = intersection.second.points;
           }
 
-          const pseudoLine = [intersection.x, intersection.y, node.point[0], node.point[1]];
           return this.calculateAngleConfig(pseudoLine, mainLine);
         } else {
           return {};
@@ -193,10 +262,17 @@
         if (intersection.first.state === 'transparent' || intersection.second.state === 'transparent') return {};
 
         const visibleNodes = this.annotations.filter(ann => ann.state === 'default' && ann.geometryType === 'node');
-        if (visibleNodes.length != 1) return {};
-        const node = visibleNodes[0];
+        const visibleShapes = this.annotations.filter(ann => ann.state === 'default' && ann.geometryType === 'shape');
 
-        const pseudoLine = [intersection.x, intersection.y, node.point[0], node.point[1]];
+        let pseudoLine = [0, 0, 0, 0];
+        if (visibleNodes.length == 1) {
+          const node = visibleNodes[0];
+          pseudoLine = [intersection.x, intersection.y, node.points[0][0], node.points[0][1]];
+        } else if (visibleShapes.length == 1) {
+          const centroid = calculatePolygonCentroid(visibleShapes[0].points);
+          pseudoLine = [intersection.x, intersection.y, centroid.x, centroid.y];
+        }
+
         return {stroke: 'black', strokeWidth: 3, dash: [11, 4], points: pseudoLine}
       },
 
@@ -210,92 +286,207 @@
         return anns;
       },
 
-      mousedown() {
-        if (this.programStage != 2) return;
+      pushAnnotation(geometryType, points) {
+        const count = this.annotations.filter(a => a.geometryType == geometryType).length + 1;
 
-        const pos = this.$refs.stage.getStage().getPointerPosition();
-
-        if (pos && this.drawingState.drawingLinestring) {
-          this.isMouseDown = true;
-          this.activeLinestring = [pos.x, pos.y];
-        } else if (pos && this.drawingState.drawingNode) {
-          const count = this.annotations.filter(a => a.geometryType == 'node').length + 1;
-
-          let annotations = this.annotations;
-          annotations.push({
-            name: 'node' + count,
-            geometryType: 'node',
-            point: [pos.x, pos.y],
-            transparent: false,
-            category: null,
-            subcategory: null,
-            tags: [],
-            relations: {},
-          });
-          this.$emit('annotationsChange', annotations);
-
-          // Lets the program know we aren't drawing anymore
-          let state = this.drawingState;
-          state.drawingNode = false;
-          this.$emit('drawingStateChange', state);
-        }
-      },
-
-      mousemove() {
-        if (!this.isMouseDown || this.programStage != 2) return;
-
-        const pos = this.$refs.stage.getStage().getPointerPosition();
-        if (pos) {
-          this.activeLinestring.splice(2, 2, pos.x, pos.y);
-        
-          // Dynamically calculate any intersections with the current line
-          const line1 = this.activeLinestring;
-          this.activeIntersections = [];
-          for (let i = 0; i < this.annotations.length; i++) {
-            if (this.annotations[i].geometryType != 'linestring') continue;
-
-            let line2 = this.annotations[i].points;
-            let intersection = calculateIntersection(line1, line2);
-            if (intersection && intersection.intersects) {
-              this.activeIntersections.push({
-                fill: 'red', stroke: 'orange',
-                radius: 6, strokeWidth: 2,
-                x: intersection.x, y: intersection.y
-              });
-            }
-          }
-        }
-      },
-
-      mouseup_mouseleave() {
-        if (!this.isMouseDown || this.programStage != 2) return;
-
-        const count = this.annotations.filter(a => a.geometryType == 'linestring').length + 1;
-
-        let annotations = this.annotations;
-        annotations.push({
-          name: 'line' + count,
-          geometryType: 'linestring',
-          points: this.activeLinestring,
+        let annotation = {
+          name: geometryType + count,
+          geometryType: geometryType,
+          points: points,
           state: 'default',
           category: null,
           subcategory: null,
           tags: [],
           relations: {},
-        });
-        this.$emit('annotationsChange', annotations);
+        }
 
-        // Lets the component know we aren't drawing anymore
-        this.isMouseDown = false;
-        this.activeLinestring = [];
-        this.activeIntersections = [];
-
-        // Lets the program know we aren't drawing anymore
-        let state = this.drawingState;
-        state.drawingLinestring = false;
-        this.$emit('drawingStateChange', state);
+        let anns = this.annotations;
+        anns.push(annotation);
+        this.$emit('annotationsChange', anns);
       },
 
+      withinClickThreshold(point1, point2) {
+        return ((point1[0] - point2[0] < 6 && point1[0] - point2[0] > -6) 
+              && (point1[1] - point2[1] < 6 && point1[1] - point2[1] > -6));
+      },
+
+      clip(newShapePoints) {
+        let currentShapes = this.getAnnotationsOfType('shape');
+        let mode = this.drawingState.substring(0, 3);
+
+        let results = clipPolygons(currentShapes, newShapePoints, mode);
+
+        let anns = this.annotations;
+        for (let i = 0; i < results.existingShapes.length; i++) {
+          for (let j = 0; j < anns.length; j++) {
+            if (anns[j].name === results.existingShapes[i].name) {
+              anns[j].points = results.existingShapes[i].points;
+            }
+          }
+        }
+
+        anns = anns.filter((a) => a.points.length > 0);
+        this.$emit('annotationsChange', anns);
+
+        if (results.newShape.length > 0) {
+          this.pushAnnotation('shape', results.newShape.flat());
+        }
+      },
+
+      mousedown() {
+        const pos = this.$refs.stage.getStage().getPointerPosition();
+        if (this.programStage != 2 || !pos) return;
+
+        if (this.drawingState.endsWith('polygon')) {
+          this.activeLine = [[pos.x, pos.y]];
+          this.activePolygon.push([pos.x, pos.y]);
+          this.activeJoints.push({
+            fill: this.activePolygon.length == 1 ? 'red' : 'orange', 
+            radius: 4, x: pos.x, y: pos.y
+          });
+          
+          if (this.activePolygon.length > 3) {
+            let firstX = this.activePolygon[0][0];
+            let firstY = this.activePolygon[0][1];
+
+            // Closes the shape if the user clicks on the first point in the shape
+            if (this.withinClickThreshold([firstX, firstY], [pos.x, pos.y])) {
+              this.activePolygon.push([firstX, firstY]);
+              this.clip([this.activePolygon]);
+              this.resetActiveVariables();
+            }
+          }
+        } else if (this.drawingState.endsWith('circle')) {
+          if (this.activeCircle.length == 0) {
+            this.activeCircle = [[pos.x, pos.y]];
+          }
+        } else if (this.drawingState.endsWith('rectangle')) {
+          if (this.activeRectangle.length == 0) {
+            this.activeRectangle = [[pos.x, pos.y]];
+          }
+        } else if (this.drawingState === 'linestring') {
+          if (this.activeLine.length == 0) {
+            this.activeLine = [[pos.x, pos.y]];
+          }
+        } else if (this.drawingState === 'node') {
+          this.pushAnnotation('node', [[pos.x, pos.y]]);
+          this.resetActiveVariables();
+        }
+      },
+
+      // Draws a temporary line and corresponding intersections/joints as the user moves their mouse
+      mousemove() {
+        if (this.programStage != 2) return;
+        if (this.activeLine.length == 0 && this.activeCircle.length == 0 && this.activeRectangle.length == 0) return;
+
+        const pos = this.$refs.stage.getStage().getPointerPosition();
+        if (pos) {
+          this.activeLine[1] = [pos.x, pos.y];
+
+          if (this.drawingState === 'linestring') {
+            // Dynamically calculate any intersections with the current line
+            const line1 = this.activeLine;
+            this.activeIntersections = [];
+            for (let i = 0; i < this.annotations.length; i++) {
+              if (this.annotations[i].geometryType != 'linestring') continue;
+
+              let line2 = this.annotations[i].points;
+              let intersection = calculateIntersection(line1, line2);
+              if (intersection && intersection.intersects) {
+                this.activeIntersections.push({
+                  fill: 'red', stroke: 'orange',
+                  radius: 6, strokeWidth: 2,
+                  x: intersection.x, y: intersection.y
+                });
+              }
+            }
+          } else if (this.drawingState.endsWith('polygon')) {
+            if (this.activePolygon.length < 3) return;
+
+            let firstX = this.activePolygon[0][0];
+            let firstY = this.activePolygon[0][1];
+            let hoveringOverJoint0 = this.withinClickThreshold([pos.x, pos.y], [firstX, firstY]);
+
+            this.activeJoints = [];
+            for (let i = 0; i < this.activePolygon.length; i++) {
+              this.activeJoints.push({
+                fill: i == 0 ? 'red' : 'orange', 
+                radius: 4,
+                stroke: (hoveringOverJoint0 && i == 0) ? 'yellow' : null,
+                strokeWidth: (hoveringOverJoint0 && i == 0) ? 2 : null,
+                x: this.activePolygon[i][0], y: this.activePolygon[i][1]
+              });
+            }
+          } else if (this.drawingState.endsWith('circle')) {
+            if (this.activeCircle.length == 0) return;
+            this.activeCircle[1] = [pos.x, pos.y];
+          } else if (this.drawingState.endsWith('rectangle')) {
+            if (this.activeRectangle.length == 0) return;
+            this.activeRectangle[1] = [pos.x, pos.y];
+          }
+        }
+      },
+
+      // Handles click and drag for creating linestrings
+      mouseup() {
+        if (this.programStage != 2) return;
+        if (this.activeLine.length == 0  && this.activeCircle.length == 0 && this.activeRectangle == 0) return;
+
+        const pos = this.$refs.stage.getStage().getPointerPosition();
+        if (pos) {
+          if (this.drawingState === 'linestring') {
+            let firstX = this.activeLine[0][0];
+            let firstY = this.activeLine[0][1];
+
+            // Ignores small, accidental mouse movements
+            if (this.withinClickThreshold([firstX, firstY], [pos.x, pos.y])) {
+              this.activeLine = [];
+              return;
+            }
+
+            this.pushAnnotation('linestring', this.activeLine);
+            this.resetActiveVariables();
+          } else if (this.drawingState.endsWith('rectangle')) {
+            let firstX = this.activeRectangle[0][0];
+            let firstY = this.activeRectangle[0][1];
+
+            let rect = [[firstX, firstY], [firstX, pos.y], [pos.x, pos.y], [pos.x, firstY], [firstX, firstY]];
+
+            if (this.withinClickThreshold([firstX, firstY], [pos.x, pos.y])) {
+              this.activeRectangle = [];
+              return;
+            }
+
+            this.clip([rect]);
+            this.resetActiveVariables();
+          } else if (this.drawingState.endsWith('circle')) {
+            let centerX = this.activeCircle[0][0];
+            let centerY = this.activeCircle[0][1];
+
+            if (this.withinClickThreshold([centerX, centerY], [pos.x, pos.y])) {
+              this.activeCircle = [];
+              return;
+            }
+
+            // Splits the circle into discrete line segments
+            let circle = [];
+            let radius = getLineLength(pos.x, pos.y, centerX, centerY)
+            let numPoints = Math.ceil(2 * Math.PI * radius / 10);
+            let step = 2 * Math.PI / numPoints;
+            for (let a = 0, i = 0; i < numPoints; i++, a += step)
+            {
+              let x = centerX + radius * Math.cos(a);
+              let y = centerY + radius * Math.sin(a);
+              circle.push([x, y]);
+            }
+            circle.push(circle[0]); // completes the loop
+
+            this.clip([circle]);
+            this.resetActiveVariables();
+          }
+        }
+      },
+      
       resize() {
         const canvas = document.querySelector('#canvas-section');
         if (!canvas) 
@@ -312,19 +503,12 @@
         const heightDisp = (this.stageConfig.height - previousHeight) / 2;
 
         for (let i = 0; i < this.annotations.length; i++) {
-          if (this.annotations[i].geometryType == 'linestring') {
-            let points = this.annotations[i].points;
-            points[0] = points[0] + widthDisp;
-            points[1] = points[1] + heightDisp;
-            points[2] = points[2] + widthDisp;
-            points[3] = points[3] + heightDisp;
-            this.annotations[i].points = points;
-          } else if (this.annotations[i].geometryType == 'node') {
-            let point = this.annotations[i].point;
-            point[0] = point[0] + widthDisp;
-            point[1] = point[1] + heightDisp;
-            this.annotations[i].point = point;
+          let points = this.annotations[i].points;
+          for (let j = 0; j < points.length; j++) {
+            points[j][0] += widthDisp;
+            points[j][1] += heightDisp;
           }
+          this.annotations[i].points = points;
         }
       },
     },
@@ -332,8 +516,8 @@
 </script>
 
 <template>
-  <v-stage ref="stage" :config="stageConfig" @touchstart="mousedown" @touchend="mouseup_mouseleave" @touchmove="mousemove" 
-      @mousemove="mousemove" @mousedown="mousedown" @mouseup="mouseup_mouseleave" @mouseleave="mouseup_mouseleave">
+  <v-stage ref="stage" :config="stageConfig" @touchstart="mousedown" @touchend="mouseup" @touchmove="mousemove" 
+      @mousemove="mousemove" @mousedown="mousedown" @mouseup="mouseup">
     <v-layer ref="layer">
       <v-image :config="imageConfig"/>
       <div v-if="programStage == 4">
@@ -341,10 +525,15 @@
         <v-shape v-for="intersection in intersections" :config="getAngleConfig(intersection)" __useStrictMode/>
       </div>
       <v-line v-for="line in getAnnotationsOfType('linestring')" :config="getLineConfig(line)"/>
+      <v-line ref="shapes" v-for="shape in getAnnotationsOfType('shape')" :config="getShapeConfig(shape)"/>
       <v-circle v-for="node in getAnnotationsOfType('node')" :config="getNodeConfig(node)"/>
-      <v-line v-if="isMouseDown" :config="getActiveLineConfig(activeLinestring)"/>
+      <v-line v-if="activeLine.length == 2" :config="getActiveLineConfig(activeLine)"/>
+      <v-line v-if="activeRectangle.length == 2" :config="getActiveRectangleConfig(activeRectangle)"/>
+      <v-circle v-if="activeCircle.length == 2" :config="getActiveCircleConfig(activeCircle)"/>
+      <v-line v-if="activePolygon.length > 1" :config="getActivePolygonConfig(activePolygon)"/>
       <v-circle v-for="intersection in intersections" :config="getIntersectionConfig(intersection)"/>
       <v-circle v-for="config in activeIntersections" :config="config"/>
+      <v-circle v-for="config in activeJoints" :config="config"/>
     </v-layer>
   </v-stage>
 </template>

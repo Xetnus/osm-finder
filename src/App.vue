@@ -30,20 +30,13 @@ annotations: [
   1:
     name: 'node1'
     geometryType: 'node'
-    point
-    state // either transparent, transparent-but-related, or default
-    category
-    subcategory
-    tags: []
-    relations: {
-      name: {
-        maxDistance
-        minDistance
-        angle
-        error
-      }
-    }
+    <same as other annotations>
   
+  2:
+    name: 'shape1'
+    geometryType: 'shape'
+    <same as other annotations>
+
   ...
 ]
 
@@ -60,10 +53,9 @@ drawingState: {
         image: null,        // Currently rendered image in the canvas
         programStage: 1,    // Stage of the program (upload, drawing, details, etc.)
         annotations: [],    // Data of the drawn annotations (e.g., lines, nodes)
-        drawingState: {     // Keeps the active state of the user's drawing input
-          drawingLinestring: false,
-          drawingNode: false,
-        },
+        drawingState: 'none',     // Keeps the active state of the user's drawing input
+        warningDisplayed: false,
+        warningMessage: '',
       }
     },
     created() {
@@ -92,13 +84,27 @@ drawingState: {
         }
       },
       programStageChange(programStage) {
-        this.programStage = programStage;
+        if (this.annotations.length == 1 && this.programStage == 5 && programStage < this.programStage) {
+          this.programStage = 3;
+        } else if (this.annotations.length == 1 && this.programStage == 3 && programStage > this.programStage){
+          this.programStage = 5;
+        } else {
+          this.programStage = programStage;
+        }
       },
       drawingStateChange(drawingState) {
         this.drawingState = drawingState;
       },
       annotationsChange(annotations) {
         this.annotations = annotations;
+      },
+      displayWarning(warning) {
+        this.warningDisplayed = true;
+        this.warningMessage = warning;
+        setTimeout(() => {
+          this.warningDisplayed = false;
+          this.warningMessage = '';
+        }, 5000);
       },
     },
   }
@@ -132,11 +138,21 @@ drawingState: {
   </section>
 
   <section id="input-section">
-    <InputBar @upload="upload" @programStageChange="programStageChange" @drawingStateChange="drawingStateChange" @annotationsChange="annotationsChange" 
+    <InputBar @upload="upload" @programStageChange="programStageChange" @drawingStateChange="drawingStateChange"
+      @annotationsChange="annotationsChange" @warn="displayWarning"
       :programStage="programStage" :annotations="annotations" :drawingState="drawingState"/>
   </section>
 
   <QueryPage v-if="programStage == 5" @programStageChange="programStageChange" :programStage="programStage" :annotations="annotations"/>
+
+  <q-dialog v-model="warningDisplayed" seamless position="top">
+    <q-card class="bg-warning text-black">
+      <q-card-section id="card-section" class="row items-center no-wrap">
+        <div id="warning-msg">{{warningMessage}}</div>
+        <q-btn flat round icon="close" v-close-popup />
+      </q-card-section>
+    </q-card>
+  </q-dialog>
 </template>
 
 <style scoped>
@@ -155,5 +171,13 @@ drawingState: {
     background-color: #333;
     height: 155px;
     width: 100%;
+  }
+
+  #card-section {
+    padding: 0.5em 1em 0 1em;
+  }
+
+  #warning-msg {
+    padding: 0;
   }
 </style>

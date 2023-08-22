@@ -6,7 +6,7 @@
         dialogVisible: false,
       }
     },
-    created() {
+    mounted() {
       document.addEventListener('dragover', (e) => {
         e.stopPropagation();
         e.preventDefault();
@@ -32,9 +32,19 @@
         // Sends the file link up the chain for further processing
         this.$emit('upload', file);
       });
+
+      document.addEventListener('keydown', this.keyDownListener);
     },
     methods: {
+      keyDownListener(event) {
+        if (event.key.toLowerCase() === 'u') {
+          this.upload();
+        } else if (event.key === 'ArrowRight') {
+          this.handleNext();
+        }
+      },
       handleNext(event) {
+        document.removeEventListener('keydown', this.keyDownListener);
         this.$emit('next')
       },
       upload() {

@@ -1,32 +1,167 @@
 import {calculateIntersection} from './generalTools.js'
-import {calculateBounds, createTagsQuery, createMaxDistanceQuery, createMinDistanceQuery, createNoOverlappingQuery} from './queryTools.js'
+import {calculateBounds, createTagsQuery, createMaxDistanceQuery, createMinDistanceQuery, createNoOverlappingQuery, calculateHuMoments} from './queryTools.js'
+
+// Example query for single object
+/*
+WITH sorted_shapes AS
+(
+  SELECT
+    sqrt(pow(hu1 - 1.579253696117602, 2) + pow(hu2 - 0.10631286212389285, 2) + pow(hu3 - 0.13545548639569183, 2) + pow(hu4 - 0.013422893459921623, 2) + pow(hu5 - 0.000292619813566153, 2) + pow(hu6 - 0.002071577493100666, 2) + pow(hu7 - -0.0004919013709091156, 2)) AS distance,
+    replace(replace(shape1.osm_type, 'N', 'www.openstreetmap.org/node/'), 'W', 'www.openstreetmap.org/way/') || shape1.osm_id AS shape1_id
+  FROM shapes AS shape1
+  WHERE shape1.category = 'building'
+  ORDER BY distance ASC
+),
+filtered_shapes AS
+(
+  SELECT
+    sorted_shapes.shape1_id, COUNT(*) OVER () AS count, ROW_NUMBER() OVER () AS row
+  FROM sorted_shapes
+)
+SELECT filtered_shapes.shape1_id
+FROM filtered_shapes
+WHERE filtered_shapes.row < GREATEST((filtered_shapes.count * 0.01), 1000);
+*/
+
+function constructSingleObjectQuery(annotations, shapes, displayUrls) {
+  let query = '';
+  if (annotations[0].geometryType === 'shape') {
+    query += 'WITH sorted_shapes AS\n';
+    query += '(\n';
+    query += '  ';
+  }
+
+  query += 'SELECT\n';
+
+  if (annotations[0].geometryType === 'shape') {
+    let moments = calculateHuMoments(annotations[0].points);
+    query += '    sqrt(pow(' + annotations[0].name + '.hu1 - ' + moments[0] + ', 2) + pow(' + annotations[0].name + '.hu2 - ' + moments[1] + ', 2) + pow(' + annotations[0].name + '.hu3 - ' + moments[2] + ', 2) + pow(' + annotations[0].name + '.hu4 - ' + moments[3] + ', 2) + pow(' + annotations[0].name + '.hu5 - ' + moments[4] + ', 2) + pow(' + annotations[0].name + '.hu6 - ' + moments[5] + ', 2) + pow(' + annotations[0].name + '.hu7 - ' + moments[6] + ', 2)) AS distance,\n';
+    query += '  ';
+  }
+
+  let wayPrefix = displayUrls ? 'www.openstreetmap.org/way/' : 'way ';
+  let nodePrefix = displayUrls ? 'www.openstreetmap.org/node/' : 'node ';
+  query += '  replace(replace(' + annotations[0].name + ".osm_type, 'N', '" + nodePrefix + "'), 'W', '" + wayPrefix + "') || ";
+  query += annotations[0].name + '.osm_id AS ' + annotations[0].name + '_id\n';
+
+  if (annotations[0].geometryType === 'shape') {
+    query += '  ';
+  }
+
+  query += 'FROM ';
+  query += annotations[0].geometryType + 's AS ' + annotations[0].name + '\n';
+
+  if (annotations[0].geometryType === 'shape') {
+    query += '  ';
+  }
+
+  query += 'WHERE ';
+  // Filters results by category and subcategory
+  let category = annotations[0].category;
+  let subcategory = annotations[0].subcategory;
+  let subcategoryString = (subcategory == '' ? '' : annotations[0].name + '.subcategory = \'' + subcategory + '\' AND ');
+  query += annotations[0].name + '.category = \'' + category + '\' AND ' + subcategoryString;
+
+  // Adds any additional tags entered by the user to the WHERE
+  if (annotations[0].tags.length != 0) {
+    query += createTagsQuery(annotations[0]);
+  }
+  query = query.slice(0, query.length - 5); // remove last AND
+
+  if (shapes.length > 0) {
+    // Filters by min and max areas
+    if (annotations[0].minArea) {
+      query += ' AND ST_Area(ST_Transform(' + annotations[0].name + '.geom, 4326)::geography) >= ' + annotations[0].minArea;
+    }
+    if (annotations[0].maxArea) {
+      query += ' AND ST_Area(ST_Transform(' + annotations[0].name + '.geom, 4326)::geography) <= ' + annotations[0].maxArea;
+    }
+
+    query += '\n';
+    query += '),\n';
+    query += 'filtered_shapes AS\n';
+    query += '(\n';
+    query += '  SELECT\n';
+    query += '    sorted_shapes.' + annotations[0].name + '_id, COUNT(*) OVER () AS count, ROW_NUMBER() OVER (ORDER BY distance ASC) AS row\n';
+    query += '  FROM sorted_shapes\n';
+    query += ')\n';
+    query += 'SELECT filtered_shapes.' + annotations[0].name + '_id\n';
+    query += 'FROM filtered_shapes\n';
+    query += 'WHERE filtered_shapes.row < GREATEST((filtered_shapes.count * 0.01), 1000)\n';
+    query += 'ORDER BY row ASC';
+  }
+  query += ';';
+
+  return query;
+}
 
 // Example Query for Disjoint
 /*
-SELECT line1.id, line2.id
-FROM linestrings AS line1, linestrings as line2
-WHERE line1.category = 'highway' AND line1.subcategory = 'vehicle' AND line2.category = 'highway'
-  AND line2.subcategory = 'vehicle' AND ST_DWithin(line1.geom, line2.geom, 50) AND 
+WITH sorted_shapes AS
 (
-  abs((
-    degrees(ST_Azimuth(ST_StartPoint(line2.geom), ST_EndPoint(line2.geom)))
-    -
-    degrees(ST_Azimuth(ST_StartPoint(line1.geom), ST_EndPoint(line1.geom)))
-  )::decimal % 180.0) BETWEEN 60 AND 120
-);
+  SELECT
+    sqrt
+    (
+      pow(
+        sqrt(pow(shape1.hu1 - 1.5733173076923075, 2) + pow(shape1.hu2 - 0.324551808672033, 2) + pow(shape1.hu3 - 0.9423223732061282, 2) + pow(shape1.hu4 - 0.04076357752790922, 2) + pow(shape1.hu5 - 0.007773110612955471, 2) + pow(shape1.hu6 - 0.021820327987814064, 2) + pow(shape1.hu7 - -0.0018459434208921142, 2))
+        , 2
+      ) +
+      pow(
+        sqrt(pow(shape2.hu1 - 1.5846498873027794, 2) + pow(shape2.hu2 - 0.017399393958774146, 2) + pow(shape2.hu3 - 1.202141013334282, 2) + pow(shape2.hu4 - 0.003305741482351561, 2) + pow(shape2.hu5 - 0.00013059068294749503, 2) + pow(shape2.hu6 - -0.00003860122739888982, 2) + pow(shape2.hu7 - -0.00016239857863435821, 2))
+        , 2
+      )
+    ) AS distance,
+  replace(replace(shape1.osm_type, 'N', 'www.openstreetmap.org/node/'), 'W', 'www.openstreetmap.org/way/') || shape1.osm_id AS shape1_id, 
+  replace(replace(shape2.osm_type, 'N', 'www.openstreetmap.org/node/'), 'W', 'www.openstreetmap.org/way/') || shape2.osm_id AS shape2_id
+FROM shapes AS shape1, shapes AS shape2
+WHERE shape1.category = 'building' AND shape2.category = 'building' AND shape2.osm_id != shape1.osm_id AND ST_DWithin(shape1.geom, shape2.geom, 100)
+  ORDER BY distance ASC
+),
+filtered_shapes AS
+(
+  SELECT
+    sorted_shapes.shape1_id, sorted_shapes.shape2_id, COUNT(*) OVER () AS count, ROW_NUMBER() OVER () AS row
+  FROM sorted_shapes
+)
+SELECT filtered_shapes.shape1_id, filtered_shapes.shape2_id
+FROM filtered_shapes
+WHERE filtered_shapes.row < GREATEST((filtered_shapes.count * 0.01), 1000);
 */
 
-function constructDisjointQuery(annotations, nodes, lines, displayUrls) {
-  let query = 'SELECT\n';
+function constructDisjointQuery(annotations, lines, shapes, displayUrls) {
+  let query = '';
+
+  if (shapes.length > 0) {
+    query += 'WITH sorted_shapes AS\n';
+    query += '(\n';
+    query += '  ';
+  }
+  
+  query += 'SELECT\n';
+
+  if (shapes.length > 1) {
+    query += '    sqrt\n';
+    query += '    (\n';
+    for (let i = 0; i < shapes.length; i++) {
+      let moments = calculateHuMoments(shapes[i].points);
+      query += '      pow(\n';
+      query += '        sqrt(pow(' + shapes[i].name + '.hu1 - ' + moments[0] + ', 2) + pow(' + shapes[i].name + '.hu2 - ' + moments[1] + ', 2) + pow(' + shapes[i].name + '.hu3 - ' + moments[2] + ', 2) + pow(' + shapes[i].name + '.hu4 - ' + moments[3] + ', 2) + pow(' + shapes[i].name + '.hu5 - ' + moments[4] + ', 2) + pow(' + shapes[i].name + '.hu6 - ' + moments[5] + ', 2) + pow(' + shapes[i].name + '.hu7 - ' + moments[6] + ', 2))\n';
+      query += '        , 2\n';
+      const plus = (i == shapes.length - 1) ? '' : ' +';
+      query += '      )' + plus + '\n';
+    }
+    query += '    ) AS distance,\n';
+  } else if (shapes.length == 1) {
+    let moments = calculateHuMoments(shapes[0].points);
+    query += '  sqrt(pow(' + shapes[0].name + '.hu1 - ' + moments[0] + ', 2) + pow(' + shapes[0].name + '.hu2 - ' + moments[1] + ', 2) + pow(' + shapes[0].name + '.hu3 - ' + moments[2] + ', 2) + pow(' + shapes[0].name + '.hu4 - ' + moments[3] + ', 2) + pow(' + shapes[0].name + '.hu5 - ' + moments[4] + ', 2) + pow(' + shapes[0].name + '.hu6 - ' + moments[5] + ', 2) + pow(' + shapes[0].name + '.hu7 - ' + moments[6] + ', 2)) AS distance,\n';
+  }
+
   for (let i = 0; i < annotations.length; i++) {
     const comma = (i == annotations.length - 1) ? '' : ', ';
-    if (displayUrls) {
-      query += '  replace(replace(' + annotations[i].name + ".osm_type, 'N', 'www.openstreetmap.org/node/'), 'W', 'www.openstreetmap.org/way/')";
-      query += ' || ' + annotations[i].name + '.osm_id AS ' + annotations[i].name + '_url' + comma + '\n';
-    } else {
-      query += '  ' + annotations[i].name + '.osm_id AS ' + annotations[i].name + '_id, ';
-      query += annotations[i].name + '.osm_type AS ' + annotations[i].name + '_type' + comma + '\n';
-    }
+    let wayPrefix = displayUrls ? 'www.openstreetmap.org/way/' : 'way ';
+    let nodePrefix = displayUrls ? 'www.openstreetmap.org/node/' : 'node ';
+    query += '  replace(replace(' + annotations[i].name + ".osm_type, 'N', '" + nodePrefix + "'), 'W', '" + wayPrefix + "') || ";
+    query += annotations[i].name + '.osm_id AS ' + annotations[i].name + '_id' + comma + '\n';
   }
 
   query += 'FROM ';
@@ -52,6 +187,18 @@ function constructDisjointQuery(annotations, nodes, lines, displayUrls) {
   query += createNoOverlappingQuery(annotations);
   query += createMaxDistanceQuery(annotations);
   query += createMinDistanceQuery(annotations);
+  
+  for (let i = 0; i < shapes.length; i++) {
+    // Filters by min and max areas
+    if (shapes[i].minArea) {
+      query += 'ST_Area(ST_Transform(' + shapes[i].name + '.geom, 4326)::geography) >= ' + shapes[i].minArea;
+      query += ' AND ';
+    }
+    if (shapes[i].maxArea) {
+      query += 'ST_Area(ST_Transform(' + shapes[i].name + '.geom, 4326)::geography) <= ' + shapes[i].maxArea;
+      query += ' AND ';
+    }
+  }
 
   query += '\n';
 
@@ -90,6 +237,30 @@ function constructDisjointQuery(annotations, nodes, lines, displayUrls) {
   }
 
   query = query.slice(0, query.length - 6); // remove last AND
+
+  if (shapes.length > 0) {
+    query += '\n';
+    query += '),\n';
+    query += 'filtered_shapes AS\n';
+    query += '(\n';
+    query += '  SELECT\n';
+    query += '    ';
+    for (let i = 0; i < annotations.length; i++) {
+      query += 'sorted_shapes.' + annotations[i].name + '_id, ';
+    }
+    query += 'COUNT(*) OVER () AS count, ROW_NUMBER() OVER (ORDER BY distance ASC) AS row\n';
+    query += '  FROM sorted_shapes\n';
+    query += ')\n';
+    query += 'SELECT '
+    for (let i = 0; i < annotations.length; i++) {
+      const comma = (i == annotations.length - 1) ? '\n' : ', ';
+      query += 'filtered_shapes.' + annotations[i].name + '_id' + comma;
+    }
+    query += 'FROM filtered_shapes\n';
+    query += 'WHERE filtered_shapes.row < GREATEST((filtered_shapes.count * 0.01), 1000)\n';
+    query += 'ORDER BY row ASC';
+  }
+
   query += ';'
 
   return query;
@@ -198,7 +369,7 @@ WHERE
   )
 ;
 */
-function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
+function constructIntersectingQuery(annotations, nodes, lines, shapes, displayUrls) {
   // Generates an array that consists of pairs of intersecting lines
   let intersections = [];
   let dbd = [];
@@ -264,16 +435,17 @@ function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
   }
 
   // Generates an array containing the 'pseudo' intersections created by temporary lines drawn
-  // between individual nodes and intersections.
-  for (let i = 0; i < nodes.length; i++) {
-    const keys = Object.keys(nodes[i].relations);
+  // between individual nodes/shapes and intersections.
+  let pseudoNodes = nodes.concat(shapes);
+  for (let i = 0; i < pseudoNodes.length; i++) {
+    const keys = Object.keys(pseudoNodes[i].relations);
     for (let k = 0; k < keys.length; k++) {
       if (!keys[k].includes('&')) continue;
 
       const key = keys[k];
       const line1 = key.split('&')[0];
       const line2 = key.split('&')[1];
-      const relation = nodes[i].relations[key];
+      const relation = pseudoNodes[i].relations[key];
 
       if (relation) {
         const pair = [line1, line2];
@@ -289,7 +461,7 @@ function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
           id: index >= 0 ? intersections[index].id : id,
           isPseudo: true,
           isAngle: isAngle,
-          node: nodes[i].name,
+          node: pseudoNodes[i].name,
           line1: line1,
           line2: line2,
           angle: index >= 0 ? intersections[index].angle : null,
@@ -315,11 +487,37 @@ function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
 
   for (let i = 0; i < intersections.length; i++) { 
     const item = intersections[i];
-    if (item.isAngle == false) continue;
 
     query += '    ((ST_DumpPoints(\n';
     query += '      ST_Intersection(' + item.line1 + '.geom, ' + item.line2 + '.geom)\n';
     query += '    )).geom) AS intersection' + item.id + ',\n';
+  }
+
+  if (shapes.length > 1) {
+    query += '    sqrt\n';
+    query += '    (\n';
+    for (let i = 0; i < shapes.length; i++) {
+      let moments = calculateHuMoments(shapes[i].points);
+      query += '      pow(\n';
+      query += '        sqrt(pow(' + shapes[i].name + '.hu1 - ' + moments[0] + ', 2) + pow(' + shapes[i].name + '.hu2 - ' + moments[1] + ', 2) + pow(' + shapes[i].name + '.hu3 - ' + moments[2] + ', 2) + pow(' + shapes[i].name + '.hu4 - ' + moments[3] + ', 2) + pow(' + shapes[i].name + '.hu5 - ' + moments[4] + ', 2) + pow(' + shapes[i].name + '.hu6 - ' + moments[5] + ', 2) + pow(' + shapes[i].name + '.hu7 - ' + moments[6] + ', 2))\n';
+      query += '        , 2\n';
+      const plus = (i == shapes.length - 1) ? '' : ' +';
+      query += '      )' + plus + '\n';
+    }
+    query += '    ) AS distance,\n';
+  } else if (shapes.length == 1) {
+    let moments = calculateHuMoments(shapes[0].points);
+    query += '    sqrt(pow(' + shapes[0].name + '.hu1 - ' + moments[0] + ', 2) + pow(' + shapes[0].name + '.hu2 - ' + moments[1] + ', 2) + pow(' + shapes[0].name + '.hu3 - ' + moments[2] + ', 2) + pow(' + shapes[0].name + '.hu4 - ' + moments[3] + ', 2) + pow(' + shapes[0].name + '.hu5 - ' + moments[4] + ', 2) + pow(' + shapes[0].name + '.hu6 - ' + moments[5] + ', 2) + pow(' + shapes[0].name + '.hu7 - ' + moments[6] + ', 2)) AS distance,\n';
+  }
+
+  for (let i = 0; i < shapes.length; i++) {
+    if (intersections.some(a => a.isPseudo && a.node === shapes[i].name)) {
+      // We only need to carry the geometries of shapes that intersect at defined angles
+      query += '    ' + shapes[i].name + '.geom AS ' + shapes[i].name + '_geom,\n';
+    }
+    const comma = (i == shapes.length - 1 && lines.length == 0 && nodes.length == 0) ? '' : ',';
+    query += '    ' + shapes[i].name + '.osm_id AS ' + shapes[i].name + '_id' + comma + '\n';
+    query += '    ' + shapes[i].name + '.osm_type AS ' + shapes[i].name + '_type' + comma + '\n';
   }
 
   for (let i = 0; i < lines.length; i++) {
@@ -327,9 +525,8 @@ function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
       // We only need to carry the geometries of lines that intersect at defined angles
       query += '    ' + lines[i].name + '.geom AS ' + lines[i].name + '_geom,\n';
     }
-
-    query += '    ' + lines[i].name + '.osm_id AS ' + lines[i].name + '_id,\n';
     const comma = (i == lines.length - 1 && nodes.length == 0) ? '' : ',';
+    query += '    ' + lines[i].name + '.osm_id AS ' + lines[i].name + '_id,\n';
     query += '    ' + lines[i].name + '.osm_type AS ' + lines[i].name + '_type' + comma + '\n';
   }
 
@@ -338,18 +535,30 @@ function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
       // We only need to carry the geometries of nodes that intersect at defined angles
       query += '    ' + nodes[i].name + '.geom AS ' + nodes[i].name + '_geom,\n';
     }
-    query += '    ' + nodes[i].name + '.osm_id AS ' + nodes[i].name + '_id,\n';
     const comma = (i == nodes.length - 1) ? '' : ',';
+    query += '    ' + nodes[i].name + '.osm_id AS ' + nodes[i].name + '_id,\n';
     query += '    ' + nodes[i].name + '.osm_type AS ' + nodes[i].name + '_type' + comma + '\n';
   }
 
   query += '  FROM ';
-  for (let i = 0; i < annotations.length; i++) {
-    const comma = (i == annotations.length - 1) ? '\n' : ', ';
-    query += annotations[i].geometryType + 's AS ' + annotations[i].name + comma;
+
+  for (let i = 0; i < shapes.length; i++) {
+    const comma = (i == shapes.length - 1 && lines.length == 0 && nodes.length == 0) ? '\n' : ', ';
+    query += shapes[i].geometryType + 's AS ' + shapes[i].name + comma;
+  }
+  
+  for (let i = 0; i < lines.length; i++) {
+    const comma = (i == lines.length - 1 && nodes.length == 0) ? '\n' : ', ';
+    query += lines[i].geometryType + 's AS ' + lines[i].name + comma;
+  }
+
+  for (let i = 0; i < nodes.length; i++) {
+    const comma = (i == nodes.length - 1) ? '\n' : ', ';
+    query += nodes[i].geometryType + 's AS ' + nodes[i].name + comma;
   }
 
   query += '  WHERE ';
+
   for (let i = 0; i < annotations.length; i++) {
     // Filters results by category and subcategory
     let category = annotations[i].category;
@@ -360,6 +569,18 @@ function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
     // Adds any additional tags entered by the user to the WHERE
     if (annotations[i].tags.length != 0) {
       query += createTagsQuery(annotations[i]);
+    }
+  }
+
+  for (let i = 0; i < shapes.length; i++) {
+    // Filters by min and max areas
+    if (shapes[i].minArea) {
+      query += 'ST_Area(ST_Transform(' + shapes[i].name + '.geom, 4326)::geography) >= ' + shapes[i].minArea;
+      query += ' AND ';
+    }
+    if (shapes[i].maxArea) {
+      query += 'ST_Area(ST_Transform(' + shapes[i].name + '.geom, 4326)::geography) <= ' + shapes[i].maxArea;
+      query += ' AND ';
     }
   }
 
@@ -408,6 +629,7 @@ function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
 
   query = query.slice(0, query.length - 4); // remove last AND
   query += '\n';
+
   query += '),\n';
   query += 'buffers AS\n';
   query += '(\n';
@@ -421,25 +643,28 @@ function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
     query += '    ST_ExteriorRing(ST_Buffer(intersections.intersection' + item.id + ', 0.5)) AS ring' + item.id + ',\n';
   }
 
+  if (shapes.length > 0) {
+    query += '    intersections.distance,\n';
+  }
+
   for (let i = 0; i < lines.length; i++) {
     if (intersections.some(a => a.isAngle && [a.line1, a.line2].includes(lines[i].name))) {
       // We only need to carry the geometries of lines that intersect at defined angles
       query += '    intersections.' + lines[i].name + '_geom,\n';
     }
-
-    query += '    intersections.' + lines[i].name + '_id,\n';
-    const comma = (i == lines.length - 1 && nodes.length == 0) ? '' : ','
-    query += '    intersections.' + lines[i].name + '_type' + comma + '\n';
   }
 
-  for (let i = 0; i < nodes.length; i++) {
-    if (intersections.some(a => a.isAngle && a.isPseudo && a.node === nodes[i].name)) {
-      // We only need to carry the geometries of nodes that intersect at defined angles
-      query += '    intersections.' + nodes[i].name + '_geom,\n';
+  for (let i = 0; i < pseudoNodes.length; i++) {
+    if (intersections.some(a => a.isAngle && a.isPseudo && a.node === pseudoNodes[i].name)) {
+      // We only need to carry the geometries of nodes and shapes that intersect at defined angles
+      query += '    intersections.' + pseudoNodes[i].name + '_geom,\n';
     }
-    query += '    intersections.' + nodes[i].name + '_id,\n';
-    const comma = (i == nodes.length - 1) ? '' : ','
-    query += '    intersections.' + nodes[i].name + '_type' + comma + '\n';
+  }
+
+  for (let i = 0; i < annotations.length; i++) {
+    query += '    intersections.' + annotations[i].name + '_id,\n';
+    const comma = (i == annotations.length - 1) ? '' : ','
+    query += '    intersections.' + annotations[i].name + '_type' + comma + '\n';
   }
 
   query += '  FROM intersections\n';
@@ -486,6 +711,10 @@ function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
     query += '    ) AS ring' + item.id + '_p2,\n';
   }
 
+  if (shapes.length > 0) {
+    query += '    buffers.distance,\n';
+  }
+
   for (let i = 0; i < intersections.length; i++) {
     const item = intersections[i];
     if (item.isAngle == false) continue;
@@ -499,46 +728,43 @@ function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
       // We only need to carry the geometries of lines that intersect at defined angles
       query += '    buffers.' + lines[i].name + '_geom,\n';
     }
-
-    query += '    buffers.' + lines[i].name + '_id,\n';
-    const comma = (i == lines.length - 1 && nodes.length == 0) ? '' : ','
-    query += '    buffers.' + lines[i].name + '_type' + comma + '\n';
   }
 
-  for (let i = 0; i < nodes.length; i++) {
-    if (intersections.some(a => a.isAngle && a.isPseudo && a.node === nodes[i].name)) {
-      // We only need to carry the geometries of nodes that intersect at defined angles
-      query += '    buffers.' + nodes[i].name + '_geom,\n';
+  for (let i = 0; i < pseudoNodes.length; i++) {
+    if (intersections.some(a => a.isAngle && a.isPseudo && a.node === pseudoNodes[i].name)) {
+      // We only need to carry the geometries of nodes and shapes that intersect at defined angles
+      query += '    buffers.' + pseudoNodes[i].name + '_geom,\n';
     }
-    query += '    buffers.' + nodes[i].name + '_id,\n';
-    const comma = (i == nodes.length - 1) ? '' : ','
-    query += '    buffers.' + nodes[i].name + '_type' + comma + '\n';
+  }
+
+  for (let i = 0; i < annotations.length; i++) {
+    query += '    buffers.' + annotations[i].name + '_id,\n';
+    const comma = (i == annotations.length - 1) ? '' : ','
+    query += '    buffers.' + annotations[i].name + '_type' + comma + '\n';
   }
 
   query += '  FROM buffers\n';
-  query += ')\n';
+  query += ')';
 
+  if (shapes.length > 0) {
+    query += ',\n';
+    query += 'IDs AS\n';
+    query += '(';
+  }
+
+  query += '\n';
   query += 'SELECT\n';
 
-  for (let i = 0; i < lines.length; i++) {
-    const comma = (i == lines.length - 1 && nodes.length == 0) ? '' : ',';
-    if (displayUrls) {
-      query += '  replace(replace(points.' + lines[i].name + "_type, 'N', 'www.openstreetmap.org/node/'), 'W', 'www.openstreetmap.org/way/')";
-      query += ' || points.' + lines[i].name + '_id AS ' + lines[i].name + '_url' + comma + '\n';
-    } else {
-      query += '  points.' + lines[i].name + '_type AS ' + lines[i].name + '_type,\n';
-      query += '  points.' + lines[i].name + '_id AS ' + lines[i].name + '_id' + comma + '\n';
-    }
+  if (shapes.length > 0) {
+    query += '  points.distance,\n';
   }
-  for (let i = 0; i < nodes.length; i++) {
-    const comma = (i == nodes.length - 1) ? '' : ','
-    if (displayUrls) {
-      query += '  replace(replace(points.' + nodes[i].name + "_type, 'N', 'www.openstreetmap.org/node/'), 'W', 'www.openstreetmap.org/way/')";
-      query += ' || points.' + nodes[i].name + '_id AS ' + nodes[i].name + '_url' + comma + '\n';
-    } else {
-      query += '  points.' + nodes[i].name + '_type AS ' + nodes[i].name + '_type,\n';
-      query += '  points.' + nodes[i].name + '_id AS ' + nodes[i].name + '_id' + comma + '\n';
-    }
+
+  for (let i = 0; i < annotations.length; i++) {
+    const comma = (i == annotations.length - 1) ? '' : ','
+    let wayPrefix = displayUrls ? 'www.openstreetmap.org/way/' : 'way ';
+    let nodePrefix = displayUrls ? 'www.openstreetmap.org/node/' : 'node ';
+    query += '  replace(replace(points.' + annotations[i].name + "_type, 'N', '" + nodePrefix + "'), 'W', '" + wayPrefix + "') || ";
+    query += 'points.' + annotations[i].name + '_id AS ' + annotations[i].name + '_id' + comma + '\n';
   }
 
   query += 'FROM points\n';
@@ -586,11 +812,17 @@ function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
 
       query += '(\n';
       for (let b = 0; b < bounds.lower.length; b++) {
+        let nodeIsShape = shapes.some((sh) => sh.name === item.node);
+
         query += '  (\n';
         query += '    abs(round(degrees(\n';
         query += '      ST_Azimuth(points.ring' + item.id + '_p1, points.intersection' + item.id + ')\n';
         query += '      -\n';
-        query += '      ST_Azimuth(points.intersection' + item.id + ', ' + item.node + '_geom)\n';
+        if (nodeIsShape) {
+          query += '      ST_Azimuth(points.intersection' + item.id + ', ST_Centroid(' + item.node + '_geom))\n';
+        } else {
+          query += '      ST_Azimuth(points.intersection' + item.id + ', ' + item.node + '_geom)\n';
+        }
         query += '    ))::decimal % 180.0) ';
 
         if (bounds.lower[b] === bounds.upper[b])
@@ -602,11 +834,17 @@ function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
       }
       
       for (let b = 0; b < bounds.lower.length; b++) {
+        let nodeIsShape = shapes.some((sh) => sh.name === item.node);
+
         query += '  (\n';
         query += '    abs(round(degrees(\n';
         query += '      ST_Azimuth(points.ring' + item.id + '_p2, points.intersection' + item.id + ')\n';
         query += '      -\n';
-        query += '      ST_Azimuth(points.intersection' + item.id + ', ' + item.node + '_geom)\n';
+        if (nodeIsShape) {
+          query += '      ST_Azimuth(points.intersection' + item.id + ', ST_Centroid(' + item.node + '_geom))\n';
+        } else {
+          query += '      ST_Azimuth(points.intersection' + item.id + ', ' + item.node + '_geom)\n';
+        }
         query += '    ))::decimal % 180.0) ';
 
         if (bounds.lower[b] === bounds.upper[b])
@@ -622,6 +860,33 @@ function constructIntersectingQuery(annotations, nodes, lines, displayUrls) {
   }
 
   query = query.slice(0, query.length - 6); // remove last AND
+
+  if (shapes.length > 0) {
+    query += '),\n';
+    query += 'numbered AS\n';
+    query += '(\n';
+    query += '  SELECT\n';
+
+    for (let i = 0; i < annotations.length; i++) {
+      query += '    IDs.' + annotations[i].name + '_id,\n';
+    }
+
+    query += '    COUNT(*) OVER () AS count, ROW_NUMBER() OVER (ORDER BY IDs.distance) AS row\n';
+    
+    query += '  FROM IDs\n';
+    query += ')\n';
+    query += 'SELECT\n';
+
+    for (let i = 0; i < annotations.length; i++) {
+      const comma = (i == annotations.length - 1) ? '' : ','
+      query += '  numbered.' + annotations[i].name + '_id' + comma + '\n';
+    }
+
+    query += 'FROM numbered\n';
+    query += 'WHERE numbered.row < GREATEST((numbered.count * 0.01), 1000)\n';
+    query += 'ORDER BY numbered.row ASC';
+  }
+
   query += ';\n'
 
   return query;
@@ -633,13 +898,20 @@ function constructQuery(annotations, displayUrls = true) {
 
   let nodes = [];
   let lines = [];
+  let shapes = [];
 
   for (let i = 0; i < annotations.length; i++) { 
     if (annotations[i].geometryType == 'linestring') {
       lines.push(annotations[i]);
     } else if (annotations[i].geometryType == 'node') {
       nodes.push(annotations[i]);
+    } else if (annotations[i].geometryType == 'shape') {
+      shapes.push(annotations[i]);
     }
+  }
+
+  if (annotations.length == 1) {
+    return constructSingleObjectQuery(annotations, shapes, displayUrls);
   }
 
   // If at least two of the lines intersect, then call constructIntersectingQuery
@@ -649,12 +921,12 @@ function constructQuery(annotations, displayUrls = true) {
 
       const intersection = calculateIntersection(lines[i].points, lines[k].points);
       if (intersection && intersection.intersects) {
-        return constructIntersectingQuery(annotations, nodes, lines, displayUrls);
+        return constructIntersectingQuery(annotations, nodes, lines, shapes, displayUrls);
       }
     }
   }
 
-  return constructDisjointQuery(annotations, nodes, lines, displayUrls);
+  return constructDisjointQuery(annotations, lines, shapes, displayUrls);
 }
 
 export {constructQuery}

@@ -10,8 +10,17 @@ import {constructQuery} from '../assets/queryCreator.js'
         displayUrls: true,
       }
     },
+    mounted() {
+      window.addEventListener('keydown', this.keyDownListener);
+    },
     methods: {
+      keyDownListener(event) {
+        if (event.key === 'ArrowLeft' || event.key === 'Escape') {
+          this.back();
+        }
+      },
       back() {
+        window.removeEventListener('keydown', this.keyDownListener);
         this.$emit('programStageChange', this.programStage - 1);
       },
       copy() {
@@ -23,7 +32,8 @@ import {constructQuery} from '../assets/queryCreator.js'
         });
       },
       getQuery(urls) {
-        return constructQuery(this.annotations, urls);
+        let deepCopy = JSON.parse(JSON.stringify(this.annotations));
+        return constructQuery(deepCopy, urls);
       }
     }
   }

@@ -122,4 +122,242 @@ function calculateBounds(angle, error) {
   return {lower: lowerBounds, upper: upperBounds};
 }
 
-export {createMaxDistanceQuery, createMinDistanceQuery, createNoOverlappingQuery, createTagsQuery, calculateBounds}
+function calculateHuMoments(nodes) {
+  let maxX = 29;
+  let maxY = 29;
+
+  function dist2(v, w) {
+    return Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2)
+  }
+
+  function distToSegmentSquared(p, v, w) {
+    var l2 = dist2(v, w);
+    if (l2 == 0) {
+      return dist2(p, v);
+    }
+    var t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+    t = Math.max(0, Math.min(1, t));
+
+    return dist2(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) });
+  }
+
+  // Calculates shortest distance between point and a line segment
+  // p: point whose distance to line segment will be measured
+  // v: point at one end of line segment
+  // w: point at other end of line segment
+  // https://stackoverflow.com/a/1501725/1941353
+  function distToSegment(p, v, w) {
+    return Math.sqrt(distToSegmentSquared(p, v, w));
+  }
+
+  // Determines binary value at given coordinates
+  function calculateI(nodes, x, y) {
+    let p = {x: x, y: y};
+
+    for (let i = 0; i < nodes.length - 1; i++) {
+      let segmentP1 = {x: nodes[i][0], y: nodes[i][1]};
+      let segmentP2 = {x: nodes[i + 1][0], y: nodes[i + 1][1]};
+
+      if (distToSegment(p, segmentP1, segmentP2) <= 0.5) {
+        return 1;
+      }
+    }
+
+    return 0;
+  }
+
+  function calculateM(nodes, p, q) {
+    let m = 0;
+
+    for (let x = 0; x <= maxX; x++) {
+      for (let y = 0; y <= maxY; y++) {
+        m += (Math.pow(x, p) * Math.pow(y, q) * calculateI(nodes, x, y));
+      }
+    }
+
+    return m;
+  }
+
+  // Greek letter mu
+  function calculateMu(nodes, centroidX, centroidY, p, q) {
+    let mu = 0;
+
+    for (let x = 0; x <= maxX; x++) {
+      for (let y = 0; y <= maxY; y++) {
+        mu += (Math.pow((x - centroidX), p) * Math.pow((y - centroidY), q) * calculateI(nodes, x, y));
+      }
+    }
+
+    return mu;
+  }
+
+  // Greek letter eta
+  function calculateEta(nodes, centroidX, centroidY, muDenominator, p, q) {
+    let denominator = Math.pow(muDenominator, (1 + (p + q) / 2));
+    let numerator = calculateMu(nodes, centroidX, centroidY, p, q);
+    return numerator / denominator;
+  }
+
+  let maxCoords = [nodes[0][0], nodes[0][1]];
+  let minCoords = [nodes[0][0], nodes[0][1]];
+  for(let i = 0; i < nodes.length; i++) {
+    if (nodes[i][0] > maxCoords[0]) {
+        maxCoords[0] = nodes[i][0];
+    } else if (nodes[i][0] < minCoords[0]) {
+        minCoords[0] = nodes[i][0];
+    }
+
+    if (nodes[i][1] > maxCoords[1]) {
+        maxCoords[1] = nodes[i][1];
+    } else if (nodes[i][1] < minCoords[1]) {
+        minCoords[1] = nodes[i][1];
+    }
+  }
+
+  let xRange = maxCoords[0] - minCoords[0];
+  let yRange = maxCoords[1] - minCoords[1];
+
+  let xRatio = maxX / xRange;
+  let yRatio = maxY / yRange;
+  let scale = Math.min(xRatio, yRatio);
+
+  for(let i = 0; i < nodes.length; i++) {
+    nodes[i][0] -= minCoords[0];
+    nodes[i][1] -= minCoords[1];
+
+    nodes[i][0] *= scale;
+    nodes[i][1] *= scale;
+  }
+
+  let h1 = 0, h2 = 0, h3 = 0, h4 = 0, h5 = 0, h6 = 0, h7 = 0;
+  let mDenominator = calculateM(nodes, 0, 0);
+
+  if (mDenominator != 0) {
+    const centroidX = calculateM(nodes, 1, 0) / mDenominator;
+    const centroidY = calculateM(nodes, 0, 1) / mDenominator;
+
+    // Slight hack: effectively, both muDenominator and mDenominator would return the same
+    // results for the values p=0 and q=0, so instead of making a second function call,
+    // we just re-use the result.
+    let muDenominator = mDenominator;
+
+    let eta20 = calculateEta(nodes, centroidX, centroidY, muDenominator, 2, 0);
+    let eta02 = calculateEta(nodes, centroidX, centroidY, muDenominator, 0, 2);
+    let eta11 = calculateEta(nodes, centroidX, centroidY, muDenominator, 1, 1);
+    let eta30 = calculateEta(nodes, centroidX, centroidY, muDenominator, 3, 0);
+    let eta12 = calculateEta(nodes, centroidX, centroidY, muDenominator, 1, 2);
+    let eta03 = calculateEta(nodes, centroidX, centroidY, muDenominator, 0, 3);
+    let eta21 = calculateEta(nodes, centroidX, centroidY, muDenominator, 2, 1);
+
+    h1 = eta20 + eta02;
+
+    h2 = Math.pow(
+                (eta20 - eta02)
+                , 2
+            ) + 
+            4 * Math.pow(
+                eta11
+                , 2
+            );
+
+    h3 = Math.pow(
+                (eta30 - 3 * eta12)
+                , 2
+            ) + 
+            Math.pow(
+                (3 * eta21 - eta03)
+                , 2
+            );
+
+    h4 = Math.pow(
+                (eta30 + eta12)
+                , 2
+            ) + 
+            Math.pow(
+                (eta21 + eta03)
+                , 2
+            );
+
+    h5 = (eta30 - 3 * eta12) * 
+            (eta30 + eta12) * 
+            (
+                Math.pow(
+                    (eta30 + eta12)
+                    , 2
+                ) - 
+                3 * Math.pow(
+                    (eta21 + eta03)
+                    , 2
+                )
+            ) +
+            (3 * eta21 - eta03) * 
+            (eta21 + eta03) * 
+            (
+                3 * Math.pow(
+                    (eta30 + eta12)
+                    , 2
+                ) - 
+                Math.pow(
+                    (eta21 + eta03)
+                    , 2
+                )
+            );
+
+    h6 = (eta20 - eta02) * 
+            (
+                Math.pow(
+                    (eta30 + eta12)
+                    , 2
+                ) - 
+                Math.pow(
+                    (eta21 + eta03)
+                    , 2
+                )
+            ) +
+            4 * eta11 * 
+            (eta30 + eta12) * 
+            (eta21 + eta03);
+
+    h7 = (3 * eta21 - eta03) * 
+            (eta30 + eta12) * 
+            (
+                Math.pow(
+                    (eta30 + eta12)
+                    , 2
+                ) - 
+                3 * Math.pow(
+                    (eta21 + eta03)
+                    , 2
+                )
+            ) -
+            (eta30 - 3 * eta12) * 
+            (eta21 + eta03) * 
+            (
+                3 * Math.pow(
+                    (eta30 + eta12)
+                    , 2
+                ) - 
+                Math.pow(
+                    (eta21 + eta03)
+                    , 2
+                )
+            );
+  }
+
+  let moments = [h1, h2, h3, h4, h5, h6, h7];
+
+  // Prevents moments being displayed in scientific notation
+  // Also removes any trailing 0s at the end
+  moments = moments.map((m) => { 
+    let temp = m.toFixed(30);
+    let i = temp.length - 1;
+    for (i; i >= 0; i--) {
+      if (temp.charAt(i) !== '0') break;
+    }
+    if (temp.charAt(i) === '.') i--;
+    return temp.slice(0, i + 1);
+  }); 
+  return moments;
+}
+
+export {createMaxDistanceQuery, createMinDistanceQuery, createNoOverlappingQuery, createTagsQuery, calculateBounds, calculateHuMoments}

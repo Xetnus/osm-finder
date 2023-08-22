@@ -26,13 +26,14 @@
         for (let i = 0; i < uniquePairs.length; i++) {
           const intersection = calculateIntersection(uniquePairs[i].first.points, uniquePairs[i].second.points);
           if (intersection && intersection.intersects) {
-            intersections.push([uniquePairs[i].first, uniquePairs[i].second])
+            intersections.push([uniquePairs[i].first, uniquePairs[i].second]);
           }
 
           this.nextRelations.push([uniquePairs[i].first, uniquePairs[i].second]);
         }
 
         const nodes = this.anns.filter(a => a.geometryType === 'node');
+        const shapes = this.anns.filter(a => a.geometryType === 'shape');
         let disjointLines = this.anns.filter(a => a.geometryType === 'linestring');
 
         for (let i = 0; i < intersections.length; i++) {
@@ -47,6 +48,20 @@
             this.nextRelations.push([nodes[i], disjointLines[k]]);
           }
         }
+
+        // Generates relations between nodes and shapes
+        for (let i = 0; i < nodes.length; i++) {
+          for (let k = 0; k < shapes.length; k++) {
+            this.nextRelations.push([nodes[i], shapes[k]]);
+          }
+        }
+
+        // Generates relations between disjoint lines and shapes
+        for (let i = 0; i < disjointLines.length; i++) {
+          for (let k = 0; k < shapes.length; k++) {
+            this.nextRelations.push([disjointLines[i], shapes[k]]);
+          }
+        }
         
         // Generates relations between nodes and intersections
         for (let i = 0; i < nodes.length; i++) {
@@ -58,16 +73,35 @@
           }
         }
 
+        // Generates relations between shapes and intersections
+        for (let i = 0; i < shapes.length; i++) {
+          for (let k = 0; k < intersections.length; k++) {
+            this.nextRelations.push([
+              shapes[i],
+              [intersections[k][0], intersections[k][1]]
+            ]);
+          }
+        }
+
         // Generates relations between each node
         const nodePairs = getUniquePairs(nodes);
         for (let i = 0; i < nodePairs.length; i++) {
           this.nextRelations.push([nodePairs[i].first, nodePairs[i].second]);
         }
 
+        // Generates relations between each shape
+        const shapePairs = getUniquePairs(shapes);
+        for (let i = 0; i < shapePairs.length; i++) {
+          this.nextRelations.push([shapePairs[i].first, shapePairs[i].second]);
+        }
+
         this.handleNext();
       } else {
         this.handleBack();
       }
+    },
+    mounted() {
+      window.addEventListener('keydown', this.keyDownListener);
     },
     computed: {
       // Enables the angle inputs if both annotations are of type linestring
@@ -109,6 +143,14 @@
       },
     },
     methods: {
+      keyDownListener(event) {
+        if (event.key === 'ArrowRight') {
+          this.handleNext();
+        } else if (event.key === 'ArrowLeft') {
+          this.handleBack();
+        }
+      },
+
       handleNext(event) {
         if (this.current1 && this.current2) {
           this.saveRelationships();
@@ -116,6 +158,7 @@
         }
 
         if (this.nextRelations.length == 0) {
+          document.removeEventListener('keydown', this.keyDownListener);
           this.$emit('annotationsChange', this.anns);
           this.$emit('relationsHistoryChange', this.relationsHistory);
           this.$emit('next');
@@ -137,6 +180,7 @@
         }
         
         if (this.relationsHistory.length == 0) {
+          document.removeEventListener('keydown', this.keyDownListener);
           this.showAll();
           this.$emit('relationsHistoryChange', []);
           this.$emit('back');
@@ -229,19 +273,51 @@
 </script>
 
 <template>
-  <p class="input-title">Relationship between {{current1.name}} and {{getReadableName(current2)}}</p>
-  <div class="input-bar-flex">
+  <p v-if="anns.length > 1" class="input-title">Relationship between {{current1.name}} and {{getReadableName(current2)}}</p>
+  <div v-if="anns.length > 1" class="input-bar-flex">
     <q-btn @click="handleBack" label="Back" color="primary"/>
-    <q-input v-bind="distanceProps" class="property-input" v-model.number="maxDistance" type="number" outlined label="Max distance (m)"/>
-    <q-input v-bind="distanceProps" class="property-input" v-model.number="minDistance" type="number" outlined label="Min distance (m)"/>
-    <q-input v-bind="angleProps" class="property-input" v-model.number="angle" type="number" outlined label="Angle"/>
-    <q-input v-bind="angleProps" class="property-input" v-model.number="error" type="number" outlined label="Angle Error"/>
+    <q-input class="property-input" outlined label="Min distance" stack-label
+      v-bind="distanceProps"
+      type="number"
+      v-model.number="minDistance" 
+    >
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Minimum distance between the objects in metres (optional)
+      </q-tooltip>
+    </q-input>
+    <q-input class="property-input" outlined label="Max distance" stack-label
+      v-bind="distanceProps"
+      type="number"
+      v-model.number="maxDistance" 
+    >
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Maximum distance between the objects in metres (strongly recommended)
+      </q-tooltip>
+    </q-input>
+    <q-input class="property-input" outlined label="Angle" stack-label
+      v-bind="angleProps"
+      type="number"
+      v-model.number="angle" 
+    >
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Angle between the objects (optional)
+      </q-tooltip>
+    </q-input>
+    <q-input class="property-input" outlined label="Angle Error" stack-label
+      v-bind="angleProps"
+      type="number"
+      v-model.number="error" 
+    >
+      <q-tooltip class="bg-secondary text-body2" anchor="top middle" self="bottom middle" :offset="[10, 10]" :delay="600">
+        Estimated error of the angle between the objects (optional)
+      </q-tooltip>
+    </q-input>
     <q-btn @click="handleNext" label="Next" color="primary"/>
   </div>
 </template>
 
 <style scoped>
   .property-input {
-    max-width: 15%;
+    max-width: 150px;
   }
 </style>
